@@ -1,0 +1,58 @@
+{
+  "simulated": true,
+  "resources": {
+    "vpn": {
+      "accounts": {
+        "alice": {
+          "client_events": [
+            {
+              "id": "c-old",
+              "text": "2026-09-29 09:00 certificate has expired; session_ref=session-old",
+              "session_ref": "session-old"
+            },
+            {
+              "id": "c-current",
+              "text": "2026-09-29 10:30 证书已在上午更新，10:30 的隧道已成功建立，但门户仍打不开。 session_ref=session-731",
+              "session_ref": "session-731"
+            }
+          ],
+          "sessions": {
+            "session-old": [
+              {
+                "id": "g-old",
+                "text": "09:00 VERIFY ERROR: certificate has expired; pre-renewal session."
+              }
+            ],
+            "session-731": [
+              {
+                "id": "g-current",
+                "text": "2026-09-29 10:30 current TLS verification passed; portal.corp.test returns NXDOMAIN; direct request to 10.21.1.8 succeeds."
+              }
+            ]
+          }
+        }
+      }
+    },
+    "erp": {
+      "accounts": {
+        "alice": {
+          "client_events": [
+            {
+              "id": "c-current",
+              "text": "2026-09-29 10:30 登录没有问题，打开报表一直转圈。 session_ref=session-731",
+              "session_ref": "session-731"
+            }
+          ],
+          "sessions": {
+            "session-731": [
+              {
+                "id": "g-current",
+                "text": "2026-09-29 10:30 健康探针的 SQL 往返是 4 毫秒；这次报表请求尚未进入 SQL 执行阶段，一直在等待应用侧归还一个可复用的数据库连接，三十秒后等待到期。"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,42 @@
+[
+  {
+    "id": "kb-v01",
+    "resource": "vpn",
+    "text": "VPN 排障规程：隧道已建立，企业服务的 IP 地址可达，而同一服务的域名解析失败时，应检查 VPN 下发的 DNS 与域名后缀设置。不能仅凭连接超时认定 DNS 故障。向网络支持组附上当前会话的解析查询结果及直接 IP 连通性证据。关键词 DNS NXDOMAIN name resolution resolver."
+  },
+  {
+    "id": "kb-v02",
+    "resource": "vpn",
+    "text": "VPN 排障规程：隧道建立后，如果目标企业网段被本地直连路由覆盖，或预期企业路由未安装，先核查路由表与 split tunneling 配置，交网络支持组。DNS 正常不能排除路由问题。route-nopull 会阻止接受服务端推送的路由等选项；仅见该配置名、但当前路由正常，不构成故障证据。关键词 route routing subnet overlap prefix route-nopull."
+  },
+  {
+    "id": "kb-v03",
+    "resource": "vpn",
+    "text": "VPN 排障规程：TLS 连接需检查证书验证记录。若当前验证时刻超出证书 notBefore/notAfter 有效区间，先核对客户端时钟及证书更新状态，交终端支持；不得直接断定密码错误，也不应自动更换证书。历史证书报错若已更新成功，不能解释新的网络故障。关键词 TLS certificate validity expired notAfter notBefore verify."
+  },
+  {
+    "id": "kb-e01",
+    "resource": "erp",
+    "text": "ERP 排障规程：浏览器 504 或请求超时并不足以判定数据库慢。若对应服务端请求等待连接池空闲连接而超时，且同时间数据库健康查询迅速完成，优先由应用运维核查连接释放、连接池上限与请求并发；不能据此执行扩容或杀进程。关键词 pool connection wait acquire checkout timeout database health."
+  },
+  {
+    "id": "kb-e02",
+    "resource": "erp",
+    "text": "ERP 登录排障规程：签名验证成功不代表令牌可用于当前应用。若当前请求的 token audience 与 ERP 服务期望值不同，交身份集成支持核查应用注册、环境及回调配置。密码重置不能纠正 audience 不匹配；若 audience 验证已通过，不要套用该规程。关键词 token audience aud relying party recipient signature login 401."
+  },
+  {
+    "id": "kb-e03",
+    "resource": "erp",
+    "text": "ERP 排障规程：同一请求的数据库事务出现循环等待并被回滚，属于需要应用与数据库支持共同核查的事务锁竞争线索。应附会话标识、被回滚事务及锁等待关系，核查事务访问顺序与重试策略。单独出现 lock 或历史死锁告警不足以支持当前事务判断，不能自动重放用户写操作。关键词 deadlock transaction circular wait rollback lock cycle victim."
+  },
+  {
+    "id": "kb-v00",
+    "resource": "vpn",
+    "text": "VPN 故障初步调查：用户仅报告连接失败或超时时，请先取得当前客户端事件和关联会话标识；若隧道状态、解析或路由证据尚未取得，不能确定原因。网络故障处理必须保留时间与会话信息。"
+  },
+  {
+    "id": "kb-e00",
+    "resource": "erp",
+    "text": "ERP 故障初步调查：系统打不开、报错、504 或 401 只是表象。需要关联当前请求 trace 或 session 的应用日志和支持规程；证据不足时保留未知并请求人工补采日志。"
+  }
+]

@@ -1,0 +1,5 @@
+{
+  "erp": {"name": "ERP", "aliases": ["ERP"], "permissions": ["use"]},
+  "vpn": {"name": "VPN", "aliases": ["VPN", "内网"], "permissions": ["use"]},
+  "reports_db": {"name": "报表数据库", "aliases": ["报表数据库", "报表库", "生产报表库", "reports_db"], "permissions": ["read_only"]}
+}

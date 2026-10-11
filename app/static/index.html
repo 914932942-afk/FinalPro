@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IT 服务工作台</title><link rel="stylesheet" href="/static/app.css"><script src="/static/app.js" defer></script></head>
+<body>
+<header><div class="brand"><span class="mark">IT</span><div><strong>服务与证据工作台</strong><small>受理 · 调查 · 人工交接</small></div></div><div class="account"><span id="identity">未连接身份</span><button id="logout" class="quiet" hidden>切换身份</button><a href="/docs" target="_blank" rel="noopener">接口文档 ↗</a></div></header>
+<main>
+<section id="login" class="welcome"><div><div class="eyebrow">IT SERVICE AGENT</div><h1>把问题交给流程，<br>让每一步都有依据。</h1><p>从模糊描述到可核查的调查建议。查看处理进度、补充信息，并把证据完整交给处理人。</p><div class="intro-grid"><article><b>01</b><h3>描述诉求</h3><p>先澄清必要信息，敏感动作需确认与审批。</p></article><article><b>02</b><h3>循证调查</h3><p>关联当前会话与适用规程，保留引用和不确定性。</p></article><article><b>03</b><h3>交接闭环</h3><p>独立处理人核查反馈，区分建议采纳与问题解决。</p></article></div></div><form id="connect" class="panel login-card"><h2>连接演示身份</h2><p>使用本机预置身份的 API Key。身份与权限由服务端确认。</p><label for="api-key">API Key</label><input id="api-key" type="password" required minlength="32" autocomplete="off" placeholder="粘贴当前演示用户的 Key"><button type="submit">连接工作台</button><small>Key 仅保留在页面内存，刷新后需重新输入。页面不提供角色自选或默认管理员口令。</small></form></section>
+<div id="notice" role="status" aria-live="polite" hidden></div>
+<section id="workspace" hidden>
+<div class="page-heading"><div><div class="eyebrow">WORKBENCH</div><h1>我的服务工单</h1><p id="runtime">正在读取运行模式…</p></div><button id="new-ticket">＋ 新建工单</button></div>
+<div class="boundary">演示环境 · 日志与业务对象为模拟数据。完成受理或生成报告，不等于外部故障已解决。</div>
+<div class="layout"><aside class="panel tickets"><div class="section-top"><h2>可访问工单</h2><button id="refresh" class="quiet">刷新</button></div><label for="filter" class="sr-only">筛选状态</label><select id="filter"><option value="">全部状态</option><option value="awaiting_clarification">待补充 / 确认</option><option value="awaiting_approval">待审批</option><option value="awaiting_investigation">调查排队</option><option value="investigating">调查中</option><option value="manual_review">待人工核查</option><option value="closed">已交付</option><option value="failed">流程停止</option></select><div id="ticket-list"></div><button id="more" class="quiet" hidden>加载更多</button></aside>
+<section id="detail" class="detail"><div class="panel empty"><h2>选择一张工单</h2><p>左侧仅显示你有权访问的工单。也可以从新建工单开始。</p></div></section></div>
+</section>
+</main>
+<dialog id="create-dialog"><form id="create-form"><div class="section-top"><h2>新建服务工单</h2><button type="button" id="close-create" class="quiet">关闭</button></div><p>请描述现在遇到的问题或需要的权限，不确定的信息可以在后续补充。</p><label for="title">标题</label><input id="title" required maxlength="300" placeholder="例如 ERP 页面一直等待"><label for="description">问题描述</label><textarea id="description" required maxlength="10000" rows="5" placeholder="说明资源、当前现象、发生时间，以及之前是否正常使用。"></textarea><label for="severity">影响级别</label><select id="severity"><option value="medium">一般</option><option value="low">较低</option><option value="high">较高</option><option value="critical">严重</option></select><p id="pending-note" class="muted">请求会绑定一个固定提交标识，重复点击不会主动更换标识。</p><div id="create-error" role="alert"></div><button id="submit-ticket" type="submit">提交工单</button></form></dialog>
+<footer>IT 服务 Agent · 可信身份与受限执行 · 只读调查与证据交接</footer>
+</body></html>

@@ -1,0 +1,22 @@
+# Local secrets and runtime state
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.idea/
+tmp/
+
+# Generated data and model caches
+data/agent.db*
+data/auth.json
+data/auth.keys.json
+data/demo_service.db*
+data/demo_service.key
+data/*.db.locks/
+data/chroma/
+data/models/
+data/evaluations/*
+!data/evaluations/.gitkeep
+
+# Build artifacts
+*.egg-info/
