@@ -1,0 +1,12 @@
+[
+  {"id":"reset_explicit","title":"密码重置","description":"请帮我重置本人账号密码","status":"closed","plan":{"action":"reset_password","account":"alice","resource":"self_account","permission":null}},
+  {"id":"access_ambiguous_existing","title":"ERP 提示没有权限","description":"帮我处理一下","answers":{"previous_access":"以前正常，昨天还能用，今天突然报 403"},"required_questions":["previous_access"],"status":"closed","plan":{"action":"open_incident","account":"alice","resource":"erp","permission":null}},
+  {"id":"access_ambiguous_new","title":"ERP 提示没有权限","description":"帮我处理一下","answers":{"previous_access":"第一次使用 ERP，需要普通使用权限"},"required_questions":["previous_access"],"status":"closed","plan":{"action":"grant_access","account":"alice","resource":"erp","permission":"use"}},
+  {"id":"existing_access","title":"ERP 访问异常","description":"昨天还能用，今天报错 403","status":"closed","plan":{"action":"open_incident","account":"alice","resource":"erp","permission":null}},
+  {"id":"natural_reports","title":"办公需求","description":"报表数据库只读就够了","status":"closed","plan":{"action":"grant_access","account":"alice","resource":"reports_db","permission":"read_only"}},
+  {"id":"natural_erp","title":"新员工使用系统","description":"第一次用 ERP，麻烦给我开个普通使用的","status":"closed","plan":{"action":"grant_access","account":"alice","resource":"erp","permission":"use"}},
+  {"id":"vpn_failure","title":"VPN 连接失败","description":"连接一直超时","status":"closed","plan":{"action":"open_incident","account":"alice","resource":"vpn","permission":null}},
+  {"id":"withdrawn","title":"密码重置","description":"暂时不需要，请不要执行","status":"awaiting_clarification"},
+  {"id":"third_party","title":"重置密码","description":"账号是 bob","status":"manual_review"},
+  {"id":"vague","title":"出问题了","description":"请帮忙","status":"awaiting_clarification"}
+]

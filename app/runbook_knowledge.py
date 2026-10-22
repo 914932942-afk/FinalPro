@@ -7,6 +7,7 @@ from collections import Counter, OrderedDict
 
 from .knowledge import KnowledgeBase
 
+
 class RunbookKnowledge:
     def __init__(self, directory, *, settings, reranker=None):
         local = settings.kb_dir.parent / "models" / "bge-small-zh-v1.5"
@@ -14,10 +15,12 @@ class RunbookKnowledge:
         self.kb = KnowledgeBase(directory, settings=settings, purpose="runbook", embedding_model=embedding,
                                 reranker=reranker)
         self.strategy = settings.runbook_strategy
-
+        # BGE short-query / passage asymmetry. Do not add BGE instructions to
+        # arbitrary user-configured embedding models or to source documents.
         self.query_instruction = ("为这个句子生成表示以用于检索相关文章："
             if self.kb.model_name.replace("\\", "/").rstrip("/").split("/")[-1] == "bge-small-zh-v1.5" else "")
-
+        # Per-service caches contain derived data only. Sources always come from the
+        # caller's immutable investigation snapshot, never from these caches.
         self._vectors = OrderedDict()
         self._queries = OrderedDict()
 
@@ -27,7 +30,8 @@ class RunbookKnowledge:
         allowed = {"any"}
         if len(environments) == 1:
             allowed.update(environments)
-
+        # A deployment-specific procedure cannot be applied without observed
+        # deployment evidence. Unknown/conflicting markers retain generic docs.
         return [r for r in records if r.get("environment", "any") in allowed]
 
     @staticmethod
@@ -77,7 +81,8 @@ class RunbookKnowledge:
         return vectors, {"documents_encoded": len(missing), "document_cache_hits": len(records)-len(missing)}
 
     def _dense_ranking(self, query, records):
-
+        # Serializing lazy model load and inference also prevents duplicate loads
+        # when VPN and ERP investigations start concurrently.
         with self.kb._lock:
             vectors, cache = self._cached_vectors(records)
             query = self.query_instruction + query
@@ -155,7 +160,7 @@ class RunbookKnowledge:
             raise ValueError("unsupported runbook strategy")
         if type(limit) is not int or limit < 1:
             raise ValueError("limit must be a positive integer")
-
+        # Only explicit backend observations supply this scope, never the generated query.
         environments = set(environments)
         total = len(records)
         records = self.scope(records, environments)
@@ -204,7 +209,7 @@ class RunbookKnowledge:
                 row["rrf_score"] = round(fused[index], 8)
                 row["score"] = row["rrf_score"]
             candidates.append(row)
-
+        # 向量召回成功时复用本轮 embedding；BM25-only 不会为了可选增强偷偷下载权重。
         if self.kb.semantic_dedup_enabled and dense:
             candidates, semantic_status = self._semantic_deduplicate(candidates)
         else:
@@ -213,7 +218,7 @@ class RunbookKnowledge:
         reranked, rerank_status = self.kb._rerank(query, candidates)
         result = reranked[:limit]
         if not rerank_status.get("applied"):
-
+            # 保持旧的 RunbookKnowledge 返回契约；诊断页面通过 status 读取后处理细节。
             result = [{key: value for key, value in row.items()
                        if key not in {"snippet", "retrieval_rank", "rrf_score", "score", "_exact_identifier"}}
                       for row in result]

@@ -1,0 +1,10 @@
+# 本次验证环境的直接依赖版本；传递依赖由 pip 解析，非完整锁文件。
+fastapi==0.141.1
+pydantic-settings==2.15.0
+uvicorn==0.38.0
+langgraph==1.2.11
+chromadb==1.3.4
+sentence-transformers==5.1.2
+httpx==0.28.1
+modelscope==1.31.0
+-e .

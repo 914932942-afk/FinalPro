@@ -16,3 +16,5 @@ label{display:block;font-size:12px;font-weight:500;color:#51617b;margin:17px 0 8
 @media(min-width:761px) and (max-width:900px){.workspace-grid{grid-template-columns:1fr}.ticket-list{max-height:320px}}
 
 .login-assistance{font-size:11px;color:#8d9ab0;margin-top:12px;line-height:1.8}
+
+.overdue-text{color:#b66d18;font-size:12px;margin-top:10px;line-height:1.8}

@@ -1,0 +1,20 @@
+[
+  {"id":"negation_suffix","title":"密码重置","description":"暂时不需要，请不要执行","status":"awaiting_clarification"},
+  {"id":"negation_cross_fields","title":"不要","description":"重置密码","status":"awaiting_clarification"},
+  {"id":"withdrawn","title":"重置密码","description":"这次不用了","status":"awaiting_clarification"},
+  {"id":"withdrawn_en","title":"password reset","description":"do not proceed","status":"awaiting_clarification"},
+  {"id":"third_party_possessive","title":"Bob 的密码错误","description":"请协助处理","status":"manual_review"},
+  {"id":"third_party_field","title":"重置密码","description":"账号是 bob","status":"manual_review"},
+  {"id":"third_party_colleague","title":"重置密码","description":"这是同事的账号","status":"manual_review"},
+  {"id":"third_party_en_possessive","title":"Bob's password expired","description":"please assist","status":"manual_review"},
+  {"id":"hypothetical_question","title":"如果密码错误","description":"是否就会重置密码","status":"manual_review"},
+  {"id":"hypothetical_report","title":"假如密码过期","description":"会自动处理吗","status":"manual_review"},
+  {"id":"natural_correction","title":"可能密码错误","description":"VPN 连接失败","answers":["不是密码问题，是 VPN 连接超时，请登记故障"],"status":"closed","action":"open_incident"},
+  {"id":"two_intents","title":"申请 ERP 普通使用权限","description":"同时 ERP 报错 503","status":"awaiting_clarification"},
+  {"id":"natural_access","title":"需要查看报表数据库里的报表","description":"请给我只读权限","status":"awaiting_approval","action":"grant_access","confirm_plan":{"action":"grant_access","account":"alice","resource":"reports_db","permission":"read_only"}},
+  {"id":"password_report","title":"密码过期","description":"本人账号密码过期","status":"awaiting_clarification"},
+  {"id":"password_confirmed","title":"密码过期","description":"本人账号密码过期","status":"closed","action":"reset_password","confirm_plan":{"action":"reset_password","account":"alice","resource":"self_account","permission":null}},
+  {"id":"read_write_unsupported","title":"申请报表数据库读写权限","description":"需要写数据","status":"manual_review"},
+  {"id":"self_account","title":"重置密码","description":"账号是 alice","status":"closed","action":"reset_password","confirm_plan":{"action":"reset_password","account":"alice","resource":"self_account","permission":null}},
+  {"id":"normal_incident","title":"ERP 故障","description":"ERP 报错 503","status":"closed","action":"open_incident"}
+]

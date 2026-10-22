@@ -53,7 +53,7 @@
   }
   class PortalApp {
     constructor() {
-      this.csrf='';this.me=null;this.epoch=0;this.scope='mine';this.selected=null;this.active=null;this.pending=null;
+      this.csrf='';this.me=null;this.epoch=0;this.scope='mine';this.queue='';this.selected=null;this.active=null;this.pending=null;
       this.busy=false;this.requests=new Set();this.polling=null;this.searching=null;this.listSequence=0;this.detailSequence=0;
       this.items=[];this.offset=0;this.total=0;this.cancelTarget=null;
       document.querySelectorAll('[data-icon]').forEach(item=>item.append(icon(item.dataset.icon)));
@@ -90,6 +90,10 @@
       $('page-eyebrow').textContent=support?'SUPPORT WORKSPACE':'SERVICE REQUESTS';
       $('page-description').textContent=support?'查看权限范围内的工单，完成审批、核查和处理反馈。':'在这里查看申请进度，及时补充需要的信息。';
       $('list-title').textContent=support?'可处理工单':'工单列表';$('new-ticket').hidden=support;
+      $('support-queue-row').hidden=!support;
+      const captions=support?['全部工单','待认领','我负责的','已超时']:['全部工单','待补充 / 确认','处理中','已结束'];
+      document.querySelectorAll('.stat small').forEach((item,index)=>item.textContent=captions[index]);
+      document.querySelectorAll('.stat-trailing').forEach((item,index)=>item.textContent=(support?['全部记录','接手处理','持续跟进','需要升级']:['全部记录','需要关注','跟进进展','查看结果'])[index]);
       document.title='IT 服务中心 · '+(support?'审批与处理':'我的工单');
     }
     bind() {
@@ -100,7 +104,8 @@
       for(const id of ['nav-create','new-ticket'])$(id).onclick=()=>this.openCreate();
       $('refresh').onclick=async()=>{if(this.busy)return;try{await this.list({keep:true});if(this.selected)await this.load(this.selected);}catch(error){this.handle(error);}};
       $('filter').onchange=()=>this.list().catch(error=>this.handle(error));
-      document.querySelectorAll('.stat').forEach(item=>item.onclick=()=>{$('filter').value=item.dataset.filter;this.list().catch(error=>this.handle(error));});
+      $('support-queue').onchange=()=>{this.queue=$('support-queue').value;this.list().catch(error=>this.handle(error));};
+      document.querySelectorAll('.stat').forEach(item=>item.onclick=()=>{if(this.scope==='support'){this.queue=({'':'',action_required:'unassigned',processing:'mine',completed:'overdue'})[item.dataset.filter];$('support-queue').value=this.queue;$('filter').value='';}else $('filter').value=item.dataset.filter;this.list().catch(error=>this.handle(error));});
       $('ticket-search').oninput=()=>{clearTimeout(this.searching);this.searching=setTimeout(()=>this.list().catch(error=>this.handle(error)),300);};
       $('more').onclick=()=>this.list({append:true,keep:true}).catch(error=>this.handle(error));
       for(const id of ['close-create','cancel-create'])$(id).onclick=()=>{if(!this.busy)$('create-dialog').close();};
@@ -142,7 +147,7 @@
     }
     resetSession() {
       this.epoch++;for(const request of this.requests)request.abort();this.stopPolling();clearTimeout(this.searching);
-      this.csrf='';this.me=null;this.selected=null;this.active=null;this.pending=null;this.items=[];this.busy=false;this.cancelTarget=null;this.scope='mine';
+      this.csrf='';this.me=null;this.selected=null;this.active=null;this.pending=null;this.items=[];this.busy=false;this.cancelTarget=null;this.scope='mine';this.queue='';$('support-queue').value='';
       $('workspace').hidden=true;$('login').hidden=false;$('logout').hidden=true;$('logout').disabled=false;$('identity').hidden=true;$('identity').replaceChildren();$('nav-support').hidden=true;$('nav-count').hidden=true;
       $('username').value='';$('password').value='';$('login-error').textContent='';$('notice').hidden=true;$('ticket-search').value='';$('filter').value='';
       $('ticket-list').replaceChildren();this.emptyDetail();$('create-dialog').close();$('cancel-dialog').close();this.resetCreate();$('connect').querySelector('button').disabled=false;this.navigation();history.replaceState(null,'','/');
@@ -150,22 +155,22 @@
     async switchScope(scope) {
       if(!this.me||this.busy||scope===this.scope)return;
       if(scope==='support'&&!['manager','admin'].includes(this.me.role))return;
-      this.stopPolling();this.scope=scope;this.selected=null;this.active=null;this.items=[];this.detailSequence++;this.listSequence++;
+      this.stopPolling();this.scope=scope;this.queue='';$('support-queue').value='';this.selected=null;this.active=null;this.items=[];this.detailSequence++;this.listSequence++;
       $('filter').value='';$('ticket-search').value='';$('notice').hidden=true;this.navigation();this.emptyDetail();
       history.replaceState(null,'',scope==='support'?'/support':'/');await this.list();
     }
     async list({append=false,keep=false}={}) {
       if(!this.me)return;
-      const sequence=++this.listSequence,session=this.epoch,scope=this.scope,group=$('filter').value,query=$('ticket-search').value.trim();
+      const sequence=++this.listSequence,session=this.epoch,scope=this.scope,queue=this.queue,group=$('filter').value,query=$('ticket-search').value.trim();
       const offset=append?this.offset:0;
-      const params=new URLSearchParams({scope,limit:'30',offset:String(offset)});if(group)params.set('group',group);if(query)params.set('query',query);
+      const params=new URLSearchParams({scope,limit:'30',offset:String(offset)});if(group)params.set('group',group);if(query)params.set('query',query);if(scope==='support'&&queue)params.set('queue',queue);
       const data=await this.api('/portal/tickets?'+params);
-      if(sequence!==this.listSequence||session!==this.epoch||scope!==this.scope||group!==$('filter').value||query!==$('ticket-search').value.trim())return;
+      if(sequence!==this.listSequence||session!==this.epoch||scope!==this.scope||queue!==this.queue||group!==$('filter').value||query!==$('ticket-search').value.trim())return;
       this.items=append?[...this.items,...data.items]:data.items;this.offset=offset+data.items.length;this.total=data.total;
-      for(const name of ['total','action_required','processing','completed'])$('count-'+name).textContent=data.counts[name];
+      for(const name of ['total','action_required','processing','completed'])$('count-'+name).textContent=data.counts[this.scope==='support'?({total:'total',action_required:'unassigned',processing:'mine',completed:'overdue'})[name]:name]||0;
       const count=data.counts.action_required;$('nav-count').textContent=count;$('nav-count').hidden=!count||scope==='support';
       $('list-total').textContent=data.total+' 张';$('more').hidden=this.offset>=data.total;
-      document.querySelectorAll('.stat').forEach(item=>{item.classList.toggle('active',item.dataset.filter===group);item.setAttribute('aria-pressed',String(item.dataset.filter===group));});
+      document.querySelectorAll('.stat').forEach(item=>{const chosen=this.scope==='support'?({'':'',unassigned:'action_required',mine:'processing',overdue:'completed'})[queue]:group;item.classList.toggle('active',item.dataset.filter===chosen);item.setAttribute('aria-pressed',String(item.dataset.filter===chosen));});
       this.renderList();
       if(!keep||!this.selected) {
         const chosen=this.items.find(item=>item.id===this.selected)||this.items[0];
@@ -179,7 +184,7 @@
         item.setAttribute('aria-pressed',String(ticket.id===this.selected));
         const top=node('div',null,'ticket-row');top.append(node('small','#'+ticket.reference),node('small',formatTime(ticket.created_at,true)));
         const bottom=node('div',null,'ticket-row'),arrow=node('span',null,'ticket-arrow');arrow.append(icon('arrow'));bottom.append(badge(ticket.status),arrow);
-        item.append(top,node('strong',ticket.title));if(this.scope==='support')item.append(node('span',ticket.requester+' · '+ticket.department,'ticket-owner'));item.append(bottom);container.append(item);
+        item.append(top,node('strong',ticket.title));if(this.scope==='support')item.append(node('span',ticket.requester+' · '+ticket.department,'ticket-owner'));item.append(bottom);if(ticket.handling?.overdue)item.append(node('small','已超时 · 需经理跟进','overdue-text'));else if(this.scope==='support'&&ticket.handling?.assignee)item.append(node('small','处理人：'+ticket.handling.assignee));container.append(item);
       }
       if(!this.items.length)container.append(node('p',this.total?'继续加载以查看工单。':$('ticket-search').value||$('filter').value?'没有找到符合条件的工单。':'暂时没有工单，提交问题后会显示在这里。','empty-list'));
     }
@@ -214,7 +219,9 @@
       const status=node('div',null,'status-panel '+ticket.status.tone),symbol=node('span',null,'status-icon'),copy=node('div');symbol.append(icon(ticket.status.tone==='green'?'check':ticket.status.tone==='amber'?'info':'clock'));
       copy.append(node('h3',ticket.status.title),node('p',ticket.status.message));status.append(symbol,copy);
       const next=node('div',null,'next-action');next.append(node('strong','接下来'),node('p',ticket.status.next_action));progress.append(steps,status,next);root.append(progress);
+      if(ticket.handling?.team){const handling=card('服务跟进','user');handling.append(rows([{label:'支持组',value:ticket.handling.team},{label:'处理人',value:ticket.handling.assignee||'等待支持人员认领'},{label:'本次跟进期限',value:formatTime(ticket.handling.due_at)}]));if(ticket.handling.overdue)handling.append(node('p','已超过跟进期限，已列入经理跟进队列。','overdue-text'));root.append(handling);}
       if(this.scope==='mine'&&ticket.clarification)this.clarification(root,ticket);
+      if(this.scope==='mine'&&ticket.can_follow_up&&!ticket.clarification)this.followUpForm(root,ticket);
       if(this.scope==='support'&&ticket.clarification){const waiting=card('等待申请人补充','message');waiting.append(node('p','当前需要由申请人补充或确认信息。','muted'));if(ticket.confirmation)waiting.append(rows(ticket.confirmation));root.append(waiting);}
       const description=card('申请内容','tickets');description.append(node('p',ticket.description,'description-text'));
       const details=[...(ticket.request_details||[])];if(this.scope==='support')details.unshift({label:'申请人',value:ticket.requester},{label:'所属部门',value:ticket.department});
@@ -226,7 +233,16 @@
         for(const message of ticket.conversation){const item=node('div',null,'message '+message.role),meta=node('div',null,'message-meta');meta.append(node('strong',message.role==='user'?'申请人':'服务助手'),node('time',formatTime(message.at)));item.append(meta,node('div',message.message,'message-text'));details.append(item);}history.append(details);root.append(history);}
       if(this.scope==='mine'&&ticket.can_cancel){const foot=node('div',null,'actions');foot.append(node('span','如果已不再需要本次服务，可以撤销申请。','muted'),button('撤销工单',()=>{this.cancelTarget=ticket.id;$('cancel-form').reset();$('cancel-error').textContent='';$('cancel-dialog').showModal();},'text-button'));root.append(foot);}
     }
+    followUpForm(root,ticket,question=null) {
+      const item=card(question?'需要你补充信息':'补充故障线索','message','action-card'),form=node('form');
+      item.append(node('p',question||'有新的报错、发生时间或复现步骤？请补充在原工单中，支持人员会继续跟进。'));
+      const answer=field(form,'补充本次故障的信息',{maxLength:10000});answer.placeholder='请补充本次故障的具体情况，其他服务申请请另建工单。';
+      const actions=node('div',null,'actions'),submit=node('button','提交补充信息','primary');submit.type='submit';actions.append(submit);form.append(actions);
+      form.onsubmit=event=>{event.preventDefault();if(form.reportValidity())this.mutate('/portal/tickets/'+encodeURIComponent(ticket.id)+'/follow-up',{answer:answer.value,revision:ticket.case_revision},'故障信息已补充，将继续在原工单跟进。');};
+      item.append(form);root.append(item);
+    }
     clarification(root,ticket) {
+      if(ticket.clarification.stage==='investigation'){this.followUpForm(root,ticket,ticket.clarification.question);return;}
       const item=card(ticket.confirmation?'请确认本次申请':'需要你补充信息','message','action-card'),form=node('form');
       item.append(node('p',ticket.clarification.question));
       if(ticket.confirmation){item.append(rows(ticket.confirmation));const actions=node('div',null,'actions');actions.append(button('确认申请信息',()=>this.mutate('/portal/tickets/'+encodeURIComponent(ticket.id)+'/clarify',{answer:'确认执行',round_number:ticket.clarification.round_number},'已确认，正在继续处理。'),'primary'));item.append(actions);}
@@ -236,6 +252,9 @@
     }
     support(root,ticket) {
       const support=ticket.support,item=card('支持人员处理区','shield','support-card');item.prepend(node('div','SUPPORT ONLY · 审批与核查','support-label'));
+      if(support.can_claim){item.append(node('p','这张工单正在等待支持人员认领。认领后由你负责核查和处理。'),button('认领并开始处理',()=>this.mutate('/portal/tickets/'+encodeURIComponent(ticket.id)+'/claim',{revision:support.assignment_revision},'已认领，请继续处理这张工单。'),'primary'));}
+      if(support.can_transfer){const form=node('form',null,'subsection');form.append(node('h3','转派处理'));const candidates=(support.assignees||[]).filter(person=>person.user_id!==ticket.handling?.assignee);if(candidates.length){const target=field(form,'转派给',{choices:candidates.map(person=>[person.user_id,person.user_id+(person.role==='admin'?'（管理员）':'（经理）')])}),reason=field(form,'转派原因',{type:'text'});const submit=node('button','确认转派','secondary');submit.type='submit';const actions=node('div',null,'actions');actions.append(submit);form.append(actions);form.onsubmit=event=>{event.preventDefault();if(form.reportValidity())this.mutate('/portal/tickets/'+encodeURIComponent(ticket.id)+'/transfer',{assignee:target.value,revision:support.assignment_revision,reason:reason.value},'已转派给新的处理人。');};item.append(form);}}
+      if(support.can_request_info){const form=node('form',null,'subsection');form.append(node('h3','向申请人补充确认'));const fact=field(form,'需要补充的信息',{choices:[['occurred_at','故障开始时间'],['symptom','具体表现和报错'],['reproduction','复现步骤'],['previous_access','之前是否正常使用']]}),submit=node('button','请求用户补充','secondary');submit.type='submit';const actions=node('div',null,'actions');actions.append(submit);form.append(actions);form.onsubmit=event=>{event.preventDefault();this.mutate('/portal/tickets/'+encodeURIComponent(ticket.id)+'/request-info',{field:fact.value,revision:support.assignment_revision},'已在工单中向申请人发出补充请求。');};item.append(form);}
       if(support.can_approve){item.append(node('p','请核对申请内容及权限范围，再决定是否同意本次申请。'));const actions=node('div',null,'actions');actions.append(button('同意申请',()=>this.mutate('/approvals/'+encodeURIComponent(support.approval_id),{approved:true},'审批已通过。'),'primary'),button('不予通过',()=>this.mutate('/approvals/'+encodeURIComponent(support.approval_id),{approved:false},'审批意见已提交。'),'secondary'));item.append(actions);}
       if(support.summary)item.append(node('h3','排查摘要'),node('p',support.summary));
       if(support.next_check)item.append(node('h3','建议下一步'),node('p',support.next_check));
@@ -246,7 +265,7 @@
       if(support.can_feedback){const form=node('form',null,'subsection');form.append(node('h3','记录核查结果'));const verdict=field(form,'排查建议的核查结论',{choices:[['inconclusive','仍无法确认'],['accepted','采纳建议'],['rejected','不采纳建议']]}),note=field(form,'核查说明'),evidence=field(form,'核查凭证或记录编号',{type:'text'}),resolved=field(form,'问题是否已经解决',{choices:[['unknown','尚未确认'],['no','尚未解决'],['yes','已确认解决']]});const actions=node('div',null,'actions'),submit=node('button','提交核查反馈','primary');submit.type='submit';actions.append(submit);form.append(actions);form.onsubmit=event=>{event.preventDefault();if(form.reportValidity())this.mutate('/tickets/'+encodeURIComponent(ticket.id)+'/feedback',{revision:support.feedback_revision,verdict:verdict.value,note:note.value,evidence:evidence.value,issue_resolved:resolved.value==='unknown'?null:resolved.value==='yes'},'核查反馈已记录。');};item.append(form);}
       if(support.can_resolve){const form=node('form',null,'subsection');form.append(node('h3','人工处理结果'));const outcome=field(form,'处理结果',{choices:[['resolved','已人工处理完成'],['rejected','不再继续办理']]}),note=field(form,'处理说明'),evidence=field(form,'核查凭证',{type:'text',required:false});form.append(node('p','存在未确认的执行结果时，必须填写核查凭证。','field-help'));const actions=node('div',null,'actions'),submit=node('button','确认人工结案','primary');submit.type='submit';actions.append(submit);form.append(actions);form.onsubmit=event=>{event.preventDefault();if(form.reportValidity())this.mutate('/tickets/'+encodeURIComponent(ticket.id)+'/resolve',{outcome:outcome.value,note:note.value,evidence:evidence.value},'人工处理结果已记录。');};item.append(form);}
       if(support.can_recover){const section=node('div',null,'subsection');section.append(node('p','已核查异常原因且具备继续处理条件时，可尝试恢复。系统会检查是否允许继续。'),button('检查并恢复处理',()=>this.mutate('/tickets/'+encodeURIComponent(ticket.id)+'/recover',undefined,'恢复请求已处理，请查看最新进度。'),'secondary'));item.append(section);}
-      if(!support.can_approve&&!support.summary&&!support.can_resolve&&!support.can_investigate)item.append(node('p','当前没有需要你处理的审批或核查事项。','muted'));
+      if(!support.can_claim&&!support.can_approve&&!support.summary&&!support.can_resolve&&!support.can_investigate)item.append(node('p','当前没有分配给你的处理事项。','muted'));
       for(const feedback of support.feedback)item.append(node('p',(feedback.actor||'支持人员')+'：'+feedback.note,'evidence-item'));root.append(item);
     }
     async mutate(path,body,message,onSuccess) {
@@ -270,7 +289,7 @@
         if([401,403,422].includes(error.status)){this.pending=null;for(const id of ['title','description','severity'])$(id).disabled=false;$('submit-ticket').textContent='提交工单';}
         else{$('submit-ticket').textContent='继续确认本次提交';$('pending-note').textContent='提交结果尚未确认，已保留本次内容。请保留当前页面，重试会继续确认本次提交，避免重复创建。';}}
       finally{if(session===this.epoch){this.busy=false;$('submit-ticket').disabled=false;}}
-      if(created&&session===this.epoch){try{if(this.scope!=='mine'){this.scope='mine';this.navigation();history.replaceState(null,'','/');}this.selected=created.id;$('filter').value='';$('ticket-search').value='';this.notice('工单已提交。后续进展和待补充事项会在这里更新。');await this.list({keep:true});await this.load(created.id);}catch(error){this.handle(error);}}
+      if(created&&session===this.epoch){try{if(this.scope!=='mine'){this.scope='mine';this.queue='';$('support-queue').value='';this.navigation();history.replaceState(null,'','/');}this.selected=created.id;$('filter').value='';$('ticket-search').value='';this.notice('工单已提交。后续进展和待补充事项会在这里更新。');await this.list({keep:true});await this.load(created.id);}catch(error){this.handle(error);}}
     }
   }
   new PortalApp();

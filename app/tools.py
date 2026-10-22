@@ -6,6 +6,7 @@ from .knowledge import KnowledgeBase
 from .models import ActionResult, Ticket
 from .model_adapter import ALLOWED_ACTIONS
 
+
 class EnterpriseTools:
     def __init__(self, kb: KnowledgeBase, audit: AuditStore, adapter: ActionAdapter | None = None):
         self.kb, self.audit = kb, audit
@@ -13,7 +14,7 @@ class EnterpriseTools:
 
     @staticmethod
     def action_key(ticket: Ticket, action: str) -> str:
-
+        # 客户端键原样传给下游；无客户端键时才生成本地稳定键。
         return ticket.idempotency_key or f"tool:{ticket.id}:{action}"
 
     def execute_action(self, ticket: Ticket, action: str) -> ActionResult:
@@ -24,7 +25,7 @@ class EnterpriseTools:
             try:
                 result = self._execute_action(ticket, action, idempotency_key=key)
             except ActionRejectedError as exc:
-
+                # 明确拒绝是终态，可以缓存；未知异常保留 operations.pending。
                 result = ActionResult(action, "rejected", exc.public_message, key, error=exc.info())
             if not isinstance(result, ActionResult) or result.action != action or result.idempotency_key != key:
                 raise ToolResultError()
@@ -36,7 +37,7 @@ class EnterpriseTools:
             payload["diagnostic_report"] = ticket.diagnostic_report
         raw = self.audit.once(key, payload, perform, ticket_id=ticket.id, kind="tool")
         if isinstance(raw, str):
-
+            # 旧版工具 ledger 保存字符串，读取兼容且绝不再调用下游。
             return ActionResult(action, "succeeded", raw, key, simulated=True)
         try:
             result = ActionResult.from_dict(raw)
@@ -50,7 +51,7 @@ class EnterpriseTools:
         return self.adapter.execute(ticket, action, idempotency_key=idempotency_key)
 
     def attach_evidence(self, ticket):
-        key = f"evidence:{ticket.id}:v1"
+        key = f"evidence:{ticket.id}:v{max(ticket.investigation_attempt, 1)}"
         def perform():
             result = self.adapter.attach_evidence(ticket, idempotency_key=key)
             if (not isinstance(result, ActionResult) or result.action != "attach_evidence"

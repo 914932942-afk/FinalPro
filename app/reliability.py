@@ -10,6 +10,7 @@ from .errors import AgentError, IdempotencyConflict, OperationPending, CircuitOp
 
 T = TypeVar("T")
 
+
 @dataclass
 class CircuitBreaker:
     failure_threshold: int = 3
@@ -55,7 +56,7 @@ class CircuitBreaker:
                         self._opened_at = time.monotonic()
                         self._generation += 1
                     elif not counted and self._opened_at is not None:
-
+                        # 半开探测得到业务拒绝，不能宣称依赖恢复，等待下一探测窗口。
                         self._opened_at = time.monotonic()
             raise
         with self._lock:

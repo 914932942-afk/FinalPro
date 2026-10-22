@@ -1,0 +1,605 @@
+{
+  "scope": "Self-authored new validation queries created after candidate selection. Not independently collected enterprise data. Do not tune on these results. Grounded handoff requires the applicable target procedure AND current log citations; generic safe advice is scored separately.",
+  "cases": [
+    {
+      "id": "v3-01",
+      "group": "paraphrase",
+      "split": "post_selection_validation",
+      "resource": "vpn",
+      "query": "这个地址用数字输入是好的，换成人能记住的名字就提示不存在",
+      "request": "请调查当前 VPN 事件：这个地址用数字输入是好的，换成人能记住的名字就提示不存在",
+      "expected_runbook": "kb-v01",
+      "logs": [
+        {
+          "id": "log-v3-01",
+          "kind": "log",
+          "text": "本次远程通道在线，目标服务器数字地址可访问，但同一服务器的名称查询返回主机不存在。"
+        }
+      ],
+      "required_topics": [
+        "解析",
+        "网络"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": true
+    },
+    {
+      "id": "v3-02",
+      "group": "paraphrase",
+      "split": "post_selection_validation",
+      "resource": "vpn",
+      "query": "家里的地址段和单位撞号，包没走远程通道",
+      "request": "请调查当前 VPN 事件：家里的地址段和单位撞号，包没走远程通道",
+      "expected_runbook": "kb-v02",
+      "logs": [
+        {
+          "id": "log-v3-02",
+          "kind": "log",
+          "text": "当前域名查询正常；访问公司地址时客户端匹配到本地家庭直连网段，数据从家庭网卡发出。"
+        }
+      ],
+      "required_topics": [
+        "路由",
+        "网络"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": true
+    },
+    {
+      "id": "v3-03",
+      "group": "paraphrase",
+      "split": "post_selection_validation",
+      "resource": "vpn",
+      "query": "握手验日期没过，显示设备上的日期比凭据允许的最后一天晚",
+      "request": "请调查当前 VPN 事件：握手验日期没过，显示设备上的日期比凭据允许的最后一天晚",
+      "expected_runbook": "kb-v03",
+      "logs": [
+        {
+          "id": "log-v3-03",
+          "kind": "log",
+          "text": "当前连接在证书校验处中断，客户端记录验证时刻晚于证书截止日期，尚未核对客户端时钟。"
+        }
+      ],
+      "required_topics": [
+        "时钟",
+        "证书"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": true
+    },
+    {
+      "id": "v3-04",
+      "group": "paraphrase",
+      "split": "post_selection_validation",
+      "resource": "erp",
+      "query": "报表根本还没开始查数据，一直等别人把连接用完还回来",
+      "request": "请调查当前 ERP 事件：报表根本还没开始查数据，一直等别人把连接用完还回来",
+      "expected_runbook": "kb-e01",
+      "logs": [
+        {
+          "id": "log-v3-04",
+          "kind": "log",
+          "text": "当前请求从应用连接池借用连接，等待三十秒仍未获得，SQL 尚未执行；同时一条健康查询成功。"
+        }
+      ],
+      "required_topics": [
+        "连接",
+        "并发"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": true
+    },
+    {
+      "id": "v3-05",
+      "group": "paraphrase",
+      "split": "post_selection_validation",
+      "resource": "erp",
+      "query": "登录票据是真的，却是开给另一个应用收的",
+      "request": "请调查当前 ERP 事件：登录票据是真的，却是开给另一个应用收的",
+      "expected_runbook": "kb-e02",
+      "logs": [
+        {
+          "id": "log-v3-05",
+          "kind": "log",
+          "text": "本次凭据签名校验通过；它声明的接收应用是旧版财务，当前 ERP 只接受新版财务标识，登录被拒绝。"
+        }
+      ],
+      "required_topics": [
+        "身份",
+        "应用"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": true
+    },
+    {
+      "id": "v3-06",
+      "group": "paraphrase",
+      "split": "post_selection_validation",
+      "resource": "erp",
+      "query": "甲要乙的锁乙又要甲的锁，最后一笔被撤销",
+      "request": "请调查当前 ERP 事件：甲要乙的锁乙又要甲的锁，最后一笔被撤销",
+      "expected_runbook": "kb-e03",
+      "logs": [
+        {
+          "id": "log-v3-06",
+          "kind": "log",
+          "text": "当前业务事务甲、乙互相持有对方等待的记录锁，形成环路，数据库将事务乙回滚。"
+        }
+      ],
+      "required_topics": [
+        "锁",
+        "事务"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": true
+    },
+    {
+      "id": "v3-07",
+      "group": "exact",
+      "split": "post_selection_validation",
+      "resource": "vpn",
+      "query": "NXDOMAIN despite established tunnel and successful IP probe",
+      "request": "请调查当前 VPN 事件：NXDOMAIN despite established tunnel and successful IP probe",
+      "expected_runbook": "kb-v01",
+      "logs": [
+        {
+          "id": "log-v3-07",
+          "kind": "log",
+          "text": "当前会话的隧道建立、IP 连通性均正常，同一目标服务的 DNS 查询结果是 NXDOMAIN。"
+        }
+      ],
+      "required_topics": [
+        "解析",
+        "网络"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": false
+    },
+    {
+      "id": "v3-08",
+      "group": "exact",
+      "split": "post_selection_validation",
+      "resource": "vpn",
+      "query": "split tunneling route-nopull missing corporate prefix",
+      "request": "请调查当前 VPN 事件：split tunneling route-nopull missing corporate prefix",
+      "expected_runbook": "kb-v02",
+      "logs": [
+        {
+          "id": "log-v3-08",
+          "kind": "log",
+          "text": "当前隧道已建立且名称解析成功，客户端启用 route-nopull，企业前缀路由确实未安装。"
+        }
+      ],
+      "required_topics": [
+        "路由",
+        "网络"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": false
+    },
+    {
+      "id": "v3-09",
+      "group": "exact",
+      "split": "post_selection_validation",
+      "resource": "vpn",
+      "query": "TLS verify error notBefore is tomorrow",
+      "request": "请调查当前 VPN 事件：TLS verify error notBefore is tomorrow",
+      "expected_runbook": "kb-v03",
+      "logs": [
+        {
+          "id": "log-v3-09",
+          "kind": "log",
+          "text": "当前客户端日期为 2026-09-29，证书 notBefore=2026-09-30，TLS 验证失败，未核实终端时钟是否准确。"
+        }
+      ],
+      "required_topics": [
+        "时钟",
+        "证书"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": false
+    },
+    {
+      "id": "v3-10",
+      "group": "exact",
+      "split": "post_selection_validation",
+      "resource": "erp",
+      "query": "acquire pool wait timeout but one health SELECT completed",
+      "request": "请调查当前 ERP 事件：acquire pool wait timeout but one health SELECT completed",
+      "expected_runbook": "kb-e01",
+      "logs": [
+        {
+          "id": "log-v3-10",
+          "kind": "log",
+          "text": "当前请求等待连接池三十秒后超时，没有开始业务 SQL；同一时间一个 SELECT 健康检查成功，其余查询性能未知。"
+        }
+      ],
+      "required_topics": [
+        "连接",
+        "并发"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": false
+    },
+    {
+      "id": "v3-11",
+      "group": "exact",
+      "split": "post_selection_validation",
+      "resource": "erp",
+      "query": "signature OK, audience rejected for current relying party",
+      "request": "请调查当前 ERP 事件：signature OK, audience rejected for current relying party",
+      "expected_runbook": "kb-e02",
+      "logs": [
+        {
+          "id": "log-v3-11",
+          "kind": "log",
+          "text": "本次 ERP 的 token 签名通过，但 audience 与当前 relying party 不匹配，认证拒绝。"
+        }
+      ],
+      "required_topics": [
+        "身份",
+        "应用"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": false
+    },
+    {
+      "id": "v3-12",
+      "group": "exact",
+      "split": "post_selection_validation",
+      "resource": "erp",
+      "query": "circular transaction lock waits victim abort",
+      "request": "请调查当前 ERP 事件：circular transaction lock waits victim abort",
+      "expected_runbook": "kb-e03",
+      "logs": [
+        {
+          "id": "log-v3-12",
+          "kind": "log",
+          "text": "当前数据库记录 T9 与 T10 循环等待彼此持有的锁，T10 被选为 victim 并回滚。"
+        }
+      ],
+      "required_topics": [
+        "锁",
+        "事务"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": false
+    },
+    {
+      "id": "v3-13",
+      "group": "environment",
+      "split": "post_selection_validation",
+      "resource": "erp",
+      "query": "等不到连接但探针没超时，应交哪组补哪些观测",
+      "request": "请调查当前 ERP 事件：等不到连接但探针没超时，应交哪组补哪些观测",
+      "expected_runbook": "kb-e04",
+      "logs": [
+        {
+          "id": "log-v3-13",
+          "kind": "log",
+          "text": "deployment=cloud-proxy; 当前业务借用连接等待到期，同时一条数据库健康探针完成；其他业务 SQL 尚未测量。"
+        }
+      ],
+      "required_topics": [
+        "租约",
+        "平台"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": true
+    },
+    {
+      "id": "v3-14",
+      "group": "environment",
+      "split": "post_selection_validation",
+      "resource": "erp",
+      "query": "连接借用排队到期，检查材料应怎么交接",
+      "request": "请调查当前 ERP 事件：连接借用排队到期，检查材料应怎么交接",
+      "expected_runbook": "kb-e05",
+      "logs": [
+        {
+          "id": "log-v3-14",
+          "kind": "log",
+          "text": "deployment=classic-direct; 当前报表无法取得可用连接，借用等待超时；同时间数据库健康查询成功。"
+        }
+      ],
+      "required_topics": [
+        "借还",
+        "应用"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": true
+    },
+    {
+      "id": "v3-15",
+      "group": "environment",
+      "split": "post_selection_validation",
+      "resource": "vpn",
+      "query": "名字找不到但是数字地址通，要联系哪方提供什么记录",
+      "request": "请调查当前 VPN 事件：名字找不到但是数字地址通，要联系哪方提供什么记录",
+      "expected_runbook": "kb-v04",
+      "logs": [
+        {
+          "id": "log-v3-15",
+          "kind": "log",
+          "text": "endpoint=managed-terminal; 当前隧道已连通，目标 IP 可达但目标企业域名解析失败。"
+        }
+      ],
+      "required_topics": [
+        "策略",
+        "修订"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": true
+    },
+    {
+      "id": "v3-16",
+      "group": "environment",
+      "split": "post_selection_validation",
+      "resource": "vpn",
+      "query": "公司服务数字地址可达，名称查询失败，谁负责下一步",
+      "request": "请调查当前 VPN 事件：公司服务数字地址可达，名称查询失败，谁负责下一步",
+      "expected_runbook": "kb-v05",
+      "logs": [
+        {
+          "id": "log-v3-16",
+          "kind": "log",
+          "text": "endpoint=self-managed; 当前隧道在线，数字地址访问成功，同一目标的企业域名查询失败。"
+        }
+      ],
+      "required_topics": [
+        "后缀",
+        "网络"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": true
+    },
+    {
+      "id": "v3-17",
+      "group": "negation_history",
+      "split": "post_selection_validation",
+      "resource": "vpn",
+      "query": "早上的名字查询问题好了，这次数据发往了本地接口",
+      "request": "请调查当前 VPN 事件：早上的名字查询问题好了，这次数据发往了本地接口",
+      "expected_runbook": "kb-v02",
+      "logs": [
+        {
+          "id": "log-v3-17",
+          "kind": "log",
+          "text": "早上的名称查询故障已恢复。当前隧道正常、域名解析成功，企业网段与本地网段重合，路由命中本地接口。"
+        }
+      ],
+      "required_topics": [
+        "路由",
+        "网络"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": false
+    },
+    {
+      "id": "v3-18",
+      "group": "negation_history",
+      "split": "post_selection_validation",
+      "resource": "vpn",
+      "query": "不是过期了，日期还没到可开始使用那天",
+      "request": "请调查当前 VPN 事件：不是过期了，日期还没到可开始使用那天",
+      "expected_runbook": "kb-v03",
+      "logs": [
+        {
+          "id": "log-v3-18",
+          "kind": "log",
+          "text": "本次握手证书 notAfter 尚未到期，但验证时间早于 notBefore，日期有效性检查拒绝，终端时间未核实。"
+        }
+      ],
+      "required_topics": [
+        "时钟",
+        "证书"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": false
+    },
+    {
+      "id": "v3-19",
+      "group": "negation_history",
+      "split": "post_selection_validation",
+      "resource": "erp",
+      "query": "旧死锁已经结束，当前是等待连接归还，还没跑SQL",
+      "request": "请调查当前 ERP 事件：旧死锁已经结束，当前是等待连接归还，还没跑SQL",
+      "expected_runbook": "kb-e01",
+      "logs": [
+        {
+          "id": "log-v3-19",
+          "kind": "log",
+          "text": "历史事务锁冲突已解除。本次请求等待可复用连接直到超时，SQL 尚未发出，同时一条健康查询正常。"
+        }
+      ],
+      "required_topics": [
+        "连接",
+        "并发"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": false
+    },
+    {
+      "id": "v3-20",
+      "group": "negation_history",
+      "split": "post_selection_validation",
+      "resource": "erp",
+      "query": "并非接收方错了，登录成功之后才出现双向等锁",
+      "request": "请调查当前 ERP 事件：并非接收方错了，登录成功之后才出现双向等锁",
+      "expected_runbook": "kb-e03",
+      "logs": [
+        {
+          "id": "log-v3-20",
+          "kind": "log",
+          "text": "当前签名和 audience 验证均通过，登录成功。随后本次业务提交的两笔事务互相等锁形成环路，其中一笔被回滚。"
+        }
+      ],
+      "required_topics": [
+        "锁",
+        "事务"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": false
+    },
+    {
+      "id": "v3-21",
+      "group": "unanswerable",
+      "split": "post_selection_validation",
+      "resource": "erp",
+      "query": "导出的表格里中文全变成问号",
+      "request": "请调查当前 ERP 事件：导出的表格里中文全变成问号",
+      "expected_runbook": null,
+      "logs": [
+        {
+          "id": "log-v3-21",
+          "kind": "log",
+          "text": "当前 ERP 页面内容正常，导出文件中的中文变成问号，未采集导出组件日志，未发现登录、连接池或事务锁异常。"
+        }
+      ],
+      "required_topics": [
+        "缺少",
+        "导出"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": true
+    },
+    {
+      "id": "v3-22",
+      "group": "unanswerable",
+      "split": "post_selection_validation",
+      "resource": "vpn",
+      "query": "远程客户端图标不见了但仍然能上内网",
+      "request": "请调查当前 VPN 事件：远程客户端图标不见了但仍然能上内网",
+      "expected_runbook": null,
+      "logs": [
+        {
+          "id": "log-v3-22",
+          "kind": "log",
+          "text": "当前企业 IP 和名称访问成功，用户仅报告通知区域图标消失，未采集客户端 UI 进程信息。"
+        }
+      ],
+      "required_topics": [
+        "缺少",
+        "客户端"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": true
+    },
+    {
+      "id": "v3-23",
+      "group": "unanswerable",
+      "split": "post_selection_validation",
+      "resource": "erp",
+      "query": "发票附件的上传按钮变灰了",
+      "request": "请调查当前 ERP 事件：发票附件的上传按钮变灰了",
+      "expected_runbook": null,
+      "logs": [
+        {
+          "id": "log-v3-23",
+          "kind": "log",
+          "text": "用户只观察到发票附件上传按钮灰色，没有报错文字、请求日志或权限证据，未做任何诊断。"
+        }
+      ],
+      "required_topics": [
+        "证据",
+        "日志"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": false
+    },
+    {
+      "id": "v3-24",
+      "group": "unanswerable",
+      "split": "post_selection_validation",
+      "resource": "vpn",
+      "query": "客户端提示未知错误，本次没有其他记录",
+      "request": "请调查当前 VPN 事件：客户端提示未知错误，本次没有其他记录",
+      "expected_runbook": null,
+      "logs": [
+        {
+          "id": "log-v3-24",
+          "kind": "log",
+          "text": "未取得此次会话的握手、解析、路由与应用访问记录，只有未知错误提示，不能确定故障原因。"
+        }
+      ],
+      "required_topics": [
+        "补充",
+        "证据"
+      ],
+      "forbidden_claims": [
+        "已经修复",
+        "故障已经解决"
+      ],
+      "live": false
+    }
+  ]
+}

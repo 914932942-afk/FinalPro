@@ -5,6 +5,7 @@ from .policy import analyze_request, password_issue
 
 from .errors import ModelOutputError
 
+
 FIELD_QUESTIONS = {
     "previous_access": "您之前能正常使用这个系统，还是第一次申请使用？请说明具体情况。",
     "intent": "请说明希望完成什么操作，或遇到了什么具体问题。",
@@ -18,9 +19,11 @@ FIELD_QUESTIONS = {
     "single_resource": "一张工单只处理一个资源，请明确本次具体资源和操作。",
 }
 
+
 def is_password_reset_issue(text: str) -> bool:
     """仅把明确重置诉求或明确凭据故障交给离线密码流程。"""
     return password_issue(text) and not re.search(r"不要|不需要|不用|不是|don't|do not", text.lower())
+
 
 @dataclass
 class ClarificationDecision:
@@ -48,7 +51,7 @@ class ClarificationDecision:
 
     @property
     def question(self):
-
+        # 面向用户的问题来自受控模板，模型只能选择业务字段。
         return " ".join(FIELD_QUESTIONS[name] for name in self.missing_fields)
 
     def to_dict(self):
@@ -59,6 +62,7 @@ class ClarificationDecision:
         if not isinstance(raw, dict) or set(raw) not in ({"need_clarify", "missing_fields"}, {"need_clarify", "missing_fields", "interpretation"}):
             raise ModelOutputError("澄清输出字段无效")
         return cls(**raw)
+
 
 def check_offline(ticket, history=()):
     understanding = analyze_request(ticket, history)

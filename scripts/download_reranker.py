@@ -2,6 +2,7 @@
 import argparse
 from pathlib import Path
 
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="BAAI/bge-reranker-base")
@@ -13,6 +14,7 @@ def main() -> None:
     model = CrossEncoder(args.model, device="cpu")
     model.save(str(target))
     print(f"Saved reranker to {target.resolve()}")
+
 
 if __name__ == "__main__":
     main()

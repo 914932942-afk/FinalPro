@@ -1,0 +1,18 @@
+{
+  "scope": "由未参与当前案例设计的人员填写并锁定标签。不要根据模型输出修改答案，也不要把使用 AI 扩写的旧题标为独立企业数据。",
+  "author": "请填写编写人",
+  "label_reviewer": "请填写复核人",
+  "cases": [],
+  "case_fields": {
+    "id": "唯一编号",
+    "group": "paraphrase / environment / negation_history / unanswerable / exact",
+    "resource": "vpn 或 erp",
+    "query": "检索查询",
+    "request": "用户原始诉求",
+    "expected_runbook": "目标规程 ID 或 null",
+    "logs": [{"id": "唯一日志编号", "kind": "log", "text": "原始记录，禁止附带标准答案提示"}],
+    "required_topics": ["必须覆盖的交接主题"],
+    "forbidden_claims": ["不允许作出的结论"],
+    "live": true
+  }
+}

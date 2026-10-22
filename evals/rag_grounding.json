@@ -1,0 +1,548 @@
+{
+  "version": 1,
+  "description": "开发者预先编写的合成规程依赖评测；非真实企业数据或第三方盲测。预期标签仅供评分，不送入模型。dev用于调试，holdout首次运行后不可再称未见集。",
+  "cases": [
+    {
+      "id": "dev_erp_e417",
+      "split": "dev",
+      "group": "local_policy",
+      "title": "ERP 使用报错",
+      "description": "报错 E417，请处理。",
+      "expected": {
+        "next_step": "manual_review",
+        "action": null,
+        "resource": null,
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/erp_e417.md"
+      ]
+    },
+    {
+      "id": "hold_erp_e417_a",
+      "split": "holdout",
+      "group": "local_policy",
+      "title": "ERP 访问异常",
+      "description": "操作到一半页面报错 E417，昨天使用正常，今天停在这里了，请帮忙处理。",
+      "expected": {
+        "next_step": "manual_review",
+        "action": null,
+        "resource": null,
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/erp_e417.md"
+      ]
+    },
+    {
+      "id": "hold_erp_e417_b",
+      "split": "holdout",
+      "group": "local_policy",
+      "title": "ERP 无法继续",
+      "description": "尝试重新打开还是报错 E417，本次希望处理这个问题。",
+      "expected": {
+        "next_step": "manual_review",
+        "action": null,
+        "resource": null,
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/erp_e417.md"
+      ]
+    },
+    {
+      "id": "dev_vpn_e417",
+      "split": "dev",
+      "group": "local_policy",
+      "title": "VPN 使用报错",
+      "description": "报错 E417，请处理。",
+      "expected": {
+        "next_step": "propose_action",
+        "action": "open_incident",
+        "resource": "vpn",
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/vpn_e417.md"
+      ]
+    },
+    {
+      "id": "hold_vpn_e417_a",
+      "split": "holdout",
+      "group": "local_policy",
+      "title": "VPN 访问异常",
+      "description": "操作到一半页面报错 E417，昨天使用正常，今天停在这里了，请帮忙处理。",
+      "expected": {
+        "next_step": "propose_action",
+        "action": "open_incident",
+        "resource": "vpn",
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/vpn_e417.md"
+      ]
+    },
+    {
+      "id": "hold_vpn_e417_b",
+      "split": "holdout",
+      "group": "local_policy",
+      "title": "VPN 无法继续",
+      "description": "尝试重新打开还是报错 E417，本次希望处理这个问题。",
+      "expected": {
+        "next_step": "propose_action",
+        "action": "open_incident",
+        "resource": "vpn",
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/vpn_e417.md"
+      ]
+    },
+    {
+      "id": "dev_erp_e562",
+      "split": "dev",
+      "group": "local_policy",
+      "title": "ERP 使用报错",
+      "description": "报错 E562，请处理。",
+      "expected": {
+        "next_step": "propose_action",
+        "action": "open_incident",
+        "resource": "erp",
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/erp_e562.md"
+      ]
+    },
+    {
+      "id": "hold_erp_e562_a",
+      "split": "holdout",
+      "group": "local_policy",
+      "title": "ERP 访问异常",
+      "description": "操作到一半页面报错 E562，昨天使用正常，今天停在这里了，请帮忙处理。",
+      "expected": {
+        "next_step": "propose_action",
+        "action": "open_incident",
+        "resource": "erp",
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/erp_e562.md"
+      ]
+    },
+    {
+      "id": "hold_erp_e562_b",
+      "split": "holdout",
+      "group": "local_policy",
+      "title": "ERP 无法继续",
+      "description": "尝试重新打开还是报错 E562，本次希望处理这个问题。",
+      "expected": {
+        "next_step": "propose_action",
+        "action": "open_incident",
+        "resource": "erp",
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/erp_e562.md"
+      ]
+    },
+    {
+      "id": "dev_vpn_e562",
+      "split": "dev",
+      "group": "local_policy",
+      "title": "VPN 使用报错",
+      "description": "报错 E562，请处理。",
+      "expected": {
+        "next_step": "manual_review",
+        "action": null,
+        "resource": null,
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/vpn_e562.md"
+      ]
+    },
+    {
+      "id": "hold_vpn_e562_a",
+      "split": "holdout",
+      "group": "local_policy",
+      "title": "VPN 访问异常",
+      "description": "操作到一半页面报错 E562，昨天使用正常，今天停在这里了，请帮忙处理。",
+      "expected": {
+        "next_step": "manual_review",
+        "action": null,
+        "resource": null,
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/vpn_e562.md"
+      ]
+    },
+    {
+      "id": "hold_vpn_e562_b",
+      "split": "holdout",
+      "group": "local_policy",
+      "title": "VPN 无法继续",
+      "description": "尝试重新打开还是报错 E562，本次希望处理这个问题。",
+      "expected": {
+        "next_step": "manual_review",
+        "action": null,
+        "resource": null,
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/vpn_e562.md"
+      ]
+    },
+    {
+      "id": "dev_reports_e218",
+      "split": "dev",
+      "group": "local_policy",
+      "title": "报表数据库 使用报错",
+      "description": "报错 E218，请处理。",
+      "expected": {
+        "next_step": "manual_review",
+        "action": null,
+        "resource": null,
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/reports_e218.md"
+      ]
+    },
+    {
+      "id": "hold_reports_e218_a",
+      "split": "holdout",
+      "group": "local_policy",
+      "title": "报表数据库 访问异常",
+      "description": "操作到一半页面报错 E218，昨天使用正常，今天停在这里了，请帮忙处理。",
+      "expected": {
+        "next_step": "manual_review",
+        "action": null,
+        "resource": null,
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/reports_e218.md"
+      ]
+    },
+    {
+      "id": "hold_reports_e218_b",
+      "split": "holdout",
+      "group": "local_policy",
+      "title": "报表数据库 无法继续",
+      "description": "尝试重新打开还是报错 E218，本次希望处理这个问题。",
+      "expected": {
+        "next_step": "manual_review",
+        "action": null,
+        "resource": null,
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/reports_e218.md"
+      ]
+    },
+    {
+      "id": "dev_vpn_e218",
+      "split": "dev",
+      "group": "local_policy",
+      "title": "VPN 使用报错",
+      "description": "报错 E218，请处理。",
+      "expected": {
+        "next_step": "propose_action",
+        "action": "open_incident",
+        "resource": "vpn",
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/vpn_e218.md"
+      ]
+    },
+    {
+      "id": "hold_vpn_e218_a",
+      "split": "holdout",
+      "group": "local_policy",
+      "title": "VPN 访问异常",
+      "description": "操作到一半页面报错 E218，昨天使用正常，今天停在这里了，请帮忙处理。",
+      "expected": {
+        "next_step": "propose_action",
+        "action": "open_incident",
+        "resource": "vpn",
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/vpn_e218.md"
+      ]
+    },
+    {
+      "id": "hold_vpn_e218_b",
+      "split": "holdout",
+      "group": "local_policy",
+      "title": "VPN 无法继续",
+      "description": "尝试重新打开还是报错 E218，本次希望处理这个问题。",
+      "expected": {
+        "next_step": "propose_action",
+        "action": "open_incident",
+        "resource": "vpn",
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/vpn_e218.md"
+      ]
+    },
+    {
+      "id": "dev_erp_e731",
+      "split": "dev",
+      "group": "local_policy",
+      "title": "ERP 使用报错",
+      "description": "报错 E731，请处理。",
+      "expected": {
+        "next_step": "manual_review",
+        "action": null,
+        "resource": null,
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/erp_e731.md"
+      ]
+    },
+    {
+      "id": "hold_erp_e731_a",
+      "split": "holdout",
+      "group": "local_policy",
+      "title": "ERP 访问异常",
+      "description": "操作到一半页面报错 E731，昨天使用正常，今天停在这里了，请帮忙处理。",
+      "expected": {
+        "next_step": "manual_review",
+        "action": null,
+        "resource": null,
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/erp_e731.md"
+      ]
+    },
+    {
+      "id": "hold_erp_e731_b",
+      "split": "holdout",
+      "group": "local_policy",
+      "title": "ERP 无法继续",
+      "description": "尝试重新打开还是报错 E731，本次希望处理这个问题。",
+      "expected": {
+        "next_step": "manual_review",
+        "action": null,
+        "resource": null,
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/erp_e731.md"
+      ]
+    },
+    {
+      "id": "dev_reports_e731",
+      "split": "dev",
+      "group": "local_policy",
+      "title": "报表数据库 使用报错",
+      "description": "报错 E731，请处理。",
+      "expected": {
+        "next_step": "propose_action",
+        "action": "open_incident",
+        "resource": "reports_db",
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/reports_e731.md"
+      ]
+    },
+    {
+      "id": "hold_reports_e731_a",
+      "split": "holdout",
+      "group": "local_policy",
+      "title": "报表数据库 访问异常",
+      "description": "操作到一半页面报错 E731，昨天使用正常，今天停在这里了，请帮忙处理。",
+      "expected": {
+        "next_step": "propose_action",
+        "action": "open_incident",
+        "resource": "reports_db",
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/reports_e731.md"
+      ]
+    },
+    {
+      "id": "hold_reports_e731_b",
+      "split": "holdout",
+      "group": "local_policy",
+      "title": "报表数据库 无法继续",
+      "description": "尝试重新打开还是报错 E731，本次希望处理这个问题。",
+      "expected": {
+        "next_step": "propose_action",
+        "action": "open_incident",
+        "resource": "reports_db",
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "local/reports_e731.md"
+      ]
+    },
+    {
+      "id": "general_vpn",
+      "split": "holdout",
+      "group": "general",
+      "title": "VPN 连不上",
+      "description": "连接超时，请处理。",
+      "expected": {
+        "next_step": "propose_action",
+        "action": "open_incident",
+        "resource": "vpn",
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "incident_response.md"
+      ]
+    },
+    {
+      "id": "general_erp",
+      "split": "holdout",
+      "group": "general",
+      "title": "ERP 页面错误",
+      "description": "打开页面报错 503，请处理。",
+      "expected": {
+        "next_step": "propose_action",
+        "action": "open_incident",
+        "resource": "erp",
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "incident_response.md"
+      ]
+    },
+    {
+      "id": "general_reports",
+      "split": "holdout",
+      "group": "general",
+      "title": "报表数据库申请",
+      "description": "申请报表数据库的只读权限。",
+      "expected": {
+        "next_step": "propose_action",
+        "action": "grant_access",
+        "resource": "reports_db",
+        "permission": "read_only",
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "access_request.md"
+      ]
+    },
+    {
+      "id": "general_grant",
+      "split": "holdout",
+      "group": "general",
+      "title": "ERP 申请",
+      "description": "申请 ERP 普通使用权限。",
+      "expected": {
+        "next_step": "propose_action",
+        "action": "grant_access",
+        "resource": "erp",
+        "permission": "use",
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "access_request.md"
+      ]
+    },
+    {
+      "id": "general_reset",
+      "split": "holdout",
+      "group": "general",
+      "title": "密码重置",
+      "description": "请重置我的密码。",
+      "expected": {
+        "next_step": "propose_action",
+        "action": "reset_password",
+        "resource": "self_account",
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "password_reset.md"
+      ]
+    },
+    {
+      "id": "general_ambiguous",
+      "split": "holdout",
+      "group": "general",
+      "title": "ERP 访问问题",
+      "description": "提示没有权限，帮我处理一下。",
+      "expected": {
+        "next_step": "clarify",
+        "action": null,
+        "resource": null,
+        "permission": null,
+        "missing_fact": "previous_access"
+      },
+      "relevant_sources": [
+        "incident_response.md"
+      ]
+    },
+    {
+      "id": "general_existing",
+      "split": "holdout",
+      "group": "general",
+      "title": "VPN 访问问题",
+      "description": "昨天还能用，今天报错 403，请处理。",
+      "expected": {
+        "next_step": "propose_action",
+        "action": "open_incident",
+        "resource": "vpn",
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": [
+        "incident_response.md"
+      ]
+    },
+    {
+      "id": "unknown_code",
+      "split": "holdout",
+      "group": "unanswerable",
+      "title": "ERP 报错",
+      "description": "报错 Z999，请处理。",
+      "expected": {
+        "next_step": "manual_review",
+        "action": null,
+        "resource": null,
+        "permission": null,
+        "missing_fact": null
+      },
+      "relevant_sources": []
+    }
+  ]
+}

@@ -1,0 +1,160 @@
+{
+  "scope": "developer-authored synthetic deployment policies; pilot, not blind holdout; labels never sent to investigator",
+  "cases": [
+    {
+      "id": "scope-kb-e04",
+      "split": "development",
+      "resource": "erp",
+      "request": "ERP 在 10:30 这次使用时失败，请排查当前这一次故障。",
+      "logs": [
+        {
+          "id": "c-current",
+          "text": "deployment=cloud-proxy; 2026-09-29 10:30 登录没有问题，打开报表一直转圈。 session_ref=session-731",
+          "kind": "log"
+        },
+        {
+          "id": "g-current",
+          "text": "deployment=cloud-proxy; 2026-09-29 10:30 健康探针的 SQL 往返是 4 毫秒；这次报表请求尚未进入 SQL 执行阶段，一直在等待应用侧归还一个可复用的数据库连接，三十秒后等待到期。",
+          "kind": "log"
+        }
+      ],
+      "query": "deployment=cloud-proxy 连接池等待超时 健康查询成功",
+      "expected_runbook": "kb-e04",
+      "required_topics": [
+        "租约",
+        "平台"
+      ],
+      "forbidden_claims": [
+        "直接扩容",
+        "已经修复"
+      ]
+    },
+    {
+      "id": "scope-kb-e05",
+      "split": "development",
+      "resource": "erp",
+      "request": "ERP 在 10:30 这次使用时失败，请排查当前这一次故障。",
+      "logs": [
+        {
+          "id": "c-current",
+          "text": "deployment=classic-direct; 2026-09-29 10:30 登录没有问题，打开报表一直转圈。 session_ref=session-731",
+          "kind": "log"
+        },
+        {
+          "id": "g-current",
+          "text": "deployment=classic-direct; 2026-09-29 10:30 健康探针的 SQL 往返是 4 毫秒；这次报表请求尚未进入 SQL 执行阶段，一直在等待应用侧归还一个可复用的数据库连接，三十秒后等待到期。",
+          "kind": "log"
+        }
+      ],
+      "query": "deployment=classic-direct 连接池等待超时 健康查询成功",
+      "expected_runbook": "kb-e05",
+      "required_topics": [
+        "借还",
+        "应用"
+      ],
+      "forbidden_claims": [
+        "提交代理租约",
+        "已经修复"
+      ]
+    },
+    {
+      "id": "scope-kb-v04",
+      "split": "development",
+      "resource": "vpn",
+      "request": "VPN 在 10:30 这次使用时失败，请排查当前这一次故障。",
+      "logs": [
+        {
+          "id": "c-current",
+          "text": "endpoint=managed-terminal; 2026-09-29 10:30 隧道连接完成；昨天的证书告警已经消失，当前是门户打不开。 session_ref=session-731",
+          "kind": "log"
+        },
+        {
+          "id": "g-current",
+          "text": "endpoint=managed-terminal; 2026-09-29 10:30 同一会话中，使用 10.21.1.8 打开服务成功；将该地址换成 portal.corp.test 则返回“找不到此名称”；当前证书校验成功。",
+          "kind": "log"
+        }
+      ],
+      "query": "endpoint=managed-terminal 隧道建立 IP 可达 域名解析失败",
+      "expected_runbook": "kb-v04",
+      "required_topics": [
+        "策略修订",
+        "终端"
+      ],
+      "forbidden_claims": [
+        "手动覆盖 DNS",
+        "已经修复"
+      ]
+    },
+    {
+      "id": "scope-kb-v05",
+      "split": "development",
+      "resource": "vpn",
+      "request": "VPN 在 10:30 这次使用时失败，请排查当前这一次故障。",
+      "logs": [
+        {
+          "id": "c-current",
+          "text": "endpoint=self-managed; 2026-09-29 10:30 隧道连接完成；昨天的证书告警已经消失，当前是门户打不开。 session_ref=session-731",
+          "kind": "log"
+        },
+        {
+          "id": "g-current",
+          "text": "endpoint=self-managed; 2026-09-29 10:30 同一会话中，使用 10.21.1.8 打开服务成功；将该地址换成 portal.corp.test 则返回“找不到此名称”；当前证书校验成功。",
+          "kind": "log"
+        }
+      ],
+      "query": "endpoint=self-managed 隧道建立 IP 可达 域名解析失败",
+      "expected_runbook": "kb-v05",
+      "required_topics": [
+        "后缀",
+        "网络"
+      ],
+      "forbidden_claims": [
+        "提交集中下发策略修订号",
+        "已经修复"
+      ]
+    },
+    {
+      "id": "missing-environment",
+      "split": "development",
+      "resource": "erp",
+      "request": "ERP 504，请给出适用的部署专属交接要求。",
+      "logs": [
+        {
+          "id": "g",
+          "kind": "log",
+          "text": "Current request waiting for pool connection; health probe succeeds; deployment unknown."
+        }
+      ],
+      "query": "ERP 连接池等待超时 部署未知",
+      "expected_runbook": null,
+      "required_topics": [
+        "部署"
+      ],
+      "forbidden_claims": [
+        "已经修复"
+      ]
+    },
+    {
+      "id": "uncovered-storage",
+      "split": "development",
+      "resource": "erp",
+      "request": "ERP 文件上传失败，请给出适用规程。",
+      "logs": [
+        {
+          "id": "g",
+          "kind": "log",
+          "text": "Upload checksum mismatch; storage provider unknown; no pool or token error."
+        }
+      ],
+      "query": "ERP upload checksum mismatch storage",
+      "expected_runbook": null,
+      "required_topics": [
+        "缺",
+        "校验"
+      ],
+      "forbidden_claims": [
+        "已经修复"
+      ]
+    }
+  ]
+}

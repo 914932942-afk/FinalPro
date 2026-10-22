@@ -62,7 +62,7 @@ async function main() {
     await page.getByRole('button',{name:'提交补充信息',exact:true}).click();
     await page.waitForFunction(()=>document.querySelector('#detail .badge')?.textContent==='待支持核查');
     const clarified = (await api('alice','/tickets/'+unclear.id+'/state')).data;
-    assert.equal(clarified.ticket.status,'closed');
+    assert.equal(clarified.ticket.status,'awaiting_support');
     assert.ok(clarified.action_result.downstream_id);
     checks.clarification_to_http_incident = true;
     const permission = await create('申请报表数据库权限 '+Date.now(),'我需要申请报表数据库的只读权限，用于查看工作数据。');
@@ -120,6 +120,7 @@ async function main() {
       await page.getByRole('heading',{name:'支持人员处理区'}).waitFor();
       await page.getByText('查看排查依据',{exact:true}).click();
       assert.ok(await page.locator('#detail .evidence-item').count()>=1);
+      if(await page.getByRole('button',{name:'认领并开始处理',exact:true}).count())await page.getByRole('button',{name:'认领并开始处理',exact:true}).click();
       await page.getByLabel('排查建议的核查结论').selectOption('inconclusive');
       await page.getByLabel('核查说明').fill('浏览器功能验收，仅检查反馈记录，未进行真实业务人工评审。');
       await page.getByLabel('核查凭证或记录编号').fill('browser-ui-fixture-only');

@@ -7,6 +7,7 @@ from contextlib import closing
 
 from .config import get_settings
 
+
 class Preflight:
     def __init__(self, settings):
         self.settings = settings
@@ -75,6 +76,7 @@ class Preflight:
         return {"passed":not any(x["status"]=="fail" for x in self.checks),
                 "scope":"readiness only, no business actions; warnings and skipped checks are not verification", "checks":self.checks}
 
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--embedding",action="store_true")
@@ -90,5 +92,6 @@ def main():
         args.output.parent.mkdir(parents=True,exist_ok=True)
         with args.output.open("x",encoding="utf-8") as f:f.write(text)
     raise SystemExit(0 if result["passed"] else 1)
+
 
 if __name__ == "__main__":main()

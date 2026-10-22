@@ -6,6 +6,7 @@ from .auth import Principal
 from .errors import AuthorizationError, ResourceNotFoundError, RequestValidationError
 from .models import Ticket
 
+
 class TicketService:
     def __init__(self, agent):
         self.agent = agent
@@ -18,7 +19,7 @@ class TicketService:
             raise RequestValidationError()
         if idempotency_key is not None:
             idempotency_key = self._text(idempotency_key, 200)
-
+        # 用户隔离，避免不同身份使用相同客户端幂等键读到彼此结果。
         key = None
         if idempotency_key is not None:
             identity = json.dumps([principal.user_id, idempotency_key], ensure_ascii=False)
@@ -36,7 +37,7 @@ class TicketService:
                    or (owner is not None and principal.role == "manager"
                        and ticket["department"] == principal.department))
         if not allowed:
-
+            # 不向无权读取者暴露工单是否存在。
             raise ResourceNotFoundError()
         return ticket
 
@@ -63,7 +64,7 @@ class TicketService:
         if approval is None:
             raise ResourceNotFoundError()
         ticket = self.get_ticket(principal, approval["ticket_id"])
-
+        # 历史工单没有可信归属，不能根据旧 requester 字符串自动认领。
         if not ticket.get("owner_id"):
             raise AuthorizationError("旧工单没有已验证的申请人，请通过认证接口重新提交")
         if ticket["owner_id"] == principal.user_id:
@@ -149,3 +150,38 @@ class TicketService:
     def recover(self, principal, ticket_id):
         self._operator(principal, ticket_id)
         return self.agent.recover(ticket_id, principal.user_id)
+
+    def claim(self, principal, ticket_id, revision):
+        self._case_revision(revision)
+        ticket = self._operator(principal, ticket_id)
+        if ticket["owner_id"] == principal.user_id:
+            raise AuthorizationError("不能认领自己的申请")
+        return self.agent.assign_case(ticket_id, principal.user_id, revision)
+
+    def transfer(self, principal, ticket_id, target, revision, reason):
+        self._case_revision(revision)
+        ticket = self._operator(principal, ticket_id)
+        if (principal.user_id == ticket["owner_id"] or target.user_id == ticket["owner_id"] or target.role not in {"manager", "admin"}
+                or (target.role != "admin" and target.department != ticket["department"])):
+            raise AuthorizationError("目标处理人不能访问或处理该工单")
+        return self.agent.assign_case(ticket_id, principal.user_id, revision, target=target.user_id, reason=self._text(reason), allow_override=principal.role == "admin")
+
+    def request_info(self, principal, ticket_id, field, revision):
+        self._case_revision(revision)
+        self._operator(principal, ticket_id)
+        from .case_management import USER_QUESTIONS
+        if field not in USER_QUESTIONS:
+            raise RequestValidationError()
+        return self.agent.request_case_info(ticket_id, principal.user_id, field, revision)
+
+    def follow_up(self, principal, ticket_id, answer, revision):
+        self._case_revision(revision)
+        ticket = self.get_ticket(principal, ticket_id)
+        if ticket["owner_id"] != principal.user_id:
+            raise AuthorizationError("只有申请人可以补充故障信息")
+        return self.agent.follow_up(ticket_id, principal.user_id, self._text(answer, 10000), revision)
+
+    @staticmethod
+    def _case_revision(revision):
+        if type(revision) is not int or not 0 <= revision <= 10000:
+            raise RequestValidationError()

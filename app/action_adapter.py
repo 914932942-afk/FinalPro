@@ -3,6 +3,7 @@ from typing import Protocol
 
 from .models import ActionResult, Ticket
 
+
 class ActionAdapter(Protocol):
     def attach_evidence(self, ticket: Ticket, *, idempotency_key: str) -> ActionResult:
         """A separate idempotent downstream update; must not recreate the incident."""
@@ -15,6 +16,7 @@ class ActionAdapter(Protocol):
         未知结果禁止假报 succeeded；返回值必须回显传入的幂等键和 action。
         """
         ...
+
 
 class SimulatedActionAdapter:
     def attach_evidence(self, ticket: Ticket, *, idempotency_key: str) -> ActionResult:

@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from .policy import (Understanding, ExecutionPlan, resource_catalog, contains,
                      request_constraints, input_digest, analyze_request)
 
+
 class PlanningChoice(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
     next_step: Literal["clarify", "propose_action", "manual_review"]
@@ -32,6 +33,7 @@ class PlanningChoice(BaseModel):
             raise ValueError("clarification requires one missing fact")
         return self
 
+
 @dataclass
 class PlanningDecision:
     choice: PlanningChoice
@@ -40,6 +42,7 @@ class PlanningDecision:
 
     def to_dict(self):
         return {**self.choice.model_dump(), "source": self.source, "metadata": self.metadata}
+
 
 @dataclass(frozen=True)
 class ProcedureConclusion:
@@ -54,7 +57,7 @@ class ProcedureConclusion:
         lines = re.findall(r"(?m)^处理结论[:：]\s*(.+)$", snippet)
         if len(lines) != 1:
             raise ValueError("local procedure needs one explicit handling conclusion")
-
+        # 结论句与其后解释分开；无需为了格式而强制引用同一行的所有补充说明。
         line = lines[0].split("。", 1)[0].strip()
         if re.match(r"manual_review\b", line):
             return cls("manual_review", None, None, line)
@@ -63,6 +66,7 @@ class ProcedureConclusion:
         if not re.match(r"propose_action\b", line) or not action or not resource:
             raise ValueError("local procedure handling conclusion is unsupported")
         return cls("propose_action", action[1], resource[1], line)
+
 
 def validate_procedure_support(state, choice, codes, *, require_quotes):
     from .knowledge import KnowledgeBase
@@ -74,7 +78,7 @@ def validate_procedure_support(state, choice, codes, *, require_quotes):
     for doc in applicable:
         conclusion = ProcedureConclusion.parse(doc["snippet"])
         conclusions.append(conclusion)
-
+        # 校验召回到的全部适用规程，不能通过不引用冲突片段来绕过。
         if (conclusion.step != "propose_action" or conclusion.action != choice.action
                 or conclusion.resource != choice.resource):
             raise ValueError("action contradicts an applicable explicit SOP conclusion")
@@ -91,6 +95,7 @@ def validate_procedure_support(state, choice, codes, *, require_quotes):
     if not conclusions or not cited_support:
         raise ValueError("local action needs a quoted applicable handling conclusion")
 
+
 def previous_access(text, proposal=None):
     fact = (proposal or {}).get("facts", {}).get("previous_access")
     if fact and fact["value"] != "unknown" and fact["evidence"] in text:
@@ -101,8 +106,10 @@ def previous_access(text, proposal=None):
         return "no"
     return "unknown"
 
+
 def access_ambiguity(text):
     return bool(re.search(r"没有权限|无权限|权限不足|access denied|forbidden|\b403\b", text, re.I))
+
 
 def rule_plan(ticket, understanding, documents):
     """A 组基线：有限规则，不声称具备模型推理能力。"""
@@ -128,6 +135,7 @@ def rule_plan(ticket, understanding, documents):
         source = {"reset_password": "password_reset.md", "grant_access": "access_request.md", "open_incident": "incident_response.md"}[raw["action"]]
         raw["sop_refs"] = [doc["id"] for doc in documents if doc.get("source") == source][:1]
     return PlanningDecision(PlanningChoice.model_validate(raw))
+
 
 def validate_choice(state, choice, *, require_sop=True, require_quotes=False):
     constraints = request_constraints(state.ticket, state.conversation_history)
@@ -184,9 +192,10 @@ def validate_choice(state, choice, *, require_sop=True, require_quotes=False):
     conservative = analyze_request(state.ticket, state.conversation_history)
     if conservative.blocked_reason or any(x in {"single_intent", "single_resource"} for x in conservative.missing):
         raise ValueError("ambiguous or unsupported request")
-
+    # 解释出的计划不等于授权；账号来自认证身份，敏感动作还要本人确认/审批。
     return ExecutionPlan(action=choice.action, account=state.ticket.owner_id or state.ticket.requester,
                          resource=choice.resource, permission=choice.permission, severity=state.ticket.severity)
+
 
 def validate_saved_plan(state):
     saved = state.planning or {}

@@ -13,6 +13,7 @@ from .reliability import CircuitBreaker
 from .config import get_settings
 from .errors import describe_error
 
+
 class KnowledgeBase:
     def __init__(self, directory: Path, *, backend=None, persist_directory=None,
                  embedding_model=None, embedder=None, chunk_size=None, overlap=None, hybrid=None, settings=None,
@@ -66,9 +67,9 @@ class KnowledgeBase:
                 continue
             header = re.match(r"<!-- rag: (.*?) -->\s*", text, re.S)
             beginning = header.end() if header else 0
-
+            # 在标题处切分，避免将两个不同处理条件拼入同一块；长段继续重叠切块。
             if self.purpose == "runbook":
-
+                # A runbook is an applicability unit. Do not detach prerequisites from advice.
                 body = text[beginning:].strip()
                 if len(body) > 12000:
                     raise ValueError("split long runbooks into complete applicability units")
@@ -110,7 +111,10 @@ class KnowledgeBase:
     def _encode(self, texts):
         if self.embedder is None:
             from sentence_transformers import SentenceTransformer
-
+            # Interactive investigation must not download model weights inside
+            # its tool/time budget. Provision weights explicitly; missing local
+            # weights become a visible BM25 fallback. Explicit legacy indexing
+            # retains its existing download behavior.
             self.embedder = SentenceTransformer(self.model_name, device="cpu",
                                                local_files_only=self.purpose == "runbook")
         return self.embedder.encode(texts, normalize_embeddings=True).tolist()
@@ -121,7 +125,7 @@ class KnowledgeBase:
 
     @classmethod
     def _scope_key(cls, item):
-
+        # 适用范围不同的规程不能因为正文相似而被删除。
         return tuple(item.get(key, "") for key in ("resource", "environment", "family", "version", "codes"))
 
     @classmethod
@@ -152,7 +156,7 @@ class KnowledgeBase:
         if not self.semantic_dedup_enabled or len(items) < 2:
             return items, {"enabled": self.semantic_dedup_enabled, "applied": False,
                            "removed": 0, "reason": "not_needed"}
-
+        # BM25-only 模式不应为了一个可选增强偷偷下载 embedding 权重。
         if not vectors_available and self.embedder is None:
             return items, {"enabled": True, "applied": False, "removed": 0,
                            "reason": "embedding_unavailable"}
@@ -191,7 +195,7 @@ class KnowledgeBase:
             raise RuntimeError("reranker unavailable")
         self._reranker_attempted = True
         from sentence_transformers import CrossEncoder
-
+        # 运行时只读取已预置权重，避免请求线程触发联网下载。
         self.reranker = CrossEncoder(self.reranker_model_name, device="cpu", local_files_only=True)
         return self.reranker
 
@@ -228,7 +232,7 @@ class KnowledgeBase:
     def _post_process(self, query, items, limit, *, vectors_available=False):
         items, exact_removed = self._exact_deduplicate(items)
         items, semantic = self._semantic_deduplicate(query, items, vectors_available=vectors_available)
-
+        # 只将前置候选交给 Cross-Encoder，避免全库 pairwise 推理。
         rerank_input = items[:max(limit, self.rerank_candidate_k)]
         items, rerank = self._rerank(query, rerank_input)
         status = {"exact_duplicates_removed": exact_removed, "semantic_dedup": semantic,
@@ -326,7 +330,7 @@ class KnowledgeBase:
         content_ids = {}
         for name, ranked in (("vector", vector), ("bm25", lexical)):
             for rank, item in enumerate(ranked, 1):
-
+                # 范围只收紧检索，不把文档中的动作映射硬编码进路由。
                 if item.get("resource") and resources and item["resource"] not in resources:
                     continue
                 item_codes = self.local_codes(item.get("codes", ""))
@@ -341,13 +345,13 @@ class KnowledgeBase:
                     "retrieval_backend": "hybrid" if vector else "bm25", "ranks": {}})
                 entry["score"] += 1 / (60 + rank)
                 entry["ranks"][name] = rank
-
+        # 精确标识符命中的有效规程优先，其余按 RRF；不把不同检索器的原始分数直接相加。
         return sorted(results.values(), key=lambda item: (
             -bool(codes.intersection(self.local_codes(item.get("codes", "")))), -item["score"], item["id"]))[:limit]
 
     def _vector_search(self, query, limit):
         with self._lock:
-
+            # Index sync is repeated only on explicit reindex or initial use.
             if self.collection is None:
                 try:
                     self._index()

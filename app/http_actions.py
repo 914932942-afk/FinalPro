@@ -7,6 +7,7 @@ from .action_adapter import SimulatedActionAdapter
 from .errors import ActionRejectedError, IdempotencyConflict, ToolResultError, ToolTimeoutError, ToolUnavailableError
 from .models import ActionResult
 
+
 class Receipt(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     action: Literal["open_incident", "attach_evidence"]
@@ -15,6 +16,7 @@ class Receipt(BaseModel):
     ticket_id: str
     downstream_id: str = Field(min_length=1)
     simulated: Literal[True]
+
 
 class IncidentHTTPAdapter:
     def __init__(self, base_url, api_key, *, timeout=5):
@@ -26,7 +28,7 @@ class IncidentHTTPAdapter:
         if key:
             headers["Idempotency-Key"] = key
         try:
-
+            # No write retries or redirects: an unexpected response cannot establish non-execution.
             with httpx.Client(timeout=self.timeout, follow_redirects=False, trust_env=False) as client:
                 response = client.request(method, self.base_url + path, json=payload, headers=headers)
         except httpx.TimeoutException:

@@ -1,0 +1,629 @@
+{
+  "description": "固定查询及规则也可以追踪下游引用，并优先显式错误；ReAct 需要从原始语句关联当前仍在阻塞响应的分支。穷举位置而非只取对模型有利位置。",
+  "cases": [
+    {
+      "id": "b01",
+      "split": "branch",
+      "resource": "erp",
+      "request": "ERP 在 10:30 打开报表一直等待，请排查当前请求。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "c-current",
+                    "text": "2026-09-29 10:30 ERP 报表打开后一直等待，当前请求关联 session_ref=gateway-704",
+                    "session_ref": "gateway-704"
+                  }
+                ],
+                "sessions": {
+                  "gateway-704": [
+                    {
+                      "id": "g-route-0",
+                      "session_ref": "hop-17",
+                      "text": "2026-09-29 10:30 配置读取：这一步仍未取得本次请求所需的下游结果，页面的响应必须等它完成。关联 session_ref=hop-17"
+                    },
+                    {
+                      "id": "g-route-1",
+                      "session_ref": "hop-46",
+                      "text": "2026-09-29 10:30 身份校验：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-46"
+                    },
+                    {
+                      "id": "g-route-2",
+                      "session_ref": "hop-82",
+                      "text": "2026-09-29 10:30 报表数据装配：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-82"
+                    },
+                    {
+                      "id": "g-route-3",
+                      "session_ref": "hop-95",
+                      "text": "2026-09-29 10:30 审计回执：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-95"
+                    }
+                  ],
+                  "hop-17": [
+                    {
+                      "id": "g-leaf",
+                      "text": "2026-09-29 10:30 connection pool timeout: request waited 30s for a free connection; DB health SELECT 1 completed in 3ms."
+                    }
+                  ],
+                  "hop-46": [
+                    {
+                      "id": "g-healthy-1",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ],
+                  "hop-82": [
+                    {
+                      "id": "g-healthy-2",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ],
+                  "hop-95": [
+                    {
+                      "id": "g-healthy-3",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e01",
+      "required_log_ids": [
+        "g-leaf"
+      ],
+      "branch_position": 0,
+      "note": "受控分支预算实验：4个下游候选，目标位置均衡；比较同一5次工具预算下的线索选择。不是独立企业测试。"
+    },
+    {
+      "id": "b02",
+      "split": "branch",
+      "resource": "erp",
+      "request": "ERP 在 10:30 打开报表一直等待，请排查当前请求。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "c-current",
+                    "text": "2026-09-29 10:30 ERP 报表打开后一直等待，当前请求关联 session_ref=gateway-704",
+                    "session_ref": "gateway-704"
+                  }
+                ],
+                "sessions": {
+                  "gateway-704": [
+                    {
+                      "id": "g-route-0",
+                      "session_ref": "hop-17",
+                      "text": "2026-09-29 10:30 配置读取：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-17"
+                    },
+                    {
+                      "id": "g-route-1",
+                      "session_ref": "hop-46",
+                      "text": "2026-09-29 10:30 身份校验：这一步仍未取得本次请求所需的下游结果，页面的响应必须等它完成。关联 session_ref=hop-46"
+                    },
+                    {
+                      "id": "g-route-2",
+                      "session_ref": "hop-82",
+                      "text": "2026-09-29 10:30 报表数据装配：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-82"
+                    },
+                    {
+                      "id": "g-route-3",
+                      "session_ref": "hop-95",
+                      "text": "2026-09-29 10:30 审计回执：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-95"
+                    }
+                  ],
+                  "hop-17": [
+                    {
+                      "id": "g-healthy-0",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ],
+                  "hop-46": [
+                    {
+                      "id": "g-leaf",
+                      "text": "2026-09-29 10:30 connection pool timeout: request waited 30s for a free connection; DB health SELECT 1 completed in 3ms."
+                    }
+                  ],
+                  "hop-82": [
+                    {
+                      "id": "g-healthy-2",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ],
+                  "hop-95": [
+                    {
+                      "id": "g-healthy-3",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e01",
+      "required_log_ids": [
+        "g-leaf"
+      ],
+      "branch_position": 1,
+      "note": "受控分支预算实验：4个下游候选，目标位置均衡；比较同一5次工具预算下的线索选择。不是独立企业测试。"
+    },
+    {
+      "id": "b03",
+      "split": "branch",
+      "resource": "erp",
+      "request": "ERP 在 10:30 打开报表一直等待，请排查当前请求。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "c-current",
+                    "text": "2026-09-29 10:30 ERP 报表打开后一直等待，当前请求关联 session_ref=gateway-704",
+                    "session_ref": "gateway-704"
+                  }
+                ],
+                "sessions": {
+                  "gateway-704": [
+                    {
+                      "id": "g-route-0",
+                      "session_ref": "hop-17",
+                      "text": "2026-09-29 10:30 配置读取：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-17"
+                    },
+                    {
+                      "id": "g-route-1",
+                      "session_ref": "hop-46",
+                      "text": "2026-09-29 10:30 身份校验：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-46"
+                    },
+                    {
+                      "id": "g-route-2",
+                      "session_ref": "hop-82",
+                      "text": "2026-09-29 10:30 报表数据装配：这一步仍未取得本次请求所需的下游结果，页面的响应必须等它完成。关联 session_ref=hop-82"
+                    },
+                    {
+                      "id": "g-route-3",
+                      "session_ref": "hop-95",
+                      "text": "2026-09-29 10:30 审计回执：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-95"
+                    }
+                  ],
+                  "hop-17": [
+                    {
+                      "id": "g-healthy-0",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ],
+                  "hop-46": [
+                    {
+                      "id": "g-healthy-1",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ],
+                  "hop-82": [
+                    {
+                      "id": "g-leaf",
+                      "text": "2026-09-29 10:30 connection pool timeout: request waited 30s for a free connection; DB health SELECT 1 completed in 3ms."
+                    }
+                  ],
+                  "hop-95": [
+                    {
+                      "id": "g-healthy-3",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e01",
+      "required_log_ids": [
+        "g-leaf"
+      ],
+      "branch_position": 2,
+      "note": "受控分支预算实验：4个下游候选，目标位置均衡；比较同一5次工具预算下的线索选择。不是独立企业测试。"
+    },
+    {
+      "id": "b04",
+      "split": "branch",
+      "resource": "erp",
+      "request": "ERP 在 10:30 打开报表一直等待，请排查当前请求。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "c-current",
+                    "text": "2026-09-29 10:30 ERP 报表打开后一直等待，当前请求关联 session_ref=gateway-704",
+                    "session_ref": "gateway-704"
+                  }
+                ],
+                "sessions": {
+                  "gateway-704": [
+                    {
+                      "id": "g-route-0",
+                      "session_ref": "hop-17",
+                      "text": "2026-09-29 10:30 配置读取：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-17"
+                    },
+                    {
+                      "id": "g-route-1",
+                      "session_ref": "hop-46",
+                      "text": "2026-09-29 10:30 身份校验：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-46"
+                    },
+                    {
+                      "id": "g-route-2",
+                      "session_ref": "hop-82",
+                      "text": "2026-09-29 10:30 报表数据装配：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-82"
+                    },
+                    {
+                      "id": "g-route-3",
+                      "session_ref": "hop-95",
+                      "text": "2026-09-29 10:30 审计回执：这一步仍未取得本次请求所需的下游结果，页面的响应必须等它完成。关联 session_ref=hop-95"
+                    }
+                  ],
+                  "hop-17": [
+                    {
+                      "id": "g-healthy-0",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ],
+                  "hop-46": [
+                    {
+                      "id": "g-healthy-1",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ],
+                  "hop-82": [
+                    {
+                      "id": "g-healthy-2",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ],
+                  "hop-95": [
+                    {
+                      "id": "g-leaf",
+                      "text": "2026-09-29 10:30 connection pool timeout: request waited 30s for a free connection; DB health SELECT 1 completed in 3ms."
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e01",
+      "required_log_ids": [
+        "g-leaf"
+      ],
+      "branch_position": 3,
+      "note": "受控分支预算实验：4个下游候选，目标位置均衡；比较同一5次工具预算下的线索选择。不是独立企业测试。"
+    },
+    {
+      "id": "b05",
+      "split": "branch",
+      "resource": "erp",
+      "request": "ERP 在 10:30 打开报表一直等待，请排查当前请求。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "c-current",
+                    "text": "2026-09-29 10:30 ERP 报表打开后一直等待，当前请求关联 session_ref=gateway-704",
+                    "session_ref": "gateway-704"
+                  }
+                ],
+                "sessions": {
+                  "gateway-704": [
+                    {
+                      "id": "g-route-0",
+                      "session_ref": "hop-17",
+                      "text": "2026-09-29 10:30 配置读取：这一步仍未取得本次请求所需的下游结果，页面的响应必须等它完成。关联 session_ref=hop-17"
+                    },
+                    {
+                      "id": "g-route-1",
+                      "session_ref": "hop-46",
+                      "text": "2026-09-29 10:30 身份校验：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-46"
+                    },
+                    {
+                      "id": "g-route-2",
+                      "session_ref": "hop-82",
+                      "text": "2026-09-29 10:30 报表数据装配：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-82"
+                    },
+                    {
+                      "id": "g-route-3",
+                      "session_ref": "hop-95",
+                      "text": "2026-09-29 10:30 审计回执：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-95"
+                    }
+                  ],
+                  "hop-17": [
+                    {
+                      "id": "g-leaf",
+                      "text": "2026-09-29 10:30 deadlock detected: tx71 holds the row needed by tx73, tx73 holds the row needed by tx71; tx71 rolled back as victim."
+                    }
+                  ],
+                  "hop-46": [
+                    {
+                      "id": "g-healthy-1",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ],
+                  "hop-82": [
+                    {
+                      "id": "g-healthy-2",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ],
+                  "hop-95": [
+                    {
+                      "id": "g-healthy-3",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e03",
+      "required_log_ids": [
+        "g-leaf"
+      ],
+      "branch_position": 0,
+      "note": "受控分支预算实验：4个下游候选，目标位置均衡；比较同一5次工具预算下的线索选择。不是独立企业测试。"
+    },
+    {
+      "id": "b06",
+      "split": "branch",
+      "resource": "erp",
+      "request": "ERP 在 10:30 打开报表一直等待，请排查当前请求。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "c-current",
+                    "text": "2026-09-29 10:30 ERP 报表打开后一直等待，当前请求关联 session_ref=gateway-704",
+                    "session_ref": "gateway-704"
+                  }
+                ],
+                "sessions": {
+                  "gateway-704": [
+                    {
+                      "id": "g-route-0",
+                      "session_ref": "hop-17",
+                      "text": "2026-09-29 10:30 配置读取：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-17"
+                    },
+                    {
+                      "id": "g-route-1",
+                      "session_ref": "hop-46",
+                      "text": "2026-09-29 10:30 身份校验：这一步仍未取得本次请求所需的下游结果，页面的响应必须等它完成。关联 session_ref=hop-46"
+                    },
+                    {
+                      "id": "g-route-2",
+                      "session_ref": "hop-82",
+                      "text": "2026-09-29 10:30 报表数据装配：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-82"
+                    },
+                    {
+                      "id": "g-route-3",
+                      "session_ref": "hop-95",
+                      "text": "2026-09-29 10:30 审计回执：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-95"
+                    }
+                  ],
+                  "hop-17": [
+                    {
+                      "id": "g-healthy-0",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ],
+                  "hop-46": [
+                    {
+                      "id": "g-leaf",
+                      "text": "2026-09-29 10:30 deadlock detected: tx71 holds the row needed by tx73, tx73 holds the row needed by tx71; tx71 rolled back as victim."
+                    }
+                  ],
+                  "hop-82": [
+                    {
+                      "id": "g-healthy-2",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ],
+                  "hop-95": [
+                    {
+                      "id": "g-healthy-3",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e03",
+      "required_log_ids": [
+        "g-leaf"
+      ],
+      "branch_position": 1,
+      "note": "受控分支预算实验：4个下游候选，目标位置均衡；比较同一5次工具预算下的线索选择。不是独立企业测试。"
+    },
+    {
+      "id": "b07",
+      "split": "branch",
+      "resource": "erp",
+      "request": "ERP 在 10:30 打开报表一直等待，请排查当前请求。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "c-current",
+                    "text": "2026-09-29 10:30 ERP 报表打开后一直等待，当前请求关联 session_ref=gateway-704",
+                    "session_ref": "gateway-704"
+                  }
+                ],
+                "sessions": {
+                  "gateway-704": [
+                    {
+                      "id": "g-route-0",
+                      "session_ref": "hop-17",
+                      "text": "2026-09-29 10:30 配置读取：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-17"
+                    },
+                    {
+                      "id": "g-route-1",
+                      "session_ref": "hop-46",
+                      "text": "2026-09-29 10:30 身份校验：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-46"
+                    },
+                    {
+                      "id": "g-route-2",
+                      "session_ref": "hop-82",
+                      "text": "2026-09-29 10:30 报表数据装配：这一步仍未取得本次请求所需的下游结果，页面的响应必须等它完成。关联 session_ref=hop-82"
+                    },
+                    {
+                      "id": "g-route-3",
+                      "session_ref": "hop-95",
+                      "text": "2026-09-29 10:30 审计回执：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-95"
+                    }
+                  ],
+                  "hop-17": [
+                    {
+                      "id": "g-healthy-0",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ],
+                  "hop-46": [
+                    {
+                      "id": "g-healthy-1",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ],
+                  "hop-82": [
+                    {
+                      "id": "g-leaf",
+                      "text": "2026-09-29 10:30 deadlock detected: tx71 holds the row needed by tx73, tx73 holds the row needed by tx71; tx71 rolled back as victim."
+                    }
+                  ],
+                  "hop-95": [
+                    {
+                      "id": "g-healthy-3",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e03",
+      "required_log_ids": [
+        "g-leaf"
+      ],
+      "branch_position": 2,
+      "note": "受控分支预算实验：4个下游候选，目标位置均衡；比较同一5次工具预算下的线索选择。不是独立企业测试。"
+    },
+    {
+      "id": "b08",
+      "split": "branch",
+      "resource": "erp",
+      "request": "ERP 在 10:30 打开报表一直等待，请排查当前请求。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "c-current",
+                    "text": "2026-09-29 10:30 ERP 报表打开后一直等待，当前请求关联 session_ref=gateway-704",
+                    "session_ref": "gateway-704"
+                  }
+                ],
+                "sessions": {
+                  "gateway-704": [
+                    {
+                      "id": "g-route-0",
+                      "session_ref": "hop-17",
+                      "text": "2026-09-29 10:30 配置读取：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-17"
+                    },
+                    {
+                      "id": "g-route-1",
+                      "session_ref": "hop-46",
+                      "text": "2026-09-29 10:30 身份校验：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-46"
+                    },
+                    {
+                      "id": "g-route-2",
+                      "session_ref": "hop-82",
+                      "text": "2026-09-29 10:30 报表数据装配：本次调用已经返回所需结果，后续日志中的告警来自上一次请求，当前步骤可继续。关联 session_ref=hop-82"
+                    },
+                    {
+                      "id": "g-route-3",
+                      "session_ref": "hop-95",
+                      "text": "2026-09-29 10:30 审计回执：这一步仍未取得本次请求所需的下游结果，页面的响应必须等它完成。关联 session_ref=hop-95"
+                    }
+                  ],
+                  "hop-17": [
+                    {
+                      "id": "g-healthy-0",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ],
+                  "hop-46": [
+                    {
+                      "id": "g-healthy-1",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ],
+                  "hop-82": [
+                    {
+                      "id": "g-healthy-2",
+                      "text": "2026-09-29 10:30 completed successfully; no pending work for this request. Earlier warning resolved before this call."
+                    }
+                  ],
+                  "hop-95": [
+                    {
+                      "id": "g-leaf",
+                      "text": "2026-09-29 10:30 deadlock detected: tx71 holds the row needed by tx73, tx73 holds the row needed by tx71; tx71 rolled back as victim."
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e03",
+      "required_log_ids": [
+        "g-leaf"
+      ],
+      "branch_position": 3,
+      "note": "受控分支预算实验：4个下游候选，目标位置均衡；比较同一5次工具预算下的线索选择。不是独立企业测试。"
+    }
+  ]
+}

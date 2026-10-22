@@ -16,15 +16,19 @@ from .policy import (analyze_request, build_plan, decision_problem, validate_exe
                      request_constraints, from_proposal, saved_understanding, input_digest, resource_catalog)
 from .reliability import CircuitBreaker
 from .tools import EnterpriseTools
+from .case_management import CaseLifecycle, USER_QUESTIONS
+
 
 class GraphState(TypedDict):
     state: dict
+
 
 class EnterpriseAgent:
     HIGH_RISK = {"grant_access"}
     NODE_ORDER = ("intake", "clarify", "retrieve", "plan", "authorize", "execute", "finalize", "diagnose", "enrich")
     WAITING = {"awaiting_clarification", "awaiting_approval"}
-    TERMINAL = {"closed", "manual_review", "rejected", "cancelled", "resolved_manually"}
+    TERMINAL = {"closed", "manual_review", "rejected", "cancelled", "resolved_manually", "resolved"}
+    CASE_WAITING = {"awaiting_support", "in_progress", "awaiting_user_info"}
 
     def __init__(self, tools: EnterpriseTools, audit: AuditStore,
                  model: DecisionModel | None = None, strict_model: bool = False, *, settings=None, diagnostic_runner=None):
@@ -65,7 +69,7 @@ class EnterpriseAgent:
             next_node = names[index + 1] if index + 1 < len(names) else END
             def route(raw, target=next_node):
                 state = raw["state"]
-                if state["error"] or state["ticket"]["status"] in self.WAITING | self.TERMINAL | {"awaiting_investigation"}:
+                if state["error"] or state["ticket"]["status"] in self.WAITING | self.TERMINAL | self.CASE_WAITING | {"awaiting_investigation"}:
                     return END
                 return target
             builder.add_conditional_edges(name, route)
@@ -85,8 +89,8 @@ class EnterpriseAgent:
             state = self.nodes[name](AgentState.from_dict(raw["state"]))
             index = self.NODE_ORDER.index(name)
             if state.error:
-                state.next_node = name
-            elif state.ticket.status in self.WAITING | self.TERMINAL:
+                state.next_node = name  # 严格模型失败保留安全重试位置。
+            elif state.ticket.status in self.WAITING | self.TERMINAL | self.CASE_WAITING:
                 state.next_node = None
             else:
                 state.next_node = self.NODE_ORDER[index + 1] if index + 1 < len(self.NODE_ORDER) else None
@@ -124,6 +128,7 @@ class EnterpriseAgent:
 
     def _manual(self, state, reason):
         state.ticket.status = "manual_review"
+        CaseLifecycle.ensure_assignment(state)
         state.result = reason + "；等待授权人员人工处理。"
         if state.action_result is None:
             state.action_result = ActionResult("manual_review", "manual_review", state.result,
@@ -149,7 +154,7 @@ class EnterpriseAgent:
             if constraints.missing:
                 result = ClarificationDecision(True, constraints.missing)
             else:
-
+                # 不把旧标题和已经被更正的描述再次送进模型。
                 current = replace(state.ticket, title="", description=understanding.text)
                 result = self.model.clarify(current, ())
                 if not isinstance(result, ClarificationDecision):
@@ -162,6 +167,8 @@ class EnterpriseAgent:
                 if understanding.blocked_reason:
                     return self._manual(state, understanding.blocked_reason)
                 model_missing = result.missing_fields
+                if not constraints.missing and any(row.get("kind") == "constraint_answer" for row in state.conversation_history):
+                    model_missing = [name for name in model_missing if name != "confirmation"]
                 if self.planning_enabled and understanding.proposal and understanding.resource:
                     model_missing = [name for name in model_missing if name not in {"target", "permission", "symptom", "previous_access"}]
                     if understanding.proposal["speech_act"] == "report":
@@ -226,6 +233,8 @@ class EnterpriseAgent:
                     raise IdempotencyConflict("工单不在指定澄清轮次，请读取最新状态")
             state = AgentState.from_dict(raw)
             entry = {"role": "user", "content": answer, "round": round_number, "at": now_iso()}
+            if (state.clarification or {}).get("missing_fields") == ["confirmation"] and not state.confirmation:
+                entry["kind"] = "constraint_answer"
             pending = state.confirmation or {}
             if (answer == "确认执行" and pending.get("status") == "pending"
                     and pending.get("round") == round_number
@@ -272,7 +281,7 @@ class EnterpriseAgent:
             plan = build_plan(state.ticket, understanding)
             decision = (self.model.decision_for(understanding) if type(self.model) is RuleBasedModel else
                         self.model.decide("", understanding.text, state.ticket.severity, state.retrieved_docs))
-
+            # 注入的模型也必须遵守相同契约，不仅校验真实 HTTP 模型。
             DeepSeekDecisionModel._validate_decision(decision.to_dict())
         except Exception as exc:
             if self.strict_model or getattr(self.model, "strict", False):
@@ -378,7 +387,7 @@ class EnterpriseAgent:
                 or plan.get("resource") not in ({"vpn", "erp"} if investigate else {"vpn"}) or not state.ticket.owner_id):
             return state
         try:
-            validate_execution(state)
+            validate_execution(state)  # 诊断也不能绕过用户证据与已验证身份。
         except (ValueError, TypeError):
             return self._manual(state, "诊断前执行计划校验失败")
         runner = self.diagnostic_runner
@@ -415,17 +424,36 @@ class EnterpriseAgent:
                     "rule" if diagnostic_model.source == "rule" else "react"),
                 deadline_seconds=self.settings.diagnosis_deadline)
             self.diagnostic_runner = runner
+        if not state.ticket.investigation_attempt:
+            state.ticket.investigation_attempt = 1
         binding = hashlib.sha256((input_digest(state.ticket, state.conversation_history)
-                                  + ExecutionPlan.model_validate(plan).digest()).encode()).hexdigest()
+                                  + ExecutionPlan.model_validate(plan).digest()
+                                  + str(state.ticket.investigation_attempt)).encode()).hexdigest()
         def checkpoint(session):
             state.diagnosis = session
             state.next_node = "diagnose"
             self._persist(state, "diagnostic_checkpoint", {"tool_calls": session["tool_calls"],
                 "model_calls": session["model_calls"], "status": session["status"],
                 "pending_tool": session["pending_tool"]})
-        state.diagnosis = runner.run(text=saved_understanding(state).text, owner=state.ticket.owner_id,
+        investigation_text = saved_understanding(state).text + "\n" + "\n".join(
+            row["content"] for row in state.conversation_history if row.get("kind") == "diagnostic_followup")
+        state.diagnosis = runner.run(text=investigation_text, owner=state.ticket.owner_id,
             binding=binding, saved=state.diagnosis, checkpoint=checkpoint)
         state.ticket.diagnostic_report = incident_attachment(state.diagnosis)
+        if state.diagnosis.get("status") == "awaiting_user_info":
+            if (state.investigation_questions >= self.settings.diagnosis_max_questions
+                    or state.ticket.investigation_attempt >= self.settings.diagnosis_max_attempts):
+                state.diagnosis.update(status="completed", stop_reason="user_question_budget")
+                state.ticket.diagnostic_report = incident_attachment(state.diagnosis)
+            else:
+                state.investigation_questions += 1
+                state.ticket.case_revision += 1
+                field = state.diagnosis["missing_fact"]
+                state.clarification = {"stage": "investigation", "question": USER_QUESTIONS[field], "missing_fields": [field]}
+                state.conversation_history.append({"role": "assistant", "kind": "diagnostic_question", "content": USER_QUESTIONS[field], "at": now_iso()})
+                CaseLifecycle.pause_for_user(state)
+                state.ticket.investigation_status = "waiting_user"
+                return state
         for observation in state.diagnosis.get("observations", []):
             retrieval = observation.get("retrieval") or {}
             if retrieval.get("degraded"):
@@ -480,6 +508,8 @@ class EnterpriseAgent:
             state.ticket.status = "awaiting_investigation"
             state.ticket.investigation_status = "queued"
             state.resolution["type"] = "incident_registered"
+        elif CaseLifecycle.incident(state):
+            CaseLifecycle.handoff(state)
         return state
 
     def _can_investigate(self, state):
@@ -520,18 +550,23 @@ class EnterpriseAgent:
                 state.ticket.investigation_status = "attachment_unknown"
                 state.degradation.append({"component": "enrichment", "reason": type(exc).__name__})
                 return self._manual(state, "事件已登记，但附件更新结果不明，禁止盲目重试")
-        state.ticket.status = "closed"
+        CaseLifecycle.handoff(state)
         state.ticket.investigation_status = ("completed" if state.ticket.diagnostic_report else "unavailable")
         state.resolution = {**(state.resolution or {}), "type": "agent_task_completed", "external_issue_resolved": None}
         return state
 
     def feedback(self, ticket_id, actor, revision, verdict, note, evidence, issue_resolved):
         with self.audit.ticket_lock(ticket_id):
-            state = AgentState.from_dict(self.audit.get_state(ticket_id))
+            state = CaseLifecycle.normalize(AgentState.from_dict(self.audit.get_state(ticket_id)))
             previous_length = len(state.ticket.feedback)
+            previous_status = state.ticket.status
             def validate():
-                if state.ticket.status not in {"closed", "resolved_manually"} or not state.ticket.diagnostic_report:
+                if previous_status not in CaseLifecycle.support_states | {"resolved", "closed", "resolved_manually"}:
                     raise IdempotencyConflict("调查附件完成并交接后才能核实")
+                self._require_assignee(state, actor)
+                if ((state.action_result and state.action_result.status == "unknown")
+                        or any(x["kind"] == "tool" for x in self.audit.pending_operations(ticket_id))):
+                    raise IdempotencyConflict("执行结果未知，请核查凭证后使用人工结案，不能用反馈代替核查")
                 if revision != previous_length + 1:
                     raise IdempotencyConflict("反馈版本已变化，请读取最新工单")
             import hashlib
@@ -542,6 +577,11 @@ class EnterpriseAgent:
             state.ticket.feedback.append({**payload, "report_hash": report_hash, "at": now_iso()})
             state.resolution = {**(state.resolution or {}), "external_issue_resolved": issue_resolved,
                                 "verified_by": actor, "feedback_revision": revision}
+            if CaseLifecycle.incident(state):
+                if issue_resolved is True:
+                    state.ticket.status, state.next_node = "resolved", None
+                else:
+                    CaseLifecycle.handoff(state)
             checkpoint = self._checkpoint(state, "diagnostic_feedback", payload)
             return AgentState.from_dict(self.audit.once(f"feedback:{ticket_id}:{revision}", payload, state.to_dict,
                 ticket_id=ticket_id, checkpoint=checkpoint, precondition=validate))
@@ -598,28 +638,154 @@ class EnterpriseAgent:
 
     def resolve(self, ticket_id, actor, outcome, note, evidence):
         with self.audit.ticket_lock(ticket_id):
-            state = AgentState.from_dict(self.audit.get_state(ticket_id))
+            state = CaseLifecycle.normalize(AgentState.from_dict(self.audit.get_state(ticket_id)))
             previous_status = state.ticket.status
             def validate():
-                if previous_status not in {"manual_review", "failed"}:
+                if previous_status not in CaseLifecycle.support_states:
                     raise IdempotencyConflict("仅人工待办或失败工单可以人工结案")
+                self._require_assignee(state, actor)
                 unknown = state.action_result and state.action_result.status == "unknown"
                 if (unknown or any(x["kind"] == "tool" for x in self.audit.pending_operations(ticket_id))) and not evidence.strip():
                     raise IdempotencyConflict("执行结果未知，必须填写核查凭证后才能结案")
-            state.ticket.status, state.next_node = "resolved_manually", None
+            state.ticket.status, state.next_node = ("resolved" if outcome == "resolved" else "rejected"), None
             state.resolution = {"type": "manual", "by": actor, "outcome": outcome, "note": note,
-                                "evidence": evidence, "at": now_iso()}
+                                "evidence": evidence, "at": now_iso(), "external_issue_resolved": outcome == "resolved"}
             if state.error:
                 state.resolution["previous_error"] = state.error
                 state.resolution["previous_error_info"] = state.error_info.to_dict() if state.error_info else None
                 state.error, state.error_info = None, None
             state.result = "人工处理完成：" + note
-
+            # 保留原始 action_result（包括 unknown），不伪造工具成功。
             checkpoint = self._checkpoint(state, "manual_resolution", state.resolution,
                                           reconcile=True, resolve_tools=True)
-            return AgentState.from_dict(self.audit.once("resolve:" + ticket_id,
+            # A later unresolved feedback opens a new handling cycle; retries within a cycle replay.
+            feedback_count = len(state.ticket.feedback)
+            resolution_key = "resolve:" + ticket_id + (f":feedback{feedback_count}" if feedback_count else "")
+            return AgentState.from_dict(self.audit.once(resolution_key,
                 {"actor": actor, "outcome": outcome, "note": note, "evidence": evidence}, state.to_dict,
                 precondition=validate, ticket_id=ticket_id, checkpoint=checkpoint))
+
+    @staticmethod
+    def _require_assignee(state, actor):
+        if not state.ticket.assignment or state.ticket.assignment.get("assignee") != actor:
+            raise IdempotencyConflict("请先认领工单；仅当前处理人可以提交处理结果")
+
+    def assign_case(self, ticket_id, actor, revision, *, target=None, reason="", allow_override=False):
+        with self.audit.ticket_lock(ticket_id):
+            state = CaseLifecycle.normalize(AgentState.from_dict(self.audit.get_state(ticket_id)))
+            assignment = CaseLifecycle.ensure_assignment(state)
+            previous_status = state.ticket.status
+            previous_revision, previous_assignee = assignment["revision"], assignment["assignee"]
+            kind = "transfer" if target else "claim"
+            target = target or actor
+            def validate():
+                if previous_status not in CaseLifecycle.support_states | {"awaiting_user_info"} or previous_revision != revision:
+                    raise IdempotencyConflict("工单状态或负责人已变化，请刷新后操作")
+                if kind == "transfer" and ((previous_assignee != actor and not allow_override) or target == previous_assignee):
+                    raise IdempotencyConflict("仅当前处理人可以转派给其他人员")
+                if kind == "claim" and previous_assignee not in {None, actor}:
+                    raise IdempotencyConflict("工单已被其他处理人认领")
+            assignment.update(assignee=target, assigned_by=actor, assigned_at=now_iso(), revision=revision + 1)
+            assignment["history"].append({"action": kind, "actor": actor, "from": previous_assignee, "to": target, "reason": reason, "at": now_iso()})
+            if previous_status != "awaiting_user_info":
+                state.ticket.status = "in_progress"
+            payload = dict(actor=actor, target=target, reason=reason, override=allow_override)
+            checkpoint = self._checkpoint(state, "case_" + kind, payload)
+            result = self.audit.once(f"case:{kind}:{ticket_id}:{revision}", payload, state.to_dict,
+                precondition=validate, ticket_id=ticket_id, checkpoint=checkpoint)
+            return AgentState.from_dict(result)
+
+    def request_case_info(self, ticket_id, actor, field, revision):
+        with self.audit.ticket_lock(ticket_id):
+            state = CaseLifecycle.normalize(AgentState.from_dict(self.audit.get_state(ticket_id)))
+            assignment = CaseLifecycle.ensure_assignment(state)
+            def validate():
+                self._require_assignee(state, actor)
+                if (not CaseLifecycle.incident(state) or state.ticket.status not in CaseLifecycle.support_states
+                        or assignment["revision"] != revision):
+                    raise IdempotencyConflict("工单状态已变化，当前不能请求补充")
+            validate()
+            assignment["revision"] += 1
+            state.ticket.case_revision += 1
+            state.clarification = {"stage": "investigation", "question": USER_QUESTIONS[field], "missing_fields": [field], "resume_node": state.next_node}
+            state.conversation_history.append({"role": "assistant", "content": USER_QUESTIONS[field], "kind": "support_question", "at": now_iso()})
+            CaseLifecycle.pause_for_user(state)
+            state.next_node = None
+            self._persist(state, "support_question", {"actor": actor, "field": field})
+            return state
+
+    def follow_up(self, ticket_id, actor, answer, revision):
+        import copy
+        with self.audit.ticket_lock(ticket_id):
+            state = CaseLifecycle.normalize(AgentState.from_dict(self.audit.get_state(ticket_id)))
+            previous_status, previous_revision = state.ticket.status, state.ticket.case_revision
+            def validate():
+                if (state.ticket.owner_id != actor or not CaseLifecycle.incident(state)
+                        or previous_status not in CaseLifecycle.support_states | {"awaiting_user_info"}
+                        or previous_revision != revision):
+                    raise IdempotencyConflict("工单状态或补充版本已变化，请刷新")
+            old_attempt = max(state.ticket.investigation_attempt, 1)
+            can_queue = (self._can_investigate(state) and state.action_result and state.action_result.status == "succeeded"
+                         and old_attempt < self.settings.diagnosis_max_attempts)
+            previous_next = state.next_node or (state.clarification or {}).get("resume_node")
+            if can_queue and (state.diagnosis or state.ticket.diagnostic_report):
+                state.investigation_history.append({"attempt": old_attempt, "diagnosis": copy.deepcopy(state.diagnosis),
+                    "report": copy.deepcopy(state.ticket.diagnostic_report), "at": now_iso()})
+            state.conversation_history.append({"role": "user", "content": answer, "kind": "diagnostic_followup", "at": now_iso()})
+            state.ticket.case_revision += 1
+            state.clarification = None
+            CaseLifecycle.resume_clock(state)
+            if can_queue:
+                state.ticket.investigation_attempt = old_attempt + 1
+                state.diagnosis = None
+                state.ticket.diagnostic_report = None
+                state.error, state.error_info = None, None
+                state.ticket.status, state.ticket.investigation_status, state.next_node = "awaiting_investigation", "queued", "diagnose"
+            else:
+                CaseLifecycle.handoff(state)
+                state.next_node = previous_next
+            checkpoint = self._checkpoint(state, "case_followup", {"actor": actor, "revision": revision})
+            result = self.audit.once(f"case:followup:{ticket_id}:{revision}", {"actor": actor, "answer": answer},
+                state.to_dict, ticket_id=ticket_id, checkpoint=checkpoint, precondition=validate)
+            return AgentState.from_dict(result)
+
+    def migrate_cases(self):
+        for ticket in self.audit.list_tickets():
+            if ticket["status"] not in {"closed", "resolved_manually", "manual_review", "failed", "awaiting_support", "in_progress"}:
+                continue
+            with self.audit.ticket_lock(ticket["id"]):
+                raw = self.audit.get_state(ticket["id"])
+                if not raw:
+                    continue
+                state = CaseLifecycle.normalize(AgentState.from_dict(raw))
+                if state.to_dict() != raw:
+                    self._persist(state, "case_lifecycle_migrated")
+
+    def escalate_overdue(self):
+        for ticket in self.audit.list_tickets():
+            if ticket["status"] not in CaseLifecycle.support_states:
+                continue
+            with self.audit.ticket_lock(ticket["id"]):
+                state = AgentState.from_dict(self.audit.get_state(ticket["id"]))
+                if state.ticket.status not in CaseLifecycle.support_states:
+                    continue
+                assignment = CaseLifecycle.ensure_assignment(state)
+                if CaseLifecycle.overdue(assignment) and not assignment.get("escalated_at"):
+                    assignment["escalated_at"] = now_iso()
+                    self._persist(state, "case_overdue", {"team": assignment["team"], "assignee": assignment["assignee"]})
+
+    def fail_investigation(self, ticket_id, reason):
+        with self.audit.ticket_lock(ticket_id):
+            raw = self.audit.get_state(ticket_id)
+            if not raw:
+                return
+            state = AgentState.from_dict(raw)
+            if state.ticket.status not in {"awaiting_investigation", "investigating"}:
+                return
+            CaseLifecycle.handoff(state)
+            state.ticket.investigation_status = "failed"
+            state.degradation.append({"component": "investigation_worker", "reason": reason})
+            self._persist(state, "investigation_worker_failed")
 
     def recover(self, ticket_id, actor):
         with self.audit.ticket_lock(ticket_id):
@@ -630,7 +796,7 @@ class EnterpriseAgent:
             if state.workflow_version < 2 and state.next_node == "diagnose":
                 raise IdempotencyConflict("旧版调查位于登记之前，请人工核查后结案，不自动迁移执行顺序")
             if state.next_node is None:
-
+                # 上次结果已经落盘但请求账本未完成：只修复账本，不重跑业务。
                 self._persist(state, "recovery_reconcile", {"actor": actor}, reconcile=True)
                 return state
             if state.next_node == "execute":

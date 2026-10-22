@@ -3,7 +3,9 @@
 Display statuses do not mutate workflow snapshots. Model/tool traces are never
 included in requester responses.
 """
-from .errors import AuthorizationError, ResourceNotFoundError
+from .errors import AuthorizationError, ResourceNotFoundError, RequestValidationError
+from .case_management import CaseLifecycle
+from .models import AgentState
 
 RESOURCE_LABELS = {"erp": "ERP", "vpn": "VPN", "reports_db": "报表数据库", "self_account": "本人账号"}
 ACTION_LABELS = {"reset_password": "密码重置申请", "grant_access": "访问权限申请", "open_incident": "故障报修"}
@@ -25,6 +27,8 @@ def status_for(state):
         return _status("cancelled", "已撤销", "neutral", "completed", "工单已撤销", "本次申请已撤销。", "如仍需帮助，可以重新提交一张工单。", 3)
     if status == "rejected" or (status == "resolved_manually" and resolution.get("outcome") == "rejected"):
         return _status("rejected", "未获通过", "neutral", "completed", "本次申请未获通过", "本次申请已结束，未继续执行申请的操作。", "如需了解详情，请联系 IT 支持人员。", 3)
+    if status == "awaiting_user_info":
+        return _status("needs_input", "待你补充", "amber", "action_required", "排查需要你补充信息", "请回答下方问题，我们会在原工单上继续跟进。", "补充后继续排查，不会重复创建故障事件。", 1)
     if status == "awaiting_clarification":
         confirming = (state.get("confirmation") or {}).get("status") == "pending"
         return _status("confirmation" if confirming else "needs_input", "待你确认" if confirming else "待你补充", "amber", "action_required", "需要你确认申请" if confirming else "补充信息后，我们才能继续处理", "请完成下方事项，我们会继续跟进这张工单。", "核对申请信息并确认。" if confirming else "请在下方补充具体情况。", 1)
@@ -32,9 +36,11 @@ def status_for(state):
         return _status("awaiting_approval", "等待审批", "blue", "processing", "申请正在等待审批", "你的申请已提交给有权限的审批人。", "你暂时无需操作，审批结果会在这里更新。", 2)
     if status in {"awaiting_investigation", "investigating"}:
         return _status("investigating", "正在排查", "blue", "processing", "正在排查你的问题", "工单已登记，正在收集相关信息并分析。", "你暂时无需操作，页面会自动更新进度。", 1)
-    if (status == "resolved_manually" and resolution.get("external_issue_resolved") is not False) or (status == "closed" and resolution.get("external_issue_resolved") is True):
+    if status == "resolved" or (status == "resolved_manually" and resolution.get("external_issue_resolved") is not False) or (status == "closed" and resolution.get("external_issue_resolved") is True):
         return _status("resolved", "已解决" if action == "open_incident" else "已完成", "green", "completed", "本次处理已完成", "支持人员已确认完成本次处理。", "如有新的问题，可以重新提交工单。", 3)
-    if status in {"manual_review", "failed"} or (status in {"closed", "resolved_manually"} and action == "open_incident"):
+    if status == "in_progress":
+        return _status("in_progress", "支持处理中", "blue", "processing", "支持人员正在处理", "工单已有处理人负责，将继续核查和处理你的问题。", "如有新的报错或线索，可以在下方补充。", 2)
+    if status in {"awaiting_support", "manual_review", "failed"} or (status in {"closed", "resolved_manually"} and action == "open_incident"):
         supported = report.get("assessment") == "supported_hypothesis" or report.get("verified") is True
         message = "初步排查已完成，结论仍需要支持人员核实。" if supported else "自动排查暂未形成可用结论，需要支持人员进一步核查。目前尚未确认问题已解决。"
         if resolution.get("external_issue_resolved") is False:
@@ -67,6 +73,10 @@ def present_ticket(state, *, summary=False):
             "department": ticket.get("department"), "created_at": ticket["created_at"],
             "updated_at": ticket["updated_at"], "severity": SEVERITY_LABELS.get(ticket.get("severity"), "一般"),
             "category": ACTION_LABELS.get(ticket.get("recommended_action"), "服务申请"), "status": status}
+    assignment = ticket.get("assignment") or {}
+    view["handling"] = {"team": assignment.get("team"), "assignee": assignment.get("assignee"),
+                        "due_at": assignment.get("due_at"), "overdue": status["group"] != "completed" and CaseLifecycle.overdue(assignment),
+                        "escalated": bool(assignment.get("escalated_at"))}
     if summary:
         return view
     clarification = state.get("clarification") or {}
@@ -89,15 +99,23 @@ def present_ticket(state, *, summary=False):
     history = [{"role": row["role"], "message": "已确认本次申请。" if row.get("kind") == "plan_confirmation" else row.get("content", ""),
                 "at": row.get("at")} for row in state.get("conversation_history", []) if row.get("role") in {"assistant", "user"}]
     activity = [{"label": "工单已提交", "at": ticket["created_at"]}]
+    for row in assignment.get("history", []):
+        activity.append({"label": ("工单已由 " if row["action"] == "claim" else "工单已转派给 ") + row["to"] + " 负责", "at": row["at"]})
+    if assignment.get("escalated_at"):
+        activity.append({"label": "处理超时，已列入经理跟进队列", "at": assignment["escalated_at"]})
     approval = state.get("approval") or {}
     if approval.get("decided_at"):
         activity.append({"label": "审批已通过" if approval["status"] == "approved" else "审批未通过", "at": approval["decided_at"]})
     if ticket["updated_at"] != ticket["created_at"]:
         activity.append({"label": status["label"], "at": ticket["updated_at"]})
-    view.update(clarification={"question": question, "round_number": state.get("clarification_round", 0)} if ticket["status"] == "awaiting_clarification" else None,
+    if ticket["status"] == "awaiting_user_info":
+        question = clarification.get("question", "请补充具体情况。")
+    case_open = ticket["status"] in CaseLifecycle.support_states | {"awaiting_user_info"} or (ticket["status"] == "closed" and ticket.get("recommended_action") == "open_incident" and (state.get("resolution") or {}).get("external_issue_resolved") is not True)
+    view.update(clarification={"question": question, "round_number": state.get("clarification_round", 0), "stage": "investigation" if ticket["status"] == "awaiting_user_info" else "intake"} if ticket["status"] in {"awaiting_clarification", "awaiting_user_info"} else None,
                 confirmation=plan_rows((state.get("confirmation") or {}).get("plan")) if confirming else None,
                 request_details=plan_rows(ticket.get("execution_plan")), conversation=history, activity=activity,
                 can_cancel=ticket["status"] in {"awaiting_clarification", "awaiting_approval"},
+                can_follow_up=case_open and ticket.get("recommended_action") == "open_incident", case_revision=ticket.get("case_revision", 0),
                 needs_polling=ticket["status"] in {"awaiting_investigation", "investigating", "new", "triaged", "planned", "authorized", "executed", "recovering"})
     return view
 
@@ -121,8 +139,10 @@ class PortalService:
             view["support"] = self._support(state, principal)
         return view
 
-    def list(self, principal, *, scope="mine", group=None, query="", limit=30, offset=0):
+    def list(self, principal, *, scope="mine", group=None, query="", queue=None, limit=30, offset=0):
         self.check_scope(principal, scope)
+        if queue and scope != "support":
+            raise RequestValidationError()
         rows = []
         for ticket in self.service.agent.audit.list_tickets():
             if scope == "mine" and ticket.get("owner_id") != principal.user_id:
@@ -131,32 +151,50 @@ class PortalService:
                 state = self.service.get_state(principal, ticket["id"])
             except ResourceNotFoundError:
                 continue
-            rows.append(present_ticket(state, summary=True))
+            row = present_ticket(state, summary=True)
+            if scope == "support":
+                support = self._support(state, principal)
+                active = row["status"]["group"] != "completed"
+                row["support_queue"] = {"unassigned": support["can_claim"], "mine": active and support["is_assignee"], "overdue": active and row["handling"]["overdue"]}
+            rows.append(row)
         counts = {"total": len(rows), "action_required": 0, "processing": 0, "completed": 0}
         for row in rows:
             counts[row["status"]["group"]] += 1
+        if scope == "support":
+            for key in ("unassigned", "mine", "overdue"):
+                counts[key] = sum(bool(row["support_queue"][key]) for row in rows)
         text = query.strip().casefold()
-        filtered = [row for row in rows if (not group or row["status"]["group"] == group) and
+        filtered = [row for row in rows if (not queue or row.get("support_queue", {}).get(queue)) and (not group or row["status"]["group"] == group) and
                     (not text or text in (row["title"] + " " + row["description"] + " " + row["reference"]).casefold())]
         return {"items": filtered[offset:offset + limit], "total": len(filtered), "counts": counts}
 
     @staticmethod
     def _support(state, principal):
+        state = CaseLifecycle.normalize(AgentState.from_dict(state)).to_dict()
         ticket = state["ticket"]
         report = ticket.get("diagnostic_report") or {}
         approval = state.get("approval") or {}
         independent = bool(ticket.get("owner_id")) and ticket["owner_id"] != principal.user_id
         required_role = approval.get("required_role")
+        assignment = ticket.get("assignment") or {}
+        is_assignee = assignment.get("assignee") == principal.user_id
+        case_active = ticket["status"] in CaseLifecycle.support_states
         can_approve = independent and ticket["status"] == "awaiting_approval" and required_role in {"manager", "admin"} and (required_role == "manager" or principal.role == "admin")
         observations = [{"source": {"client_events": "客户端记录", "session_events": "关联会话记录", "search_runbooks": "排障规程"}.get(row.get("tool"), "诊断记录"),
                          "records": [{"reference": r.get("id"), "text": r.get("text", "")} for r in row.get("records", [])]}
                         for row in report.get("observations", [])]
         return {"approval_id": approval.get("id"), "can_approve": can_approve,
+                "can_claim": independent and ticket["status"] in CaseLifecycle.support_states | {"awaiting_user_info"} and not assignment.get("assignee"),
+                "is_assignee": is_assignee, "assignment_revision": assignment.get("revision", 0),
+                "can_transfer": independent and bool(assignment.get("assignee")) and (is_assignee or principal.role == "admin") and (case_active or ticket["status"] == "awaiting_user_info"),
+                "can_request_info": independent and is_assignee and case_active and ticket.get("recommended_action") == "open_incident",
+                "assignment_history": assignment.get("history", []),
                 "can_investigate": ticket["status"] == "awaiting_investigation",
-                "can_feedback": independent and bool(report) and ticket["status"] in {"closed", "resolved_manually"},
+                "can_feedback": independent and is_assignee and ticket.get("recommended_action") == "open_incident" and ticket["status"] in CaseLifecycle.support_states | {"resolved"}
+                    and (state.get("action_result") or {}).get("status") != "unknown" and ticket.get("investigation_status") != "attachment_unknown",
                 "feedback_revision": len(ticket.get("feedback", [])) + 1,
-                "can_resolve": independent and ticket["status"] in {"manual_review", "failed"},
-                "can_recover": ticket["status"] in {"manual_review", "failed"},
+                "can_resolve": independent and is_assignee and case_active,
+                "can_recover": independent and is_assignee and case_active and state.get("next_node") is not None,
                 "summary": report.get("summary"), "next_check": report.get("next_check"),
                 "observations": observations, "citations": report.get("citations", []),
                 "feedback": [{"actor": r.get("actor"), "note": r.get("note"), "at": r.get("at")} for r in ticket.get("feedback", [])],

@@ -94,6 +94,17 @@ class IdentityStore:
         revision = hashlib.sha256(record.password_hash.encode()).hexdigest()
         return principal, revision
 
+    def principal(self, user_id: str) -> Principal:
+        record = self._by_user.get(user_id)
+        if not record or not record.enabled:
+            raise AuthenticationError()
+        return Principal(user_id=record.user_id, role=record.role, department=record.department)
+
+    def support_people(self, department, owner):
+        return [{"user_id": row.user_id, "role": row.role} for row in self._records
+                if row.enabled and row.user_id != owner and row.role in {"manager", "admin"}
+                and (row.role == "admin" or row.department == department)]
+
 
 def initialize_local_passwords(path: Path) -> Path:
     """Add missing password hashes without changing identity ownership, roles or keys.

@@ -1,0 +1,191 @@
+{
+  "description": "合成观察条件对照：同一句用户描述，改变后端遥测；不是企业真实测试集。先冻结标签，再运行实验。",
+  "cases": [
+    {
+      "id": "v01",
+      "request": "VPN 连接失败，报错超时，请登记排查。",
+      "telemetry": {
+        "simulated": true,
+        "service": "outage",
+        "accounts": {
+          "alice": {
+            "enabled": true,
+            "vpn_access": true,
+            "recent_error": "service_unavailable"
+          }
+        }
+      },
+      "expected_finding": "service_outage"
+    },
+    {
+      "id": "v02",
+      "request": "VPN 连接失败，报错超时，请登记排查。",
+      "telemetry": {
+        "simulated": true,
+        "service": "outage",
+        "accounts": {
+          "alice": {
+            "enabled": true,
+            "vpn_access": true,
+            "recent_error": "unknown"
+          }
+        }
+      },
+      "expected_finding": "service_outage"
+    },
+    {
+      "id": "v03",
+      "request": "VPN 连接失败，报错超时，请登记排查。",
+      "telemetry": {
+        "simulated": true,
+        "service": "healthy",
+        "accounts": {
+          "alice": {
+            "enabled": true,
+            "vpn_access": true,
+            "recent_error": "tls_certificate_expired"
+          }
+        }
+      },
+      "expected_finding": "certificate_expired"
+    },
+    {
+      "id": "v04",
+      "request": "VPN 连接失败，报错超时，请登记排查。",
+      "telemetry": {
+        "simulated": true,
+        "service": "healthy",
+        "accounts": {
+          "alice": {
+            "enabled": true,
+            "vpn_access": false,
+            "recent_error": "tls_certificate_expired"
+          }
+        }
+      },
+      "expected_finding": "certificate_expired"
+    },
+    {
+      "id": "v05",
+      "request": "VPN 连接失败，报错超时，请登记排查。",
+      "telemetry": {
+        "simulated": true,
+        "service": "healthy",
+        "accounts": {
+          "alice": {
+            "enabled": false,
+            "vpn_access": true,
+            "recent_error": "auth_rejected"
+          }
+        }
+      },
+      "expected_finding": "account_disabled"
+    },
+    {
+      "id": "v06",
+      "request": "VPN 连接失败，报错超时，请登记排查。",
+      "telemetry": {
+        "simulated": true,
+        "service": "unknown",
+        "accounts": {
+          "alice": {
+            "enabled": false,
+            "vpn_access": false,
+            "recent_error": "auth_rejected"
+          }
+        }
+      },
+      "expected_finding": "account_disabled"
+    },
+    {
+      "id": "v07",
+      "request": "VPN 连接失败，报错超时，请登记排查。",
+      "telemetry": {
+        "simulated": true,
+        "service": "healthy",
+        "accounts": {
+          "alice": {
+            "enabled": true,
+            "vpn_access": false,
+            "recent_error": "access_denied"
+          }
+        }
+      },
+      "expected_finding": "access_missing"
+    },
+    {
+      "id": "v08",
+      "request": "VPN 连接失败，报错超时，请登记排查。",
+      "telemetry": {
+        "simulated": true,
+        "service": "unknown",
+        "accounts": {
+          "alice": {
+            "enabled": true,
+            "vpn_access": false,
+            "recent_error": "access_denied"
+          }
+        }
+      },
+      "expected_finding": "access_missing"
+    },
+    {
+      "id": "v09",
+      "request": "VPN 连接失败，报错超时，请登记排查。",
+      "telemetry": {
+        "simulated": true,
+        "service": "healthy",
+        "accounts": {
+          "alice": {
+            "enabled": true,
+            "vpn_access": true,
+            "recent_error": "auth_rejected"
+          }
+        }
+      },
+      "expected_finding": "inconclusive"
+    },
+    {
+      "id": "v10",
+      "request": "VPN 连接失败，报错超时，请登记排查。",
+      "telemetry": {
+        "simulated": true,
+        "service": "healthy",
+        "accounts": {
+          "alice": {
+            "enabled": true,
+            "vpn_access": true,
+            "recent_error": "service_unavailable"
+          }
+        }
+      },
+      "expected_finding": "inconclusive"
+    },
+    {
+      "id": "v11",
+      "request": "VPN 连接失败，报错超时，请登记排查。",
+      "telemetry": {
+        "simulated": true,
+        "service": "unknown",
+        "accounts": {
+          "alice": {
+            "enabled": true,
+            "vpn_access": true,
+            "recent_error": "unknown"
+          }
+        }
+      },
+      "expected_finding": "inconclusive"
+    },
+    {
+      "id": "v12",
+      "request": "VPN 连接失败，报错超时，请登记排查。",
+      "telemetry": {
+        "simulated": true,
+        "service": "healthy",
+        "accounts": {}
+      },
+      "expected_finding": "inconclusive"
+    }
+  ]
+}

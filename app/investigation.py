@@ -13,14 +13,16 @@ from .model_adapter import DeepSeekDecisionModel
 from .models import now_iso
 from .errors import ModelOutputError
 
+
 class Citation(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     record_id: str = Field(min_length=1, max_length=100)
     quote: str = Field(min_length=5, max_length=600)
 
+
 class InvestigationStep(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
-    kind: Literal["tool", "finish"]
+    kind: Literal["tool", "finish", "ask_user"]
     tool: Literal["client_events", "session_events", "search_runbooks"] | None
     argument: str = Field(max_length=200)
     assessment: Literal["supported_hypothesis", "insufficient"] | None
@@ -29,11 +31,12 @@ class InvestigationStep(BaseModel):
     next_check: str = Field(max_length=400)
     citations: list[Citation] = Field(max_length=6)
     reason: str = Field(min_length=1, max_length=240)
+    missing_fact: Literal["occurred_at", "symptom", "reproduction", "previous_access"] | None = None
 
     @model_validator(mode="before")
     @classmethod
     def normalize_unused_tool_text(cls, value):
-
+        # null 与空串对工具步骤的两个未使用展示字段等价；不得宽松转换工具参数或最终结论。
         if isinstance(value, dict) and value.get("kind") == "tool":
             value = dict(value)
             for key in ("summary", "next_check"):
@@ -43,6 +46,13 @@ class InvestigationStep(BaseModel):
 
     @model_validator(mode="after")
     def consistent(self):
+        if self.kind == "ask_user":
+            if (not self.missing_fact or self.tool or self.argument or self.assessment or self.runbook_id
+                    or self.summary or self.next_check or self.citations):
+                raise ValueError("ask_user requires one user-provided fact and no tool or conclusion")
+            return self
+        if self.missing_fact is not None:
+            raise ValueError("only ask_user can request a missing fact")
         if self.kind == "tool":
             if not self.tool or self.assessment or self.runbook_id or self.summary or self.next_check or self.citations:
                 raise ValueError("tool steps only select a tool and argument")
@@ -56,12 +66,14 @@ class InvestigationStep(BaseModel):
             raise ValueError("insufficient must not designate a runbook as a diagnosis")
         return self
 
+
 def tokenize(text):
     lower = text.lower()
     terms = re.findall(r"[a-z0-9_:-]{2,}", lower)
     for part in re.findall(r"[\u4e00-\u9fff]+", lower):
         terms.extend(part[i:i+2] for i in range(len(part)-1))
     return set(terms)
+
 
 class InvestigationTools:
     """只有本人的可见会话能查询；检索适用规程作为证据候选，不编码故障答案。"""
@@ -107,7 +119,7 @@ class InvestigationTools:
         retrieval = None
         if tool == "client_events" and not argument:
             records = account["client_events"]
-
+            # 引用句柄由后端提供；不依赖模型从自然语言里伪造账号/路径。
             handles = [r["session_ref"] for r in records if r.get("session_ref") in account["sessions"]]
         elif tool == "session_events":
             visible = {ref for obs in observations for ref in obs.get("session_refs", [])}
@@ -147,6 +159,7 @@ class InvestigationTools:
                 "captured_at": snapshot["captured_at"], "retrieval": retrieval,
                 "simulated": True, "observed_at": now_iso()}
 
+
 def validate_citations(step, observations):
     """只检查引用存在与逐字一致，不把引用真实性偷换为语义正确性。"""
     records = {r["id"]: r for o in observations for r in o["records"]}
@@ -170,6 +183,7 @@ def validate_citations(step, observations):
                 raise ValueError("specific deployment is not established by cited telemetry")
         if not any(records[key]["kind"] == "log" for key in cited):
             raise ValueError("a runbook alone does not prove this user's condition")
+
 
 class InvestigationModel(DeepSeekDiagnosticModel):
     def choose(self, text, observations, remaining_tools, *, timeout):
@@ -196,6 +210,11 @@ class InvestigationModel(DeepSeekDiagnosticModel):
             "Include observed deployment/endpoint markers in searches; never infer a deployment from the runbook itself. "
             "Do not use a conflicted runbook. Cite the applicability condition as well as the relevant log when possible. "
             "If no applicable runbook or no adequate current evidence, finish insufficient, suggest a specific missing read for the human. "
+            "If the missing information can be provided by the user (incident date/time, symptom, reproduction steps or previous access), "
+            "you may choose kind=ask_user with missing_fact=occurred_at/symptom/reproduction/previous_access. "
+            "Set tool=null, argument='', assessment=null, runbook_id=null, summary='', next_check='', citations=[]. "
+            "Do not ask the user to supply internal logs, permissions or data-source configuration; those require support. "
+            "Do not repeat facts already supplied. For tool/finish set missing_fact=null. "
             "For an insufficient finish set runbook_id=null. For any finish set tool=null and argument=''. "
             "Finish with a Chinese summary, a concrete next_check for the human (never assert a repair was performed), "
             "and exact quotes from current logs plus the selected runbook. Explicitly phrase the summary as a hypothesis needing human verification, not a proven exclusive root cause. "
@@ -219,6 +238,7 @@ class InvestigationModel(DeepSeekDiagnosticModel):
             return step, metadata
         return self.breaker.call(call)
 
+
 class InvestigationRunner:
     def __init__(self, adapter, model, *, max_tools=5, max_models=6, deadline_seconds=60, clock=time.time, prefetch=False):
         self.adapter, self.model = adapter, model
@@ -240,8 +260,8 @@ class InvestigationRunner:
             "decisions": [], "pending_tool": None, "snapshot_id": None, "deadline_at": self.clock()+self.deadline_seconds}
         if session["status"] != "running":
             return session
-        def finish(stop, step=None):
-            session.update(status="completed", stop_reason=stop, finished_at=now_iso(),
+        def finish(stop, step=None, *, waiting=False):
+            session.update(status="awaiting_user_info" if waiting else "completed", stop_reason=stop, finished_at=now_iso(),
                 assessment=step.assessment if step else "insufficient", finding=step.runbook_id if step else None,
                 summary=step.summary if step else "证据调查未能完成，保留原故障交由人工核查。",
                 next_check=step.next_check if step else "请人工核对当前会话日志及适用的排障规程。",
@@ -303,6 +323,9 @@ class InvestigationRunner:
                 return finish("model_error:"+type(exc).__name__)
             if self.clock() >= session["deadline_at"]:
                 return finish("deadline")
+            if step.kind == "ask_user":
+                session["missing_fact"] = step.missing_fact
+                return finish("user_input", waiting=True)
             if step.kind == "finish":
                 try:
                     validate_citations(step, session["observations"])
@@ -317,6 +340,7 @@ class InvestigationRunner:
             session["tool_calls"] += 1
             session["pending_tool"] = {"tool": step.tool, "argument": step.argument.strip()}
             checkpoint(session)
+
 
 def investigation_attachment(session):
     return {key: session[key] for key in ("format", "source", "mode", "assessment", "finding", "summary",

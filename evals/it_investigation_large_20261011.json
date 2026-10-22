@@ -1,0 +1,4925 @@
+{
+  "description": "120-case stratified synthetic investigation benchmark; 15 independently rendered telemetry cases per family; labels never sent to the model.",
+  "cases": [
+    {
+      "id": "large-kb-v01-01",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:30 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v01-01",
+                    "text": "2026-10-01 10:30 VPN tunnel is up but the corporate portal cannot be resolved. session_ref=session-large-kb-v01-01; trace_id=trace-001",
+                    "session_ref": "session-large-kb-v01-01"
+                  },
+                  {
+                    "id": "heartbeat-001",
+                    "text": "2026-10-01 10:30 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v01-01": [
+                    {
+                      "id": "log-large-kb-v01-01",
+                      "text": "2026-10-01 10:30 resolver returned NXDOMAIN for portal.corp.test while 10.21.1.8 responded to ping. trace_id=trace-001"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v01",
+      "required_log_ids": [
+        "log-large-kb-v01-01"
+      ],
+      "family": "kb-v01"
+    },
+    {
+      "id": "large-kb-v01-02",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:31 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v01-02",
+                    "text": "2026-10-02 10:31 The remote session connects; the internal hostname is not found. session_ref=session-large-kb-v01-02; trace_id=trace-002",
+                    "session_ref": "session-large-kb-v01-02"
+                  },
+                  {
+                    "id": "heartbeat-002",
+                    "text": "2026-10-02 10:31 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v01-02": [
+                    {
+                      "id": "log-large-kb-v01-02",
+                      "text": "2026-10-02 10:31 DNS lookup for portal.corp.test returned no such name; direct IP access succeeded. trace_id=trace-002"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v01",
+      "required_log_ids": [
+        "log-large-kb-v01-02"
+      ],
+      "family": "kb-v01"
+    },
+    {
+      "id": "large-kb-v01-03",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:32 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v01-03",
+                    "text": "2026-10-03 10:32 Name resolution fails only for the private portal after VPN login. session_ref=session-large-kb-v01-03; trace_id=trace-003",
+                    "session_ref": "session-large-kb-v01-03"
+                  },
+                  {
+                    "id": "heartbeat-003",
+                    "text": "2026-10-03 10:32 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v01-03": [
+                    {
+                      "id": "log-large-kb-v01-03",
+                      "text": "2026-10-03 10:32 the private resolver had no record for portal.corp.test; the tunnel and target IP were reachable. trace_id=trace-003"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v01",
+      "required_log_ids": [
+        "log-large-kb-v01-03"
+      ],
+      "family": "kb-v01"
+    },
+    {
+      "id": "large-kb-v01-04",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:33 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v01-04",
+                    "text": "2026-10-04 10:33 The endpoint reaches the network but the portal hostname has no DNS answer. session_ref=session-large-kb-v01-04; trace_id=trace-004",
+                    "session_ref": "session-large-kb-v01-04"
+                  },
+                  {
+                    "id": "heartbeat-004",
+                    "text": "2026-10-04 10:33 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v01-04": [
+                    {
+                      "id": "log-large-kb-v01-04",
+                      "text": "2026-10-04 10:33 name resolution failed for portal.corp.test, although the same session reached 10.21.1.8. trace_id=trace-004"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v01",
+      "required_log_ids": [
+        "log-large-kb-v01-04"
+      ],
+      "family": "kb-v01"
+    },
+    {
+      "id": "large-kb-v01-05",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:34 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v01-05",
+                    "text": "2026-10-05 10:34 VPN access works by address, while the service name returns no host. session_ref=session-large-kb-v01-05; trace_id=trace-005",
+                    "session_ref": "session-large-kb-v01-05"
+                  },
+                  {
+                    "id": "heartbeat-005",
+                    "text": "2026-10-05 10:34 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v01-05": [
+                    {
+                      "id": "log-large-kb-v01-05",
+                      "text": "2026-10-05 10:34 the hostname lookup was refused by the resolver and the direct address remained reachable. trace_id=trace-005"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v01",
+      "required_log_ids": [
+        "log-large-kb-v01-05"
+      ],
+      "family": "kb-v01"
+    },
+    {
+      "id": "large-kb-v01-06",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:35 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v01-06",
+                    "text": "2026-10-06 10:35 VPN tunnel is up but the corporate portal cannot be resolved. session_ref=session-large-kb-v01-06; trace_id=trace-006",
+                    "session_ref": "session-large-kb-v01-06"
+                  },
+                  {
+                    "id": "heartbeat-006",
+                    "text": "2026-10-06 10:35 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v01-06": [
+                    {
+                      "id": "log-large-kb-v01-06",
+                      "text": "2026-10-06 10:35 resolver returned NXDOMAIN for portal.corp.test while 10.21.1.8 responded to ping. trace_id=trace-006"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v01",
+      "required_log_ids": [
+        "log-large-kb-v01-06"
+      ],
+      "family": "kb-v01"
+    },
+    {
+      "id": "large-kb-v01-07",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:36 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v01-07",
+                    "text": "2026-10-07 10:36 The remote session connects; the internal hostname is not found. session_ref=session-large-kb-v01-07; trace_id=trace-007",
+                    "session_ref": "session-large-kb-v01-07"
+                  },
+                  {
+                    "id": "heartbeat-007",
+                    "text": "2026-10-07 10:36 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v01-07": [
+                    {
+                      "id": "log-large-kb-v01-07",
+                      "text": "2026-10-07 10:36 DNS lookup for portal.corp.test returned no such name; direct IP access succeeded. trace_id=trace-007"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v01",
+      "required_log_ids": [
+        "log-large-kb-v01-07"
+      ],
+      "family": "kb-v01"
+    },
+    {
+      "id": "large-kb-v01-08",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:37 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v01-08",
+                    "text": "2026-10-08 10:37 Name resolution fails only for the private portal after VPN login. session_ref=session-large-kb-v01-08; trace_id=trace-008",
+                    "session_ref": "session-large-kb-v01-08"
+                  },
+                  {
+                    "id": "heartbeat-008",
+                    "text": "2026-10-08 10:37 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v01-08": [
+                    {
+                      "id": "log-large-kb-v01-08",
+                      "text": "2026-10-08 10:37 the private resolver had no record for portal.corp.test; the tunnel and target IP were reachable. trace_id=trace-008"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v01",
+      "required_log_ids": [
+        "log-large-kb-v01-08"
+      ],
+      "family": "kb-v01"
+    },
+    {
+      "id": "large-kb-v01-09",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:38 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v01-09",
+                    "text": "2026-10-09 10:38 The endpoint reaches the network but the portal hostname has no DNS answer. session_ref=session-large-kb-v01-09; trace_id=trace-009",
+                    "session_ref": "session-large-kb-v01-09"
+                  },
+                  {
+                    "id": "heartbeat-009",
+                    "text": "2026-10-09 10:38 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v01-09": [
+                    {
+                      "id": "log-large-kb-v01-09",
+                      "text": "2026-10-09 10:38 name resolution failed for portal.corp.test, although the same session reached 10.21.1.8. trace_id=trace-009"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v01",
+      "required_log_ids": [
+        "log-large-kb-v01-09"
+      ],
+      "family": "kb-v01"
+    },
+    {
+      "id": "large-kb-v01-10",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:39 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v01-10",
+                    "text": "2026-10-01 10:39 VPN access works by address, while the service name returns no host. session_ref=session-large-kb-v01-10; trace_id=trace-010",
+                    "session_ref": "session-large-kb-v01-10"
+                  },
+                  {
+                    "id": "heartbeat-010",
+                    "text": "2026-10-01 10:39 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v01-10": [
+                    {
+                      "id": "log-large-kb-v01-10",
+                      "text": "2026-10-01 10:39 the hostname lookup was refused by the resolver and the direct address remained reachable. trace_id=trace-010"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v01",
+      "required_log_ids": [
+        "log-large-kb-v01-10"
+      ],
+      "family": "kb-v01"
+    },
+    {
+      "id": "large-kb-v01-11",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:40 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v01-11",
+                    "text": "2026-10-02 10:40 VPN tunnel is up but the corporate portal cannot be resolved. session_ref=session-large-kb-v01-11; trace_id=trace-011",
+                    "session_ref": "session-large-kb-v01-11"
+                  },
+                  {
+                    "id": "heartbeat-011",
+                    "text": "2026-10-02 10:40 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v01-11": [
+                    {
+                      "id": "log-large-kb-v01-11",
+                      "text": "2026-10-02 10:40 resolver returned NXDOMAIN for portal.corp.test while 10.21.1.8 responded to ping. trace_id=trace-011"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v01",
+      "required_log_ids": [
+        "log-large-kb-v01-11"
+      ],
+      "family": "kb-v01"
+    },
+    {
+      "id": "large-kb-v01-12",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:41 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v01-12",
+                    "text": "2026-10-03 10:41 The remote session connects; the internal hostname is not found. session_ref=session-large-kb-v01-12; trace_id=trace-012",
+                    "session_ref": "session-large-kb-v01-12"
+                  },
+                  {
+                    "id": "heartbeat-012",
+                    "text": "2026-10-03 10:41 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v01-12": [
+                    {
+                      "id": "log-large-kb-v01-12",
+                      "text": "2026-10-03 10:41 DNS lookup for portal.corp.test returned no such name; direct IP access succeeded. trace_id=trace-012"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v01",
+      "required_log_ids": [
+        "log-large-kb-v01-12"
+      ],
+      "family": "kb-v01"
+    },
+    {
+      "id": "large-kb-v01-13",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:42 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v01-13",
+                    "text": "2026-10-04 10:42 Name resolution fails only for the private portal after VPN login. session_ref=session-large-kb-v01-13; trace_id=trace-013",
+                    "session_ref": "session-large-kb-v01-13"
+                  },
+                  {
+                    "id": "heartbeat-013",
+                    "text": "2026-10-04 10:42 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v01-13": [
+                    {
+                      "id": "log-large-kb-v01-13",
+                      "text": "2026-10-04 10:42 the private resolver had no record for portal.corp.test; the tunnel and target IP were reachable. trace_id=trace-013"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v01",
+      "required_log_ids": [
+        "log-large-kb-v01-13"
+      ],
+      "family": "kb-v01"
+    },
+    {
+      "id": "large-kb-v01-14",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:43 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v01-14",
+                    "text": "2026-10-05 10:43 The endpoint reaches the network but the portal hostname has no DNS answer. session_ref=session-large-kb-v01-14; trace_id=trace-014",
+                    "session_ref": "session-large-kb-v01-14"
+                  },
+                  {
+                    "id": "heartbeat-014",
+                    "text": "2026-10-05 10:43 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v01-14": [
+                    {
+                      "id": "log-large-kb-v01-14",
+                      "text": "2026-10-05 10:43 name resolution failed for portal.corp.test, although the same session reached 10.21.1.8. trace_id=trace-014"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v01",
+      "required_log_ids": [
+        "log-large-kb-v01-14"
+      ],
+      "family": "kb-v01"
+    },
+    {
+      "id": "large-kb-v01-15",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:44 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v01-15",
+                    "text": "2026-10-06 10:44 VPN access works by address, while the service name returns no host. session_ref=session-large-kb-v01-15; trace_id=trace-015",
+                    "session_ref": "session-large-kb-v01-15"
+                  },
+                  {
+                    "id": "heartbeat-015",
+                    "text": "2026-10-06 10:44 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v01-15": [
+                    {
+                      "id": "log-large-kb-v01-15",
+                      "text": "2026-10-06 10:44 the hostname lookup was refused by the resolver and the direct address remained reachable. trace_id=trace-015"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v01",
+      "required_log_ids": [
+        "log-large-kb-v01-15"
+      ],
+      "family": "kb-v01"
+    },
+    {
+      "id": "large-kb-v02-01",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:30 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v02-01",
+                    "text": "2026-10-01 10:30 VPN connects but the intranet subnet is unreachable. session_ref=session-large-kb-v02-01; trace_id=trace-001",
+                    "session_ref": "session-large-kb-v02-01"
+                  },
+                  {
+                    "id": "heartbeat-001",
+                    "text": "2026-10-01 10:30 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v02-01": [
+                    {
+                      "id": "log-large-kb-v02-01",
+                      "text": "2026-10-01 10:30 the server pushed 10.21.0.0/16 but the client did not install that route; packets used the home gateway. trace_id=trace-001"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v02",
+      "required_log_ids": [
+        "log-large-kb-v02-01"
+      ],
+      "family": "kb-v02"
+    },
+    {
+      "id": "large-kb-v02-02",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:31 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v02-02",
+                    "text": "2026-10-02 10:31 The tunnel is established; traffic to the internal network follows the home gateway. session_ref=session-large-kb-v02-02; trace_id=trace-002",
+                    "session_ref": "session-large-kb-v02-02"
+                  },
+                  {
+                    "id": "heartbeat-002",
+                    "text": "2026-10-02 10:31 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v02-02": [
+                    {
+                      "id": "log-large-kb-v02-02",
+                      "text": "2026-10-02 10:31 route installation was skipped for the pushed corporate subnet and the destination matched the default route. trace_id=trace-002"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v02",
+      "required_log_ids": [
+        "log-large-kb-v02-02"
+      ],
+      "family": "kb-v02"
+    },
+    {
+      "id": "large-kb-v02-03",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:32 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v02-03",
+                    "text": "2026-10-03 10:32 Remote login succeeds but the pushed private route is absent. session_ref=session-large-kb-v02-03; trace_id=trace-003",
+                    "session_ref": "session-large-kb-v02-03"
+                  },
+                  {
+                    "id": "heartbeat-003",
+                    "text": "2026-10-03 10:32 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v02-03": [
+                    {
+                      "id": "log-large-kb-v02-03",
+                      "text": "2026-10-03 10:32 the private network overlapped with a local route, so the VPN route was not selected. trace_id=trace-003"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v02",
+      "required_log_ids": [
+        "log-large-kb-v02-03"
+      ],
+      "family": "kb-v02"
+    },
+    {
+      "id": "large-kb-v02-04",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:33 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v02-04",
+                    "text": "2026-10-04 10:33 The endpoint cannot reach the corporate subnet after connection. session_ref=session-large-kb-v02-04; trace_id=trace-004",
+                    "session_ref": "session-large-kb-v02-04"
+                  },
+                  {
+                    "id": "heartbeat-004",
+                    "text": "2026-10-04 10:33 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v02-04": [
+                    {
+                      "id": "log-large-kb-v02-04",
+                      "text": "2026-10-04 10:33 the route table contains no active entry for 10.21.0.0/16 after the tunnel handshake. trace_id=trace-004"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v02",
+      "required_log_ids": [
+        "log-large-kb-v02-04"
+      ],
+      "family": "kb-v02"
+    },
+    {
+      "id": "large-kb-v02-05",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:34 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v02-05",
+                    "text": "2026-10-05 10:34 The tunnel comes up and packets for the internal service leave on the local route. session_ref=session-large-kb-v02-05; trace_id=trace-005",
+                    "session_ref": "session-large-kb-v02-05"
+                  },
+                  {
+                    "id": "heartbeat-005",
+                    "text": "2026-10-05 10:34 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v02-05": [
+                    {
+                      "id": "log-large-kb-v02-05",
+                      "text": "2026-10-05 10:34 the client retained the local gateway for the corporate destination instead of the VPN interface. trace_id=trace-005"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v02",
+      "required_log_ids": [
+        "log-large-kb-v02-05"
+      ],
+      "family": "kb-v02"
+    },
+    {
+      "id": "large-kb-v02-06",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:35 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v02-06",
+                    "text": "2026-10-06 10:35 VPN connects but the intranet subnet is unreachable. session_ref=session-large-kb-v02-06; trace_id=trace-006",
+                    "session_ref": "session-large-kb-v02-06"
+                  },
+                  {
+                    "id": "heartbeat-006",
+                    "text": "2026-10-06 10:35 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v02-06": [
+                    {
+                      "id": "log-large-kb-v02-06",
+                      "text": "2026-10-06 10:35 the server pushed 10.21.0.0/16 but the client did not install that route; packets used the home gateway. trace_id=trace-006"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v02",
+      "required_log_ids": [
+        "log-large-kb-v02-06"
+      ],
+      "family": "kb-v02"
+    },
+    {
+      "id": "large-kb-v02-07",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:36 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v02-07",
+                    "text": "2026-10-07 10:36 The tunnel is established; traffic to the internal network follows the home gateway. session_ref=session-large-kb-v02-07; trace_id=trace-007",
+                    "session_ref": "session-large-kb-v02-07"
+                  },
+                  {
+                    "id": "heartbeat-007",
+                    "text": "2026-10-07 10:36 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v02-07": [
+                    {
+                      "id": "log-large-kb-v02-07",
+                      "text": "2026-10-07 10:36 route installation was skipped for the pushed corporate subnet and the destination matched the default route. trace_id=trace-007"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v02",
+      "required_log_ids": [
+        "log-large-kb-v02-07"
+      ],
+      "family": "kb-v02"
+    },
+    {
+      "id": "large-kb-v02-08",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:37 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v02-08",
+                    "text": "2026-10-08 10:37 Remote login succeeds but the pushed private route is absent. session_ref=session-large-kb-v02-08; trace_id=trace-008",
+                    "session_ref": "session-large-kb-v02-08"
+                  },
+                  {
+                    "id": "heartbeat-008",
+                    "text": "2026-10-08 10:37 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v02-08": [
+                    {
+                      "id": "log-large-kb-v02-08",
+                      "text": "2026-10-08 10:37 the private network overlapped with a local route, so the VPN route was not selected. trace_id=trace-008"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v02",
+      "required_log_ids": [
+        "log-large-kb-v02-08"
+      ],
+      "family": "kb-v02"
+    },
+    {
+      "id": "large-kb-v02-09",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:38 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v02-09",
+                    "text": "2026-10-09 10:38 The endpoint cannot reach the corporate subnet after connection. session_ref=session-large-kb-v02-09; trace_id=trace-009",
+                    "session_ref": "session-large-kb-v02-09"
+                  },
+                  {
+                    "id": "heartbeat-009",
+                    "text": "2026-10-09 10:38 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v02-09": [
+                    {
+                      "id": "log-large-kb-v02-09",
+                      "text": "2026-10-09 10:38 the route table contains no active entry for 10.21.0.0/16 after the tunnel handshake. trace_id=trace-009"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v02",
+      "required_log_ids": [
+        "log-large-kb-v02-09"
+      ],
+      "family": "kb-v02"
+    },
+    {
+      "id": "large-kb-v02-10",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:39 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v02-10",
+                    "text": "2026-10-01 10:39 The tunnel comes up and packets for the internal service leave on the local route. session_ref=session-large-kb-v02-10; trace_id=trace-010",
+                    "session_ref": "session-large-kb-v02-10"
+                  },
+                  {
+                    "id": "heartbeat-010",
+                    "text": "2026-10-01 10:39 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v02-10": [
+                    {
+                      "id": "log-large-kb-v02-10",
+                      "text": "2026-10-01 10:39 the client retained the local gateway for the corporate destination instead of the VPN interface. trace_id=trace-010"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v02",
+      "required_log_ids": [
+        "log-large-kb-v02-10"
+      ],
+      "family": "kb-v02"
+    },
+    {
+      "id": "large-kb-v02-11",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:40 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v02-11",
+                    "text": "2026-10-02 10:40 VPN connects but the intranet subnet is unreachable. session_ref=session-large-kb-v02-11; trace_id=trace-011",
+                    "session_ref": "session-large-kb-v02-11"
+                  },
+                  {
+                    "id": "heartbeat-011",
+                    "text": "2026-10-02 10:40 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v02-11": [
+                    {
+                      "id": "log-large-kb-v02-11",
+                      "text": "2026-10-02 10:40 the server pushed 10.21.0.0/16 but the client did not install that route; packets used the home gateway. trace_id=trace-011"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v02",
+      "required_log_ids": [
+        "log-large-kb-v02-11"
+      ],
+      "family": "kb-v02"
+    },
+    {
+      "id": "large-kb-v02-12",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:41 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v02-12",
+                    "text": "2026-10-03 10:41 The tunnel is established; traffic to the internal network follows the home gateway. session_ref=session-large-kb-v02-12; trace_id=trace-012",
+                    "session_ref": "session-large-kb-v02-12"
+                  },
+                  {
+                    "id": "heartbeat-012",
+                    "text": "2026-10-03 10:41 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v02-12": [
+                    {
+                      "id": "log-large-kb-v02-12",
+                      "text": "2026-10-03 10:41 route installation was skipped for the pushed corporate subnet and the destination matched the default route. trace_id=trace-012"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v02",
+      "required_log_ids": [
+        "log-large-kb-v02-12"
+      ],
+      "family": "kb-v02"
+    },
+    {
+      "id": "large-kb-v02-13",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:42 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v02-13",
+                    "text": "2026-10-04 10:42 Remote login succeeds but the pushed private route is absent. session_ref=session-large-kb-v02-13; trace_id=trace-013",
+                    "session_ref": "session-large-kb-v02-13"
+                  },
+                  {
+                    "id": "heartbeat-013",
+                    "text": "2026-10-04 10:42 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v02-13": [
+                    {
+                      "id": "log-large-kb-v02-13",
+                      "text": "2026-10-04 10:42 the private network overlapped with a local route, so the VPN route was not selected. trace_id=trace-013"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v02",
+      "required_log_ids": [
+        "log-large-kb-v02-13"
+      ],
+      "family": "kb-v02"
+    },
+    {
+      "id": "large-kb-v02-14",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:43 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v02-14",
+                    "text": "2026-10-05 10:43 The endpoint cannot reach the corporate subnet after connection. session_ref=session-large-kb-v02-14; trace_id=trace-014",
+                    "session_ref": "session-large-kb-v02-14"
+                  },
+                  {
+                    "id": "heartbeat-014",
+                    "text": "2026-10-05 10:43 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v02-14": [
+                    {
+                      "id": "log-large-kb-v02-14",
+                      "text": "2026-10-05 10:43 the route table contains no active entry for 10.21.0.0/16 after the tunnel handshake. trace_id=trace-014"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v02",
+      "required_log_ids": [
+        "log-large-kb-v02-14"
+      ],
+      "family": "kb-v02"
+    },
+    {
+      "id": "large-kb-v02-15",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:44 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v02-15",
+                    "text": "2026-10-06 10:44 The tunnel comes up and packets for the internal service leave on the local route. session_ref=session-large-kb-v02-15; trace_id=trace-015",
+                    "session_ref": "session-large-kb-v02-15"
+                  },
+                  {
+                    "id": "heartbeat-015",
+                    "text": "2026-10-06 10:44 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v02-15": [
+                    {
+                      "id": "log-large-kb-v02-15",
+                      "text": "2026-10-06 10:44 the client retained the local gateway for the corporate destination instead of the VPN interface. trace_id=trace-015"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v02",
+      "required_log_ids": [
+        "log-large-kb-v02-15"
+      ],
+      "family": "kb-v02"
+    },
+    {
+      "id": "large-kb-v03-01",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:30 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v03-01",
+                    "text": "2026-10-01 10:30 TLS negotiation stops after the tunnel starts. session_ref=session-large-kb-v03-01; trace_id=trace-001",
+                    "session_ref": "session-large-kb-v03-01"
+                  },
+                  {
+                    "id": "heartbeat-001",
+                    "text": "2026-10-01 10:30 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v03-01": [
+                    {
+                      "id": "log-large-kb-v03-01",
+                      "text": "2026-10-01 10:30 certificate notAfter=2026-09-20 is earlier than the connection time 2026-09-29. trace_id=trace-001"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v03",
+      "required_log_ids": [
+        "log-large-kb-v03-01"
+      ],
+      "family": "kb-v03"
+    },
+    {
+      "id": "large-kb-v03-02",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:31 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v03-02",
+                    "text": "2026-10-02 10:31 The VPN client rejects the server certificate. session_ref=session-large-kb-v03-02; trace_id=trace-002",
+                    "session_ref": "session-large-kb-v03-02"
+                  },
+                  {
+                    "id": "heartbeat-002",
+                    "text": "2026-10-02 10:31 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v03-02": [
+                    {
+                      "id": "log-large-kb-v03-02",
+                      "text": "2026-10-02 10:31 the presented certificate validity ended on 2026-09-20; system time is 2026-09-29. trace_id=trace-002"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v03",
+      "required_log_ids": [
+        "log-large-kb-v03-02"
+      ],
+      "family": "kb-v03"
+    },
+    {
+      "id": "large-kb-v03-03",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:32 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v03-03",
+                    "text": "2026-10-03 10:32 The connection reaches certificate validation and then fails. session_ref=session-large-kb-v03-03; trace_id=trace-003",
+                    "session_ref": "session-large-kb-v03-03"
+                  },
+                  {
+                    "id": "heartbeat-003",
+                    "text": "2026-10-03 10:32 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v03-03": [
+                    {
+                      "id": "log-large-kb-v03-03",
+                      "text": "2026-10-03 10:32 verification reports that the server certificate is past its expiration date. trace_id=trace-003"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v03",
+      "required_log_ids": [
+        "log-large-kb-v03-03"
+      ],
+      "family": "kb-v03"
+    },
+    {
+      "id": "large-kb-v03-04",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:33 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v03-04",
+                    "text": "2026-10-04 10:33 The remote endpoint is reachable but the trust check does not complete. session_ref=session-large-kb-v03-04; trace_id=trace-004",
+                    "session_ref": "session-large-kb-v03-04"
+                  },
+                  {
+                    "id": "heartbeat-004",
+                    "text": "2026-10-04 10:33 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v03-04": [
+                    {
+                      "id": "log-large-kb-v03-04",
+                      "text": "2026-10-04 10:33 the certificate validity interval does not include the current session timestamp. trace_id=trace-004"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v03",
+      "required_log_ids": [
+        "log-large-kb-v03-04"
+      ],
+      "family": "kb-v03"
+    },
+    {
+      "id": "large-kb-v03-05",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:34 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v03-05",
+                    "text": "2026-10-05 10:34 The secure channel cannot be established after the initial handshake. session_ref=session-large-kb-v03-05; trace_id=trace-005",
+                    "session_ref": "session-large-kb-v03-05"
+                  },
+                  {
+                    "id": "heartbeat-005",
+                    "text": "2026-10-05 10:34 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v03-05": [
+                    {
+                      "id": "log-large-kb-v03-05",
+                      "text": "2026-10-05 10:34 TLS verification failed because the certificate had already expired before this connection. trace_id=trace-005"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v03",
+      "required_log_ids": [
+        "log-large-kb-v03-05"
+      ],
+      "family": "kb-v03"
+    },
+    {
+      "id": "large-kb-v03-06",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:35 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v03-06",
+                    "text": "2026-10-06 10:35 TLS negotiation stops after the tunnel starts. session_ref=session-large-kb-v03-06; trace_id=trace-006",
+                    "session_ref": "session-large-kb-v03-06"
+                  },
+                  {
+                    "id": "heartbeat-006",
+                    "text": "2026-10-06 10:35 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v03-06": [
+                    {
+                      "id": "log-large-kb-v03-06",
+                      "text": "2026-10-06 10:35 certificate notAfter=2026-09-20 is earlier than the connection time 2026-09-29. trace_id=trace-006"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v03",
+      "required_log_ids": [
+        "log-large-kb-v03-06"
+      ],
+      "family": "kb-v03"
+    },
+    {
+      "id": "large-kb-v03-07",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:36 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v03-07",
+                    "text": "2026-10-07 10:36 The VPN client rejects the server certificate. session_ref=session-large-kb-v03-07; trace_id=trace-007",
+                    "session_ref": "session-large-kb-v03-07"
+                  },
+                  {
+                    "id": "heartbeat-007",
+                    "text": "2026-10-07 10:36 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v03-07": [
+                    {
+                      "id": "log-large-kb-v03-07",
+                      "text": "2026-10-07 10:36 the presented certificate validity ended on 2026-09-20; system time is 2026-09-29. trace_id=trace-007"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v03",
+      "required_log_ids": [
+        "log-large-kb-v03-07"
+      ],
+      "family": "kb-v03"
+    },
+    {
+      "id": "large-kb-v03-08",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:37 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v03-08",
+                    "text": "2026-10-08 10:37 The connection reaches certificate validation and then fails. session_ref=session-large-kb-v03-08; trace_id=trace-008",
+                    "session_ref": "session-large-kb-v03-08"
+                  },
+                  {
+                    "id": "heartbeat-008",
+                    "text": "2026-10-08 10:37 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v03-08": [
+                    {
+                      "id": "log-large-kb-v03-08",
+                      "text": "2026-10-08 10:37 verification reports that the server certificate is past its expiration date. trace_id=trace-008"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v03",
+      "required_log_ids": [
+        "log-large-kb-v03-08"
+      ],
+      "family": "kb-v03"
+    },
+    {
+      "id": "large-kb-v03-09",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:38 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v03-09",
+                    "text": "2026-10-09 10:38 The remote endpoint is reachable but the trust check does not complete. session_ref=session-large-kb-v03-09; trace_id=trace-009",
+                    "session_ref": "session-large-kb-v03-09"
+                  },
+                  {
+                    "id": "heartbeat-009",
+                    "text": "2026-10-09 10:38 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v03-09": [
+                    {
+                      "id": "log-large-kb-v03-09",
+                      "text": "2026-10-09 10:38 the certificate validity interval does not include the current session timestamp. trace_id=trace-009"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v03",
+      "required_log_ids": [
+        "log-large-kb-v03-09"
+      ],
+      "family": "kb-v03"
+    },
+    {
+      "id": "large-kb-v03-10",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:39 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v03-10",
+                    "text": "2026-10-01 10:39 The secure channel cannot be established after the initial handshake. session_ref=session-large-kb-v03-10; trace_id=trace-010",
+                    "session_ref": "session-large-kb-v03-10"
+                  },
+                  {
+                    "id": "heartbeat-010",
+                    "text": "2026-10-01 10:39 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v03-10": [
+                    {
+                      "id": "log-large-kb-v03-10",
+                      "text": "2026-10-01 10:39 TLS verification failed because the certificate had already expired before this connection. trace_id=trace-010"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v03",
+      "required_log_ids": [
+        "log-large-kb-v03-10"
+      ],
+      "family": "kb-v03"
+    },
+    {
+      "id": "large-kb-v03-11",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:40 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v03-11",
+                    "text": "2026-10-02 10:40 TLS negotiation stops after the tunnel starts. session_ref=session-large-kb-v03-11; trace_id=trace-011",
+                    "session_ref": "session-large-kb-v03-11"
+                  },
+                  {
+                    "id": "heartbeat-011",
+                    "text": "2026-10-02 10:40 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v03-11": [
+                    {
+                      "id": "log-large-kb-v03-11",
+                      "text": "2026-10-02 10:40 certificate notAfter=2026-09-20 is earlier than the connection time 2026-09-29. trace_id=trace-011"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v03",
+      "required_log_ids": [
+        "log-large-kb-v03-11"
+      ],
+      "family": "kb-v03"
+    },
+    {
+      "id": "large-kb-v03-12",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:41 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v03-12",
+                    "text": "2026-10-03 10:41 The VPN client rejects the server certificate. session_ref=session-large-kb-v03-12; trace_id=trace-012",
+                    "session_ref": "session-large-kb-v03-12"
+                  },
+                  {
+                    "id": "heartbeat-012",
+                    "text": "2026-10-03 10:41 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v03-12": [
+                    {
+                      "id": "log-large-kb-v03-12",
+                      "text": "2026-10-03 10:41 the presented certificate validity ended on 2026-09-20; system time is 2026-09-29. trace_id=trace-012"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v03",
+      "required_log_ids": [
+        "log-large-kb-v03-12"
+      ],
+      "family": "kb-v03"
+    },
+    {
+      "id": "large-kb-v03-13",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:42 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v03-13",
+                    "text": "2026-10-04 10:42 The connection reaches certificate validation and then fails. session_ref=session-large-kb-v03-13; trace_id=trace-013",
+                    "session_ref": "session-large-kb-v03-13"
+                  },
+                  {
+                    "id": "heartbeat-013",
+                    "text": "2026-10-04 10:42 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v03-13": [
+                    {
+                      "id": "log-large-kb-v03-13",
+                      "text": "2026-10-04 10:42 verification reports that the server certificate is past its expiration date. trace_id=trace-013"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v03",
+      "required_log_ids": [
+        "log-large-kb-v03-13"
+      ],
+      "family": "kb-v03"
+    },
+    {
+      "id": "large-kb-v03-14",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:43 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v03-14",
+                    "text": "2026-10-05 10:43 The remote endpoint is reachable but the trust check does not complete. session_ref=session-large-kb-v03-14; trace_id=trace-014",
+                    "session_ref": "session-large-kb-v03-14"
+                  },
+                  {
+                    "id": "heartbeat-014",
+                    "text": "2026-10-05 10:43 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v03-14": [
+                    {
+                      "id": "log-large-kb-v03-14",
+                      "text": "2026-10-05 10:43 the certificate validity interval does not include the current session timestamp. trace_id=trace-014"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v03",
+      "required_log_ids": [
+        "log-large-kb-v03-14"
+      ],
+      "family": "kb-v03"
+    },
+    {
+      "id": "large-kb-v03-15",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:44 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-v03-15",
+                    "text": "2026-10-06 10:44 The secure channel cannot be established after the initial handshake. session_ref=session-large-kb-v03-15; trace_id=trace-015",
+                    "session_ref": "session-large-kb-v03-15"
+                  },
+                  {
+                    "id": "heartbeat-015",
+                    "text": "2026-10-06 10:44 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-v03-15": [
+                    {
+                      "id": "log-large-kb-v03-15",
+                      "text": "2026-10-06 10:44 TLS verification failed because the certificate had already expired before this connection. trace_id=trace-015"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-v03",
+      "required_log_ids": [
+        "log-large-kb-v03-15"
+      ],
+      "family": "kb-v03"
+    },
+    {
+      "id": "large-kb-e01-01",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:30 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e01-01",
+                    "text": "2026-10-01 10:30 ERP report pages keep loading after login. session_ref=session-large-kb-e01-01; trace_id=trace-001",
+                    "session_ref": "session-large-kb-e01-01"
+                  },
+                  {
+                    "id": "heartbeat-001",
+                    "text": "2026-10-01 10:30 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e01-01": [
+                    {
+                      "id": "log-large-kb-e01-01",
+                      "text": "2026-10-01 10:30 connection pool acquisition exceeded 30 seconds while the health probe completed quickly. trace_id=trace-001"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e01",
+      "required_log_ids": [
+        "log-large-kb-e01-01"
+      ],
+      "family": "kb-e01"
+    },
+    {
+      "id": "large-kb-e01-02",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:31 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e01-02",
+                    "text": "2026-10-02 10:31 The ERP request is accepted but waits before data is returned. session_ref=session-large-kb-e01-02; trace_id=trace-002",
+                    "session_ref": "session-large-kb-e01-02"
+                  },
+                  {
+                    "id": "heartbeat-002",
+                    "text": "2026-10-02 10:31 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e01-02": [
+                    {
+                      "id": "log-large-kb-e01-02",
+                      "text": "2026-10-02 10:31 the database pool was exhausted and a request waited for a connection until timeout. trace_id=trace-002"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e01",
+      "required_log_ids": [
+        "log-large-kb-e01-02"
+      ],
+      "family": "kb-e01"
+    },
+    {
+      "id": "large-kb-e01-03",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:32 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e01-03",
+                    "text": "2026-10-03 10:32 The reports screen spins while the session remains authenticated. session_ref=session-large-kb-e01-03; trace_id=trace-003",
+                    "session_ref": "session-large-kb-e01-03"
+                  },
+                  {
+                    "id": "heartbeat-003",
+                    "text": "2026-10-03 10:32 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e01-03": [
+                    {
+                      "id": "log-large-kb-e01-03",
+                      "text": "2026-10-03 10:32 pool checkout timed out before SQL execution; the lightweight health query was normal. trace_id=trace-003"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e01",
+      "required_log_ids": [
+        "log-large-kb-e01-03"
+      ],
+      "family": "kb-e01"
+    },
+    {
+      "id": "large-kb-e01-04",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:33 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e01-04",
+                    "text": "2026-10-04 10:33 ERP requests intermittently stall during database access. session_ref=session-large-kb-e01-04; trace_id=trace-004",
+                    "session_ref": "session-large-kb-e01-04"
+                  },
+                  {
+                    "id": "heartbeat-004",
+                    "text": "2026-10-04 10:33 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e01-04": [
+                    {
+                      "id": "log-large-kb-e01-04",
+                      "text": "2026-10-04 10:33 application workers waited for an available database connection and the acquire deadline elapsed. trace_id=trace-004"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e01",
+      "required_log_ids": [
+        "log-large-kb-e01-04"
+      ],
+      "family": "kb-e01"
+    },
+    {
+      "id": "large-kb-e01-05",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:34 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e01-05",
+                    "text": "2026-10-05 10:34 The application is responsive at login but report retrieval blocks. session_ref=session-large-kb-e01-05; trace_id=trace-005",
+                    "session_ref": "session-large-kb-e01-05"
+                  },
+                  {
+                    "id": "heartbeat-005",
+                    "text": "2026-10-05 10:34 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e01-05": [
+                    {
+                      "id": "log-large-kb-e01-05",
+                      "text": "2026-10-05 10:34 the request timed out in connection acquisition rather than in the business query. trace_id=trace-005"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e01",
+      "required_log_ids": [
+        "log-large-kb-e01-05"
+      ],
+      "family": "kb-e01"
+    },
+    {
+      "id": "large-kb-e01-06",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:35 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e01-06",
+                    "text": "2026-10-06 10:35 ERP report pages keep loading after login. session_ref=session-large-kb-e01-06; trace_id=trace-006",
+                    "session_ref": "session-large-kb-e01-06"
+                  },
+                  {
+                    "id": "heartbeat-006",
+                    "text": "2026-10-06 10:35 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e01-06": [
+                    {
+                      "id": "log-large-kb-e01-06",
+                      "text": "2026-10-06 10:35 connection pool acquisition exceeded 30 seconds while the health probe completed quickly. trace_id=trace-006"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e01",
+      "required_log_ids": [
+        "log-large-kb-e01-06"
+      ],
+      "family": "kb-e01"
+    },
+    {
+      "id": "large-kb-e01-07",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:36 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e01-07",
+                    "text": "2026-10-07 10:36 The ERP request is accepted but waits before data is returned. session_ref=session-large-kb-e01-07; trace_id=trace-007",
+                    "session_ref": "session-large-kb-e01-07"
+                  },
+                  {
+                    "id": "heartbeat-007",
+                    "text": "2026-10-07 10:36 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e01-07": [
+                    {
+                      "id": "log-large-kb-e01-07",
+                      "text": "2026-10-07 10:36 the database pool was exhausted and a request waited for a connection until timeout. trace_id=trace-007"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e01",
+      "required_log_ids": [
+        "log-large-kb-e01-07"
+      ],
+      "family": "kb-e01"
+    },
+    {
+      "id": "large-kb-e01-08",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:37 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e01-08",
+                    "text": "2026-10-08 10:37 The reports screen spins while the session remains authenticated. session_ref=session-large-kb-e01-08; trace_id=trace-008",
+                    "session_ref": "session-large-kb-e01-08"
+                  },
+                  {
+                    "id": "heartbeat-008",
+                    "text": "2026-10-08 10:37 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e01-08": [
+                    {
+                      "id": "log-large-kb-e01-08",
+                      "text": "2026-10-08 10:37 pool checkout timed out before SQL execution; the lightweight health query was normal. trace_id=trace-008"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e01",
+      "required_log_ids": [
+        "log-large-kb-e01-08"
+      ],
+      "family": "kb-e01"
+    },
+    {
+      "id": "large-kb-e01-09",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:38 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e01-09",
+                    "text": "2026-10-09 10:38 ERP requests intermittently stall during database access. session_ref=session-large-kb-e01-09; trace_id=trace-009",
+                    "session_ref": "session-large-kb-e01-09"
+                  },
+                  {
+                    "id": "heartbeat-009",
+                    "text": "2026-10-09 10:38 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e01-09": [
+                    {
+                      "id": "log-large-kb-e01-09",
+                      "text": "2026-10-09 10:38 application workers waited for an available database connection and the acquire deadline elapsed. trace_id=trace-009"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e01",
+      "required_log_ids": [
+        "log-large-kb-e01-09"
+      ],
+      "family": "kb-e01"
+    },
+    {
+      "id": "large-kb-e01-10",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:39 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e01-10",
+                    "text": "2026-10-01 10:39 The application is responsive at login but report retrieval blocks. session_ref=session-large-kb-e01-10; trace_id=trace-010",
+                    "session_ref": "session-large-kb-e01-10"
+                  },
+                  {
+                    "id": "heartbeat-010",
+                    "text": "2026-10-01 10:39 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e01-10": [
+                    {
+                      "id": "log-large-kb-e01-10",
+                      "text": "2026-10-01 10:39 the request timed out in connection acquisition rather than in the business query. trace_id=trace-010"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e01",
+      "required_log_ids": [
+        "log-large-kb-e01-10"
+      ],
+      "family": "kb-e01"
+    },
+    {
+      "id": "large-kb-e01-11",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:40 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e01-11",
+                    "text": "2026-10-02 10:40 ERP report pages keep loading after login. session_ref=session-large-kb-e01-11; trace_id=trace-011",
+                    "session_ref": "session-large-kb-e01-11"
+                  },
+                  {
+                    "id": "heartbeat-011",
+                    "text": "2026-10-02 10:40 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e01-11": [
+                    {
+                      "id": "log-large-kb-e01-11",
+                      "text": "2026-10-02 10:40 connection pool acquisition exceeded 30 seconds while the health probe completed quickly. trace_id=trace-011"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e01",
+      "required_log_ids": [
+        "log-large-kb-e01-11"
+      ],
+      "family": "kb-e01"
+    },
+    {
+      "id": "large-kb-e01-12",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:41 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e01-12",
+                    "text": "2026-10-03 10:41 The ERP request is accepted but waits before data is returned. session_ref=session-large-kb-e01-12; trace_id=trace-012",
+                    "session_ref": "session-large-kb-e01-12"
+                  },
+                  {
+                    "id": "heartbeat-012",
+                    "text": "2026-10-03 10:41 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e01-12": [
+                    {
+                      "id": "log-large-kb-e01-12",
+                      "text": "2026-10-03 10:41 the database pool was exhausted and a request waited for a connection until timeout. trace_id=trace-012"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e01",
+      "required_log_ids": [
+        "log-large-kb-e01-12"
+      ],
+      "family": "kb-e01"
+    },
+    {
+      "id": "large-kb-e01-13",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:42 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e01-13",
+                    "text": "2026-10-04 10:42 The reports screen spins while the session remains authenticated. session_ref=session-large-kb-e01-13; trace_id=trace-013",
+                    "session_ref": "session-large-kb-e01-13"
+                  },
+                  {
+                    "id": "heartbeat-013",
+                    "text": "2026-10-04 10:42 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e01-13": [
+                    {
+                      "id": "log-large-kb-e01-13",
+                      "text": "2026-10-04 10:42 pool checkout timed out before SQL execution; the lightweight health query was normal. trace_id=trace-013"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e01",
+      "required_log_ids": [
+        "log-large-kb-e01-13"
+      ],
+      "family": "kb-e01"
+    },
+    {
+      "id": "large-kb-e01-14",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:43 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e01-14",
+                    "text": "2026-10-05 10:43 ERP requests intermittently stall during database access. session_ref=session-large-kb-e01-14; trace_id=trace-014",
+                    "session_ref": "session-large-kb-e01-14"
+                  },
+                  {
+                    "id": "heartbeat-014",
+                    "text": "2026-10-05 10:43 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e01-14": [
+                    {
+                      "id": "log-large-kb-e01-14",
+                      "text": "2026-10-05 10:43 application workers waited for an available database connection and the acquire deadline elapsed. trace_id=trace-014"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e01",
+      "required_log_ids": [
+        "log-large-kb-e01-14"
+      ],
+      "family": "kb-e01"
+    },
+    {
+      "id": "large-kb-e01-15",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:44 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e01-15",
+                    "text": "2026-10-06 10:44 The application is responsive at login but report retrieval blocks. session_ref=session-large-kb-e01-15; trace_id=trace-015",
+                    "session_ref": "session-large-kb-e01-15"
+                  },
+                  {
+                    "id": "heartbeat-015",
+                    "text": "2026-10-06 10:44 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e01-15": [
+                    {
+                      "id": "log-large-kb-e01-15",
+                      "text": "2026-10-06 10:44 the request timed out in connection acquisition rather than in the business query. trace_id=trace-015"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e01",
+      "required_log_ids": [
+        "log-large-kb-e01-15"
+      ],
+      "family": "kb-e01"
+    },
+    {
+      "id": "large-kb-e02-01",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:30 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e02-01",
+                    "text": "2026-10-01 10:30 ERP sends the user back to the login page after authentication. session_ref=session-large-kb-e02-01; trace_id=trace-001",
+                    "session_ref": "session-large-kb-e02-01"
+                  },
+                  {
+                    "id": "heartbeat-001",
+                    "text": "2026-10-01 10:30 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e02-01": [
+                    {
+                      "id": "log-large-kb-e02-01",
+                      "text": "2026-10-01 10:30 token audience is inventory-api while the ERP endpoint expects erp-api. trace_id=trace-001"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e02",
+      "required_log_ids": [
+        "log-large-kb-e02-01"
+      ],
+      "family": "kb-e02"
+    },
+    {
+      "id": "large-kb-e02-02",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:31 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e02-02",
+                    "text": "2026-10-02 10:31 The sign-in succeeds but the application rejects the returned token. session_ref=session-large-kb-e02-02; trace_id=trace-002",
+                    "session_ref": "session-large-kb-e02-02"
+                  },
+                  {
+                    "id": "heartbeat-002",
+                    "text": "2026-10-02 10:31 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e02-02": [
+                    {
+                      "id": "log-large-kb-e02-02",
+                      "text": "2026-10-02 10:31 signature verification passed; the aud claim does not match the configured erp-api audience. trace_id=trace-002"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e02",
+      "required_log_ids": [
+        "log-large-kb-e02-02"
+      ],
+      "family": "kb-e02"
+    },
+    {
+      "id": "large-kb-e02-03",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:32 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e02-03",
+                    "text": "2026-10-03 10:32 ERP authentication completes and then the API responds unauthorized. session_ref=session-large-kb-e02-03; trace_id=trace-003",
+                    "session_ref": "session-large-kb-e02-03"
+                  },
+                  {
+                    "id": "heartbeat-003",
+                    "text": "2026-10-03 10:32 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e02-03": [
+                    {
+                      "id": "log-large-kb-e02-03",
+                      "text": "2026-10-03 10:32 the access token was issued for inventory-api and was rejected by the ERP resource server. trace_id=trace-003"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e02",
+      "required_log_ids": [
+        "log-large-kb-e02-03"
+      ],
+      "family": "kb-e02"
+    },
+    {
+      "id": "large-kb-e02-04",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:33 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e02-04",
+                    "text": "2026-10-04 10:33 The account is accepted by the identity provider but ERP will not open. session_ref=session-large-kb-e02-04; trace_id=trace-004",
+                    "session_ref": "session-large-kb-e02-04"
+                  },
+                  {
+                    "id": "heartbeat-004",
+                    "text": "2026-10-04 10:33 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e02-04": [
+                    {
+                      "id": "log-large-kb-e02-04",
+                      "text": "2026-10-04 10:33 the audience claim differs from the ERP API audience even though the signature is valid. trace_id=trace-004"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e02",
+      "required_log_ids": [
+        "log-large-kb-e02-04"
+      ],
+      "family": "kb-e02"
+    },
+    {
+      "id": "large-kb-e02-05",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:34 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e02-05",
+                    "text": "2026-10-05 10:34 The session is created and immediately rejected by the ERP backend. session_ref=session-large-kb-e02-05; trace_id=trace-005",
+                    "session_ref": "session-large-kb-e02-05"
+                  },
+                  {
+                    "id": "heartbeat-005",
+                    "text": "2026-10-05 10:34 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e02-05": [
+                    {
+                      "id": "log-large-kb-e02-05",
+                      "text": "2026-10-05 10:34 ERP denied the token because its audience was another service rather than erp-api. trace_id=trace-005"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e02",
+      "required_log_ids": [
+        "log-large-kb-e02-05"
+      ],
+      "family": "kb-e02"
+    },
+    {
+      "id": "large-kb-e02-06",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:35 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e02-06",
+                    "text": "2026-10-06 10:35 ERP sends the user back to the login page after authentication. session_ref=session-large-kb-e02-06; trace_id=trace-006",
+                    "session_ref": "session-large-kb-e02-06"
+                  },
+                  {
+                    "id": "heartbeat-006",
+                    "text": "2026-10-06 10:35 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e02-06": [
+                    {
+                      "id": "log-large-kb-e02-06",
+                      "text": "2026-10-06 10:35 token audience is inventory-api while the ERP endpoint expects erp-api. trace_id=trace-006"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e02",
+      "required_log_ids": [
+        "log-large-kb-e02-06"
+      ],
+      "family": "kb-e02"
+    },
+    {
+      "id": "large-kb-e02-07",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:36 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e02-07",
+                    "text": "2026-10-07 10:36 The sign-in succeeds but the application rejects the returned token. session_ref=session-large-kb-e02-07; trace_id=trace-007",
+                    "session_ref": "session-large-kb-e02-07"
+                  },
+                  {
+                    "id": "heartbeat-007",
+                    "text": "2026-10-07 10:36 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e02-07": [
+                    {
+                      "id": "log-large-kb-e02-07",
+                      "text": "2026-10-07 10:36 signature verification passed; the aud claim does not match the configured erp-api audience. trace_id=trace-007"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e02",
+      "required_log_ids": [
+        "log-large-kb-e02-07"
+      ],
+      "family": "kb-e02"
+    },
+    {
+      "id": "large-kb-e02-08",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:37 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e02-08",
+                    "text": "2026-10-08 10:37 ERP authentication completes and then the API responds unauthorized. session_ref=session-large-kb-e02-08; trace_id=trace-008",
+                    "session_ref": "session-large-kb-e02-08"
+                  },
+                  {
+                    "id": "heartbeat-008",
+                    "text": "2026-10-08 10:37 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e02-08": [
+                    {
+                      "id": "log-large-kb-e02-08",
+                      "text": "2026-10-08 10:37 the access token was issued for inventory-api and was rejected by the ERP resource server. trace_id=trace-008"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e02",
+      "required_log_ids": [
+        "log-large-kb-e02-08"
+      ],
+      "family": "kb-e02"
+    },
+    {
+      "id": "large-kb-e02-09",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:38 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e02-09",
+                    "text": "2026-10-09 10:38 The account is accepted by the identity provider but ERP will not open. session_ref=session-large-kb-e02-09; trace_id=trace-009",
+                    "session_ref": "session-large-kb-e02-09"
+                  },
+                  {
+                    "id": "heartbeat-009",
+                    "text": "2026-10-09 10:38 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e02-09": [
+                    {
+                      "id": "log-large-kb-e02-09",
+                      "text": "2026-10-09 10:38 the audience claim differs from the ERP API audience even though the signature is valid. trace_id=trace-009"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e02",
+      "required_log_ids": [
+        "log-large-kb-e02-09"
+      ],
+      "family": "kb-e02"
+    },
+    {
+      "id": "large-kb-e02-10",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:39 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e02-10",
+                    "text": "2026-10-01 10:39 The session is created and immediately rejected by the ERP backend. session_ref=session-large-kb-e02-10; trace_id=trace-010",
+                    "session_ref": "session-large-kb-e02-10"
+                  },
+                  {
+                    "id": "heartbeat-010",
+                    "text": "2026-10-01 10:39 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e02-10": [
+                    {
+                      "id": "log-large-kb-e02-10",
+                      "text": "2026-10-01 10:39 ERP denied the token because its audience was another service rather than erp-api. trace_id=trace-010"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e02",
+      "required_log_ids": [
+        "log-large-kb-e02-10"
+      ],
+      "family": "kb-e02"
+    },
+    {
+      "id": "large-kb-e02-11",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:40 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e02-11",
+                    "text": "2026-10-02 10:40 ERP sends the user back to the login page after authentication. session_ref=session-large-kb-e02-11; trace_id=trace-011",
+                    "session_ref": "session-large-kb-e02-11"
+                  },
+                  {
+                    "id": "heartbeat-011",
+                    "text": "2026-10-02 10:40 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e02-11": [
+                    {
+                      "id": "log-large-kb-e02-11",
+                      "text": "2026-10-02 10:40 token audience is inventory-api while the ERP endpoint expects erp-api. trace_id=trace-011"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e02",
+      "required_log_ids": [
+        "log-large-kb-e02-11"
+      ],
+      "family": "kb-e02"
+    },
+    {
+      "id": "large-kb-e02-12",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:41 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e02-12",
+                    "text": "2026-10-03 10:41 The sign-in succeeds but the application rejects the returned token. session_ref=session-large-kb-e02-12; trace_id=trace-012",
+                    "session_ref": "session-large-kb-e02-12"
+                  },
+                  {
+                    "id": "heartbeat-012",
+                    "text": "2026-10-03 10:41 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e02-12": [
+                    {
+                      "id": "log-large-kb-e02-12",
+                      "text": "2026-10-03 10:41 signature verification passed; the aud claim does not match the configured erp-api audience. trace_id=trace-012"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e02",
+      "required_log_ids": [
+        "log-large-kb-e02-12"
+      ],
+      "family": "kb-e02"
+    },
+    {
+      "id": "large-kb-e02-13",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:42 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e02-13",
+                    "text": "2026-10-04 10:42 ERP authentication completes and then the API responds unauthorized. session_ref=session-large-kb-e02-13; trace_id=trace-013",
+                    "session_ref": "session-large-kb-e02-13"
+                  },
+                  {
+                    "id": "heartbeat-013",
+                    "text": "2026-10-04 10:42 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e02-13": [
+                    {
+                      "id": "log-large-kb-e02-13",
+                      "text": "2026-10-04 10:42 the access token was issued for inventory-api and was rejected by the ERP resource server. trace_id=trace-013"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e02",
+      "required_log_ids": [
+        "log-large-kb-e02-13"
+      ],
+      "family": "kb-e02"
+    },
+    {
+      "id": "large-kb-e02-14",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:43 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e02-14",
+                    "text": "2026-10-05 10:43 The account is accepted by the identity provider but ERP will not open. session_ref=session-large-kb-e02-14; trace_id=trace-014",
+                    "session_ref": "session-large-kb-e02-14"
+                  },
+                  {
+                    "id": "heartbeat-014",
+                    "text": "2026-10-05 10:43 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e02-14": [
+                    {
+                      "id": "log-large-kb-e02-14",
+                      "text": "2026-10-05 10:43 the audience claim differs from the ERP API audience even though the signature is valid. trace_id=trace-014"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e02",
+      "required_log_ids": [
+        "log-large-kb-e02-14"
+      ],
+      "family": "kb-e02"
+    },
+    {
+      "id": "large-kb-e02-15",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:44 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e02-15",
+                    "text": "2026-10-06 10:44 The session is created and immediately rejected by the ERP backend. session_ref=session-large-kb-e02-15; trace_id=trace-015",
+                    "session_ref": "session-large-kb-e02-15"
+                  },
+                  {
+                    "id": "heartbeat-015",
+                    "text": "2026-10-06 10:44 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e02-15": [
+                    {
+                      "id": "log-large-kb-e02-15",
+                      "text": "2026-10-06 10:44 ERP denied the token because its audience was another service rather than erp-api. trace_id=trace-015"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e02",
+      "required_log_ids": [
+        "log-large-kb-e02-15"
+      ],
+      "family": "kb-e02"
+    },
+    {
+      "id": "large-kb-e03-01",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:30 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e03-01",
+                    "text": "2026-10-01 10:30 The ERP transaction fails while saving a change. session_ref=session-large-kb-e03-01; trace_id=trace-001",
+                    "session_ref": "session-large-kb-e03-01"
+                  },
+                  {
+                    "id": "heartbeat-001",
+                    "text": "2026-10-01 10:30 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e03-01": [
+                    {
+                      "id": "log-large-kb-e03-01",
+                      "text": "2026-10-01 10:30 two transactions wait on each other's locks; the database detected a deadlock and rolled one back. trace_id=trace-001"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e03",
+      "required_log_ids": [
+        "log-large-kb-e03-01"
+      ],
+      "family": "kb-e03"
+    },
+    {
+      "id": "large-kb-e03-02",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:31 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e03-02",
+                    "text": "2026-10-02 10:31 A business request does not finish and the page reports an error. session_ref=session-large-kb-e03-02; trace_id=trace-002",
+                    "session_ref": "session-large-kb-e03-02"
+                  },
+                  {
+                    "id": "heartbeat-002",
+                    "text": "2026-10-02 10:31 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e03-02": [
+                    {
+                      "id": "log-large-kb-e03-02",
+                      "text": "2026-10-02 10:31 the lock manager found a circular wait between tx17 and tx19 and aborted a victim. trace_id=trace-002"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e03",
+      "required_log_ids": [
+        "log-large-kb-e03-02"
+      ],
+      "family": "kb-e03"
+    },
+    {
+      "id": "large-kb-e03-03",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:32 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e03-03",
+                    "text": "2026-10-03 10:32 The update request is rolled back by the database. session_ref=session-large-kb-e03-03; trace_id=trace-003",
+                    "session_ref": "session-large-kb-e03-03"
+                  },
+                  {
+                    "id": "heartbeat-003",
+                    "text": "2026-10-03 10:32 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e03-03": [
+                    {
+                      "id": "log-large-kb-e03-03",
+                      "text": "2026-10-03 10:32 a deadlock was detected during the update and one transaction was selected for rollback. trace_id=trace-003"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e03",
+      "required_log_ids": [
+        "log-large-kb-e03-03"
+      ],
+      "family": "kb-e03"
+    },
+    {
+      "id": "large-kb-e03-04",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:33 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e03-04",
+                    "text": "2026-10-04 10:33 ERP writes intermittently fail under concurrent activity. session_ref=session-large-kb-e03-04; trace_id=trace-004",
+                    "session_ref": "session-large-kb-e03-04"
+                  },
+                  {
+                    "id": "heartbeat-004",
+                    "text": "2026-10-04 10:33 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e03-04": [
+                    {
+                      "id": "log-large-kb-e03-04",
+                      "text": "2026-10-04 10:33 transactions formed a lock cycle; the database terminated one request to break the cycle. trace_id=trace-004"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e03",
+      "required_log_ids": [
+        "log-large-kb-e03-04"
+      ],
+      "family": "kb-e03"
+    },
+    {
+      "id": "large-kb-e03-05",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:34 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e03-05",
+                    "text": "2026-10-05 10:34 The transaction remains pending and then returns an execution error. session_ref=session-large-kb-e03-05; trace_id=trace-005",
+                    "session_ref": "session-large-kb-e03-05"
+                  },
+                  {
+                    "id": "heartbeat-005",
+                    "text": "2026-10-05 10:34 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e03-05": [
+                    {
+                      "id": "log-large-kb-e03-05",
+                      "text": "2026-10-05 10:34 the transaction log records a circular lock dependency followed by victim rollback. trace_id=trace-005"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e03",
+      "required_log_ids": [
+        "log-large-kb-e03-05"
+      ],
+      "family": "kb-e03"
+    },
+    {
+      "id": "large-kb-e03-06",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:35 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e03-06",
+                    "text": "2026-10-06 10:35 The ERP transaction fails while saving a change. session_ref=session-large-kb-e03-06; trace_id=trace-006",
+                    "session_ref": "session-large-kb-e03-06"
+                  },
+                  {
+                    "id": "heartbeat-006",
+                    "text": "2026-10-06 10:35 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e03-06": [
+                    {
+                      "id": "log-large-kb-e03-06",
+                      "text": "2026-10-06 10:35 two transactions wait on each other's locks; the database detected a deadlock and rolled one back. trace_id=trace-006"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e03",
+      "required_log_ids": [
+        "log-large-kb-e03-06"
+      ],
+      "family": "kb-e03"
+    },
+    {
+      "id": "large-kb-e03-07",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:36 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e03-07",
+                    "text": "2026-10-07 10:36 A business request does not finish and the page reports an error. session_ref=session-large-kb-e03-07; trace_id=trace-007",
+                    "session_ref": "session-large-kb-e03-07"
+                  },
+                  {
+                    "id": "heartbeat-007",
+                    "text": "2026-10-07 10:36 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e03-07": [
+                    {
+                      "id": "log-large-kb-e03-07",
+                      "text": "2026-10-07 10:36 the lock manager found a circular wait between tx17 and tx19 and aborted a victim. trace_id=trace-007"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e03",
+      "required_log_ids": [
+        "log-large-kb-e03-07"
+      ],
+      "family": "kb-e03"
+    },
+    {
+      "id": "large-kb-e03-08",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:37 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e03-08",
+                    "text": "2026-10-08 10:37 The update request is rolled back by the database. session_ref=session-large-kb-e03-08; trace_id=trace-008",
+                    "session_ref": "session-large-kb-e03-08"
+                  },
+                  {
+                    "id": "heartbeat-008",
+                    "text": "2026-10-08 10:37 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e03-08": [
+                    {
+                      "id": "log-large-kb-e03-08",
+                      "text": "2026-10-08 10:37 a deadlock was detected during the update and one transaction was selected for rollback. trace_id=trace-008"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e03",
+      "required_log_ids": [
+        "log-large-kb-e03-08"
+      ],
+      "family": "kb-e03"
+    },
+    {
+      "id": "large-kb-e03-09",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:38 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e03-09",
+                    "text": "2026-10-09 10:38 ERP writes intermittently fail under concurrent activity. session_ref=session-large-kb-e03-09; trace_id=trace-009",
+                    "session_ref": "session-large-kb-e03-09"
+                  },
+                  {
+                    "id": "heartbeat-009",
+                    "text": "2026-10-09 10:38 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e03-09": [
+                    {
+                      "id": "log-large-kb-e03-09",
+                      "text": "2026-10-09 10:38 transactions formed a lock cycle; the database terminated one request to break the cycle. trace_id=trace-009"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e03",
+      "required_log_ids": [
+        "log-large-kb-e03-09"
+      ],
+      "family": "kb-e03"
+    },
+    {
+      "id": "large-kb-e03-10",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:39 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e03-10",
+                    "text": "2026-10-01 10:39 The transaction remains pending and then returns an execution error. session_ref=session-large-kb-e03-10; trace_id=trace-010",
+                    "session_ref": "session-large-kb-e03-10"
+                  },
+                  {
+                    "id": "heartbeat-010",
+                    "text": "2026-10-01 10:39 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e03-10": [
+                    {
+                      "id": "log-large-kb-e03-10",
+                      "text": "2026-10-01 10:39 the transaction log records a circular lock dependency followed by victim rollback. trace_id=trace-010"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e03",
+      "required_log_ids": [
+        "log-large-kb-e03-10"
+      ],
+      "family": "kb-e03"
+    },
+    {
+      "id": "large-kb-e03-11",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:40 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e03-11",
+                    "text": "2026-10-02 10:40 The ERP transaction fails while saving a change. session_ref=session-large-kb-e03-11; trace_id=trace-011",
+                    "session_ref": "session-large-kb-e03-11"
+                  },
+                  {
+                    "id": "heartbeat-011",
+                    "text": "2026-10-02 10:40 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e03-11": [
+                    {
+                      "id": "log-large-kb-e03-11",
+                      "text": "2026-10-02 10:40 two transactions wait on each other's locks; the database detected a deadlock and rolled one back. trace_id=trace-011"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e03",
+      "required_log_ids": [
+        "log-large-kb-e03-11"
+      ],
+      "family": "kb-e03"
+    },
+    {
+      "id": "large-kb-e03-12",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:41 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e03-12",
+                    "text": "2026-10-03 10:41 A business request does not finish and the page reports an error. session_ref=session-large-kb-e03-12; trace_id=trace-012",
+                    "session_ref": "session-large-kb-e03-12"
+                  },
+                  {
+                    "id": "heartbeat-012",
+                    "text": "2026-10-03 10:41 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e03-12": [
+                    {
+                      "id": "log-large-kb-e03-12",
+                      "text": "2026-10-03 10:41 the lock manager found a circular wait between tx17 and tx19 and aborted a victim. trace_id=trace-012"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e03",
+      "required_log_ids": [
+        "log-large-kb-e03-12"
+      ],
+      "family": "kb-e03"
+    },
+    {
+      "id": "large-kb-e03-13",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:42 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e03-13",
+                    "text": "2026-10-04 10:42 The update request is rolled back by the database. session_ref=session-large-kb-e03-13; trace_id=trace-013",
+                    "session_ref": "session-large-kb-e03-13"
+                  },
+                  {
+                    "id": "heartbeat-013",
+                    "text": "2026-10-04 10:42 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e03-13": [
+                    {
+                      "id": "log-large-kb-e03-13",
+                      "text": "2026-10-04 10:42 a deadlock was detected during the update and one transaction was selected for rollback. trace_id=trace-013"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e03",
+      "required_log_ids": [
+        "log-large-kb-e03-13"
+      ],
+      "family": "kb-e03"
+    },
+    {
+      "id": "large-kb-e03-14",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:43 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e03-14",
+                    "text": "2026-10-05 10:43 ERP writes intermittently fail under concurrent activity. session_ref=session-large-kb-e03-14; trace_id=trace-014",
+                    "session_ref": "session-large-kb-e03-14"
+                  },
+                  {
+                    "id": "heartbeat-014",
+                    "text": "2026-10-05 10:43 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e03-14": [
+                    {
+                      "id": "log-large-kb-e03-14",
+                      "text": "2026-10-05 10:43 transactions formed a lock cycle; the database terminated one request to break the cycle. trace_id=trace-014"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e03",
+      "required_log_ids": [
+        "log-large-kb-e03-14"
+      ],
+      "family": "kb-e03"
+    },
+    {
+      "id": "large-kb-e03-15",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:44 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-kb-e03-15",
+                    "text": "2026-10-06 10:44 The transaction remains pending and then returns an execution error. session_ref=session-large-kb-e03-15; trace_id=trace-015",
+                    "session_ref": "session-large-kb-e03-15"
+                  },
+                  {
+                    "id": "heartbeat-015",
+                    "text": "2026-10-06 10:44 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-kb-e03-15": [
+                    {
+                      "id": "log-large-kb-e03-15",
+                      "text": "2026-10-06 10:44 the transaction log records a circular lock dependency followed by victim rollback. trace_id=trace-015"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": "kb-e03",
+      "required_log_ids": [
+        "log-large-kb-e03-15"
+      ],
+      "family": "kb-e03"
+    },
+    {
+      "id": "large-unknown-vpn-01",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:30 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-vpn-01",
+                    "text": "2026-10-01 10:30 VPN failed during a remote work session; the reason is not in the client record. session_ref=session-large-unknown-vpn-01; trace_id=trace-001",
+                    "session_ref": "session-large-unknown-vpn-01"
+                  },
+                  {
+                    "id": "heartbeat-001",
+                    "text": "2026-10-01 10:30 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-vpn-01": [
+                    {
+                      "id": "log-large-unknown-vpn-01",
+                      "text": "2026-10-01 10:30 gateway returned an error; packet trace, route table and resolver measurements were not captured. trace_id=trace-001"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-vpn-01"
+      ],
+      "family": "unknown-vpn"
+    },
+    {
+      "id": "large-unknown-vpn-02",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:31 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-vpn-02",
+                    "text": "2026-10-02 10:31 The tunnel error is reported without a diagnostic code. session_ref=session-large-unknown-vpn-02; trace_id=trace-002",
+                    "session_ref": "session-large-unknown-vpn-02"
+                  },
+                  {
+                    "id": "heartbeat-002",
+                    "text": "2026-10-02 10:31 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-vpn-02": [
+                    {
+                      "id": "log-large-unknown-vpn-02",
+                      "text": "2026-10-02 10:31 the session ended with a generic timeout and no downstream event was recorded. trace_id=trace-002"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-vpn-02"
+      ],
+      "family": "unknown-vpn"
+    },
+    {
+      "id": "large-unknown-vpn-03",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:32 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-vpn-03",
+                    "text": "2026-10-03 10:32 The remote connection is unstable but no component is identified. session_ref=session-large-unknown-vpn-03; trace_id=trace-003",
+                    "session_ref": "session-large-unknown-vpn-03"
+                  },
+                  {
+                    "id": "heartbeat-003",
+                    "text": "2026-10-03 10:32 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-vpn-03": [
+                    {
+                      "id": "log-large-unknown-vpn-03",
+                      "text": "2026-10-03 10:32 the server log contains only an error marker; the cause and affected subsystem are unknown. trace_id=trace-003"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-vpn-03"
+      ],
+      "family": "unknown-vpn"
+    },
+    {
+      "id": "large-unknown-vpn-04",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:33 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-vpn-04",
+                    "text": "2026-10-04 10:33 VPN access is unavailable and the available client telemetry is incomplete. session_ref=session-large-unknown-vpn-04; trace_id=trace-004",
+                    "session_ref": "session-large-unknown-vpn-04"
+                  },
+                  {
+                    "id": "heartbeat-004",
+                    "text": "2026-10-04 10:33 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-vpn-04": [
+                    {
+                      "id": "log-large-unknown-vpn-04",
+                      "text": "2026-10-04 10:33 the tunnel status changed to failed but there is no evidence for DNS, routing or certificate failure. trace_id=trace-004"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-vpn-04"
+      ],
+      "family": "unknown-vpn"
+    },
+    {
+      "id": "large-unknown-vpn-05",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:34 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-vpn-05",
+                    "text": "2026-10-05 10:34 The endpoint reports a failure with no supporting network measurements. session_ref=session-large-unknown-vpn-05; trace_id=trace-005",
+                    "session_ref": "session-large-unknown-vpn-05"
+                  },
+                  {
+                    "id": "heartbeat-005",
+                    "text": "2026-10-05 10:34 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-vpn-05": [
+                    {
+                      "id": "log-large-unknown-vpn-05",
+                      "text": "2026-10-05 10:34 the current session has insufficient telemetry to associate the error with a maintained procedure. trace_id=trace-005"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-vpn-05"
+      ],
+      "family": "unknown-vpn"
+    },
+    {
+      "id": "large-unknown-vpn-06",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:35 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-vpn-06",
+                    "text": "2026-10-06 10:35 VPN failed during a remote work session; the reason is not in the client record. session_ref=session-large-unknown-vpn-06; trace_id=trace-006",
+                    "session_ref": "session-large-unknown-vpn-06"
+                  },
+                  {
+                    "id": "heartbeat-006",
+                    "text": "2026-10-06 10:35 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-vpn-06": [
+                    {
+                      "id": "log-large-unknown-vpn-06",
+                      "text": "2026-10-06 10:35 gateway returned an error; packet trace, route table and resolver measurements were not captured. trace_id=trace-006"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-vpn-06"
+      ],
+      "family": "unknown-vpn"
+    },
+    {
+      "id": "large-unknown-vpn-07",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:36 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-vpn-07",
+                    "text": "2026-10-07 10:36 The tunnel error is reported without a diagnostic code. session_ref=session-large-unknown-vpn-07; trace_id=trace-007",
+                    "session_ref": "session-large-unknown-vpn-07"
+                  },
+                  {
+                    "id": "heartbeat-007",
+                    "text": "2026-10-07 10:36 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-vpn-07": [
+                    {
+                      "id": "log-large-unknown-vpn-07",
+                      "text": "2026-10-07 10:36 the session ended with a generic timeout and no downstream event was recorded. trace_id=trace-007"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-vpn-07"
+      ],
+      "family": "unknown-vpn"
+    },
+    {
+      "id": "large-unknown-vpn-08",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:37 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-vpn-08",
+                    "text": "2026-10-08 10:37 The remote connection is unstable but no component is identified. session_ref=session-large-unknown-vpn-08; trace_id=trace-008",
+                    "session_ref": "session-large-unknown-vpn-08"
+                  },
+                  {
+                    "id": "heartbeat-008",
+                    "text": "2026-10-08 10:37 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-vpn-08": [
+                    {
+                      "id": "log-large-unknown-vpn-08",
+                      "text": "2026-10-08 10:37 the server log contains only an error marker; the cause and affected subsystem are unknown. trace_id=trace-008"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-vpn-08"
+      ],
+      "family": "unknown-vpn"
+    },
+    {
+      "id": "large-unknown-vpn-09",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:38 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-vpn-09",
+                    "text": "2026-10-09 10:38 VPN access is unavailable and the available client telemetry is incomplete. session_ref=session-large-unknown-vpn-09; trace_id=trace-009",
+                    "session_ref": "session-large-unknown-vpn-09"
+                  },
+                  {
+                    "id": "heartbeat-009",
+                    "text": "2026-10-09 10:38 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-vpn-09": [
+                    {
+                      "id": "log-large-unknown-vpn-09",
+                      "text": "2026-10-09 10:38 the tunnel status changed to failed but there is no evidence for DNS, routing or certificate failure. trace_id=trace-009"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-vpn-09"
+      ],
+      "family": "unknown-vpn"
+    },
+    {
+      "id": "large-unknown-vpn-10",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:39 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-vpn-10",
+                    "text": "2026-10-01 10:39 The endpoint reports a failure with no supporting network measurements. session_ref=session-large-unknown-vpn-10; trace_id=trace-010",
+                    "session_ref": "session-large-unknown-vpn-10"
+                  },
+                  {
+                    "id": "heartbeat-010",
+                    "text": "2026-10-01 10:39 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-vpn-10": [
+                    {
+                      "id": "log-large-unknown-vpn-10",
+                      "text": "2026-10-01 10:39 the current session has insufficient telemetry to associate the error with a maintained procedure. trace_id=trace-010"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-vpn-10"
+      ],
+      "family": "unknown-vpn"
+    },
+    {
+      "id": "large-unknown-vpn-11",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:40 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-vpn-11",
+                    "text": "2026-10-02 10:40 VPN failed during a remote work session; the reason is not in the client record. session_ref=session-large-unknown-vpn-11; trace_id=trace-011",
+                    "session_ref": "session-large-unknown-vpn-11"
+                  },
+                  {
+                    "id": "heartbeat-011",
+                    "text": "2026-10-02 10:40 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-vpn-11": [
+                    {
+                      "id": "log-large-unknown-vpn-11",
+                      "text": "2026-10-02 10:40 gateway returned an error; packet trace, route table and resolver measurements were not captured. trace_id=trace-011"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-vpn-11"
+      ],
+      "family": "unknown-vpn"
+    },
+    {
+      "id": "large-unknown-vpn-12",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:41 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-vpn-12",
+                    "text": "2026-10-03 10:41 The tunnel error is reported without a diagnostic code. session_ref=session-large-unknown-vpn-12; trace_id=trace-012",
+                    "session_ref": "session-large-unknown-vpn-12"
+                  },
+                  {
+                    "id": "heartbeat-012",
+                    "text": "2026-10-03 10:41 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-vpn-12": [
+                    {
+                      "id": "log-large-unknown-vpn-12",
+                      "text": "2026-10-03 10:41 the session ended with a generic timeout and no downstream event was recorded. trace_id=trace-012"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-vpn-12"
+      ],
+      "family": "unknown-vpn"
+    },
+    {
+      "id": "large-unknown-vpn-13",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:42 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-vpn-13",
+                    "text": "2026-10-04 10:42 The remote connection is unstable but no component is identified. session_ref=session-large-unknown-vpn-13; trace_id=trace-013",
+                    "session_ref": "session-large-unknown-vpn-13"
+                  },
+                  {
+                    "id": "heartbeat-013",
+                    "text": "2026-10-04 10:42 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-vpn-13": [
+                    {
+                      "id": "log-large-unknown-vpn-13",
+                      "text": "2026-10-04 10:42 the server log contains only an error marker; the cause and affected subsystem are unknown. trace_id=trace-013"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-vpn-13"
+      ],
+      "family": "unknown-vpn"
+    },
+    {
+      "id": "large-unknown-vpn-14",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:43 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-vpn-14",
+                    "text": "2026-10-05 10:43 VPN access is unavailable and the available client telemetry is incomplete. session_ref=session-large-unknown-vpn-14; trace_id=trace-014",
+                    "session_ref": "session-large-unknown-vpn-14"
+                  },
+                  {
+                    "id": "heartbeat-014",
+                    "text": "2026-10-05 10:43 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-vpn-14": [
+                    {
+                      "id": "log-large-unknown-vpn-14",
+                      "text": "2026-10-05 10:43 the tunnel status changed to failed but there is no evidence for DNS, routing or certificate failure. trace_id=trace-014"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-vpn-14"
+      ],
+      "family": "unknown-vpn"
+    },
+    {
+      "id": "large-unknown-vpn-15",
+      "split": "large-test",
+      "resource": "vpn",
+      "request": "请排查当前 VPN 会话在 10:44 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "vpn": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-vpn-15",
+                    "text": "2026-10-06 10:44 The endpoint reports a failure with no supporting network measurements. session_ref=session-large-unknown-vpn-15; trace_id=trace-015",
+                    "session_ref": "session-large-unknown-vpn-15"
+                  },
+                  {
+                    "id": "heartbeat-015",
+                    "text": "2026-10-06 10:44 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-vpn-15": [
+                    {
+                      "id": "log-large-unknown-vpn-15",
+                      "text": "2026-10-06 10:44 the current session has insufficient telemetry to associate the error with a maintained procedure. trace_id=trace-015"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-vpn-15"
+      ],
+      "family": "unknown-vpn"
+    },
+    {
+      "id": "large-unknown-erp-01",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:30 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-erp-01",
+                    "text": "2026-10-01 10:30 ERP returned an error while loading a page; no category is known. session_ref=session-large-unknown-erp-01; trace_id=trace-001",
+                    "session_ref": "session-large-unknown-erp-01"
+                  },
+                  {
+                    "id": "heartbeat-001",
+                    "text": "2026-10-01 10:30 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-erp-01": [
+                    {
+                      "id": "log-large-unknown-erp-01",
+                      "text": "2026-10-01 10:30 gateway returned 504; upstream trace, pool metrics and database events are unavailable. trace_id=trace-001"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-erp-01"
+      ],
+      "family": "unknown-erp"
+    },
+    {
+      "id": "large-unknown-erp-02",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:31 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-erp-02",
+                    "text": "2026-10-02 10:31 The application failed during a request with incomplete telemetry. session_ref=session-large-unknown-erp-02; trace_id=trace-002",
+                    "session_ref": "session-large-unknown-erp-02"
+                  },
+                  {
+                    "id": "heartbeat-002",
+                    "text": "2026-10-02 10:31 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-erp-02": [
+                    {
+                      "id": "log-large-unknown-erp-02",
+                      "text": "2026-10-02 10:31 the request timed out and no service-specific evidence was captured. trace_id=trace-002"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-erp-02"
+      ],
+      "family": "unknown-erp"
+    },
+    {
+      "id": "large-unknown-erp-03",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:32 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-erp-03",
+                    "text": "2026-10-03 10:32 ERP is unavailable for this user and the client record has no diagnostic detail. session_ref=session-large-unknown-erp-03; trace_id=trace-003",
+                    "session_ref": "session-large-unknown-erp-03"
+                  },
+                  {
+                    "id": "heartbeat-003",
+                    "text": "2026-10-03 10:32 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-erp-03": [
+                    {
+                      "id": "log-large-unknown-erp-03",
+                      "text": "2026-10-03 10:32 only a generic server error is present; there is not enough current evidence for a runbook. trace_id=trace-003"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-erp-03"
+      ],
+      "family": "unknown-erp"
+    },
+    {
+      "id": "large-unknown-erp-04",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:33 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-erp-04",
+                    "text": "2026-10-04 10:33 A page returned an error but the failing downstream service is not identified. session_ref=session-large-unknown-erp-04; trace_id=trace-004",
+                    "session_ref": "session-large-unknown-erp-04"
+                  },
+                  {
+                    "id": "heartbeat-004",
+                    "text": "2026-10-04 10:33 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-erp-04": [
+                    {
+                      "id": "log-large-unknown-erp-04",
+                      "text": "2026-10-04 10:33 the backend returned an error without identifying authentication, pool or transaction details. trace_id=trace-004"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-erp-04"
+      ],
+      "family": "unknown-erp"
+    },
+    {
+      "id": "large-unknown-erp-05",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:34 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-erp-05",
+                    "text": "2026-10-05 10:34 The current request failed without a trace identifier or component name. session_ref=session-large-unknown-erp-05; trace_id=trace-005",
+                    "session_ref": "session-large-unknown-erp-05"
+                  },
+                  {
+                    "id": "heartbeat-005",
+                    "text": "2026-10-05 10:34 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-erp-05": [
+                    {
+                      "id": "log-large-unknown-erp-05",
+                      "text": "2026-10-05 10:34 the session ended before downstream telemetry was recorded, so the cause is inconclusive. trace_id=trace-005"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-erp-05"
+      ],
+      "family": "unknown-erp"
+    },
+    {
+      "id": "large-unknown-erp-06",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:35 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-erp-06",
+                    "text": "2026-10-06 10:35 ERP returned an error while loading a page; no category is known. session_ref=session-large-unknown-erp-06; trace_id=trace-006",
+                    "session_ref": "session-large-unknown-erp-06"
+                  },
+                  {
+                    "id": "heartbeat-006",
+                    "text": "2026-10-06 10:35 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-erp-06": [
+                    {
+                      "id": "log-large-unknown-erp-06",
+                      "text": "2026-10-06 10:35 gateway returned 504; upstream trace, pool metrics and database events are unavailable. trace_id=trace-006"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-erp-06"
+      ],
+      "family": "unknown-erp"
+    },
+    {
+      "id": "large-unknown-erp-07",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:36 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-erp-07",
+                    "text": "2026-10-07 10:36 The application failed during a request with incomplete telemetry. session_ref=session-large-unknown-erp-07; trace_id=trace-007",
+                    "session_ref": "session-large-unknown-erp-07"
+                  },
+                  {
+                    "id": "heartbeat-007",
+                    "text": "2026-10-07 10:36 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-erp-07": [
+                    {
+                      "id": "log-large-unknown-erp-07",
+                      "text": "2026-10-07 10:36 the request timed out and no service-specific evidence was captured. trace_id=trace-007"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-erp-07"
+      ],
+      "family": "unknown-erp"
+    },
+    {
+      "id": "large-unknown-erp-08",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:37 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-erp-08",
+                    "text": "2026-10-08 10:37 ERP is unavailable for this user and the client record has no diagnostic detail. session_ref=session-large-unknown-erp-08; trace_id=trace-008",
+                    "session_ref": "session-large-unknown-erp-08"
+                  },
+                  {
+                    "id": "heartbeat-008",
+                    "text": "2026-10-08 10:37 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-erp-08": [
+                    {
+                      "id": "log-large-unknown-erp-08",
+                      "text": "2026-10-08 10:37 only a generic server error is present; there is not enough current evidence for a runbook. trace_id=trace-008"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-erp-08"
+      ],
+      "family": "unknown-erp"
+    },
+    {
+      "id": "large-unknown-erp-09",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:38 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-erp-09",
+                    "text": "2026-10-09 10:38 A page returned an error but the failing downstream service is not identified. session_ref=session-large-unknown-erp-09; trace_id=trace-009",
+                    "session_ref": "session-large-unknown-erp-09"
+                  },
+                  {
+                    "id": "heartbeat-009",
+                    "text": "2026-10-09 10:38 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-erp-09": [
+                    {
+                      "id": "log-large-unknown-erp-09",
+                      "text": "2026-10-09 10:38 the backend returned an error without identifying authentication, pool or transaction details. trace_id=trace-009"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-erp-09"
+      ],
+      "family": "unknown-erp"
+    },
+    {
+      "id": "large-unknown-erp-10",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:39 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-erp-10",
+                    "text": "2026-10-01 10:39 The current request failed without a trace identifier or component name. session_ref=session-large-unknown-erp-10; trace_id=trace-010",
+                    "session_ref": "session-large-unknown-erp-10"
+                  },
+                  {
+                    "id": "heartbeat-010",
+                    "text": "2026-10-01 10:39 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-erp-10": [
+                    {
+                      "id": "log-large-unknown-erp-10",
+                      "text": "2026-10-01 10:39 the session ended before downstream telemetry was recorded, so the cause is inconclusive. trace_id=trace-010"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-erp-10"
+      ],
+      "family": "unknown-erp"
+    },
+    {
+      "id": "large-unknown-erp-11",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:40 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-erp-11",
+                    "text": "2026-10-02 10:40 ERP returned an error while loading a page; no category is known. session_ref=session-large-unknown-erp-11; trace_id=trace-011",
+                    "session_ref": "session-large-unknown-erp-11"
+                  },
+                  {
+                    "id": "heartbeat-011",
+                    "text": "2026-10-02 10:40 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-erp-11": [
+                    {
+                      "id": "log-large-unknown-erp-11",
+                      "text": "2026-10-02 10:40 gateway returned 504; upstream trace, pool metrics and database events are unavailable. trace_id=trace-011"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-erp-11"
+      ],
+      "family": "unknown-erp"
+    },
+    {
+      "id": "large-unknown-erp-12",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:41 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-erp-12",
+                    "text": "2026-10-03 10:41 The application failed during a request with incomplete telemetry. session_ref=session-large-unknown-erp-12; trace_id=trace-012",
+                    "session_ref": "session-large-unknown-erp-12"
+                  },
+                  {
+                    "id": "heartbeat-012",
+                    "text": "2026-10-03 10:41 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-erp-12": [
+                    {
+                      "id": "log-large-unknown-erp-12",
+                      "text": "2026-10-03 10:41 the request timed out and no service-specific evidence was captured. trace_id=trace-012"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-erp-12"
+      ],
+      "family": "unknown-erp"
+    },
+    {
+      "id": "large-unknown-erp-13",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:42 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-erp-13",
+                    "text": "2026-10-04 10:42 ERP is unavailable for this user and the client record has no diagnostic detail. session_ref=session-large-unknown-erp-13; trace_id=trace-013",
+                    "session_ref": "session-large-unknown-erp-13"
+                  },
+                  {
+                    "id": "heartbeat-013",
+                    "text": "2026-10-04 10:42 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-erp-13": [
+                    {
+                      "id": "log-large-unknown-erp-13",
+                      "text": "2026-10-04 10:42 only a generic server error is present; there is not enough current evidence for a runbook. trace_id=trace-013"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-erp-13"
+      ],
+      "family": "unknown-erp"
+    },
+    {
+      "id": "large-unknown-erp-14",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:43 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-erp-14",
+                    "text": "2026-10-05 10:43 A page returned an error but the failing downstream service is not identified. session_ref=session-large-unknown-erp-14; trace_id=trace-014",
+                    "session_ref": "session-large-unknown-erp-14"
+                  },
+                  {
+                    "id": "heartbeat-014",
+                    "text": "2026-10-05 10:43 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-erp-14": [
+                    {
+                      "id": "log-large-unknown-erp-14",
+                      "text": "2026-10-05 10:43 the backend returned an error without identifying authentication, pool or transaction details. trace_id=trace-014"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-erp-14"
+      ],
+      "family": "unknown-erp"
+    },
+    {
+      "id": "large-unknown-erp-15",
+      "split": "large-test",
+      "resource": "erp",
+      "request": "请排查当前 ERP 会话在 10:44 的故障，并只根据当前会话给出可引用的判断。",
+      "telemetry": {
+        "simulated": true,
+        "resources": {
+          "erp": {
+            "accounts": {
+              "alice": {
+                "client_events": [
+                  {
+                    "id": "client-large-unknown-erp-15",
+                    "text": "2026-10-06 10:44 The current request failed without a trace identifier or component name. session_ref=session-large-unknown-erp-15; trace_id=trace-015",
+                    "session_ref": "session-large-unknown-erp-15"
+                  },
+                  {
+                    "id": "heartbeat-015",
+                    "text": "2026-10-06 10:44 client heartbeat observed; no action requested."
+                  }
+                ],
+                "sessions": {
+                  "session-large-unknown-erp-15": [
+                    {
+                      "id": "log-large-unknown-erp-15",
+                      "text": "2026-10-06 10:44 the session ended before downstream telemetry was recorded, so the cause is inconclusive. trace_id=trace-015"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected_runbook": null,
+      "required_log_ids": [
+        "log-large-unknown-erp-15"
+      ],
+      "family": "unknown-erp"
+    }
+  ]
+}

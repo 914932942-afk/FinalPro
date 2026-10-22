@@ -13,6 +13,7 @@ from uuid import uuid5, NAMESPACE_URL
 from fastapi import FastAPI, Header, HTTPException, Depends
 from pydantic import BaseModel, ConfigDict, Field
 
+
 class Incident(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     ticket_id: str = Field(min_length=1, max_length=100)
@@ -22,10 +23,12 @@ class Incident(BaseModel):
     description: str = Field(min_length=1, max_length=10000)
     severity: str = Field(max_length=20)
 
+
 class Attachment(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     ticket_id: str = Field(min_length=1, max_length=100)
     report: dict
+
 
 class IncidentStore:
     def __init__(self, path):
@@ -83,6 +86,7 @@ class IncidentStore:
             raise HTTPException(404, "receipt_missing")
         return json.loads(row[0])
 
+
 def create_app(path, api_key, *, after_commit_delay=0, reject_attachments=False):
     if len(api_key) < 32:
         raise ValueError("demo service requires an independent 32-character key")
@@ -96,7 +100,7 @@ def create_app(path, api_key, *, after_commit_delay=0, reject_attachments=False)
 
     def write(action, payload, key):
         result = store.write(action, key, payload)
-
+        # Server-controlled test fixture, never a caller-provided fault injection header.
         if after_commit_delay:
             time.sleep(after_commit_delay)
         return result
@@ -127,11 +131,12 @@ def create_app(path, api_key, *, after_commit_delay=0, reject_attachments=False)
 
     return app
 
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--db", type=Path, default=Path("data/demo_service.db"))
     parser.add_argument("--port", type=int, default=8091)
-
+    # Used by subprocess integration tests only; no endpoint can change this setting.
     parser.add_argument("--test-after-commit-delay", type=float, default=0)
     parser.add_argument("--test-reject-attachments", action="store_true")
     args = parser.parse_args()
@@ -141,6 +146,7 @@ def main():
     uvicorn.run(create_app(args.db, key, after_commit_delay=args.test_after_commit_delay,
                           reject_attachments=args.test_reject_attachments), host="127.0.0.1", port=args.port,
                 log_level="warning", access_log=False)
+
 
 if __name__ == "__main__":
     main()

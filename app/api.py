@@ -17,7 +17,7 @@ from .cli import build_agent
 from .auth import IdentityStore, Principal
 from .service import TicketService
 from .portal import PortalService, present_ticket
-from .errors import AgentError, IdempotencyConflict, OperationPending, AuthenticationError, AuthorizationError
+from .errors import AgentError, IdempotencyConflict, OperationPending, AuthenticationError, AuthorizationError, ResourceNotFoundError
 from .sessions import SessionStore, LoginAttemptLimiter, SESSION_COOKIE, PORTAL_HEADER, CSRF_HEADER
 
 
@@ -66,6 +66,24 @@ class FeedbackRequest(BaseModel):
     issue_resolved: StrictBool | None = None
 
 
+class CaseRevisionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    revision: int = Field(strict=True, ge=0, le=10000)
+
+
+class FollowUpRequest(CaseRevisionRequest):
+    answer: str = Field(min_length=1, max_length=10000)
+
+
+class TransferRequest(CaseRevisionRequest):
+    assignee: str = Field(min_length=1, max_length=100)
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class InformationRequest(CaseRevisionRequest):
+    field: Literal["occurred_at", "symptom", "reproduction", "previous_access"]
+
+
 def create_app(agent=None, *, identities=None):
     def investigate_pending(ticket_id):
         try:
@@ -74,6 +92,7 @@ def create_app(agent=None, *, identities=None):
             # The durable next_node remains available for recovery; never log secrets or source text.
             import logging
             logging.getLogger(__name__).warning("Investigation remains recoverable: %s", type(exc).__name__)
+            application.state.agent.fail_investigation(ticket_id, type(exc).__name__)
 
     @asynccontextmanager
     async def lifespan(application):
@@ -84,14 +103,32 @@ def create_app(agent=None, *, identities=None):
         application.state.login_limiter = LoginAttemptLimiter()
         application.state.service = TicketService(application.state.agent)
         import asyncio
+        await asyncio.to_thread(application.state.agent.migrate_cases)
+        stopping = asyncio.Event()
+        async def monitor_cases():
+            while not stopping.is_set():
+                try:
+                    await asyncio.to_thread(application.state.agent.escalate_overdue)
+                except Exception:
+                    import logging
+                    logging.getLogger(__name__).warning("Case deadline check failed")
+                try:
+                    await asyncio.wait_for(stopping.wait(), timeout=30)
+                except asyncio.TimeoutError:
+                    pass
+        monitor = asyncio.create_task(monitor_cases())
         async def resume_queued():
             for ticket in application.state.agent.audit.list_tickets():
                 if ticket.get("investigation_status") in {"queued", "running"}:
                     await asyncio.to_thread(investigate_pending, ticket["id"])
         recovery = asyncio.create_task(resume_queued()) if application.state.agent.settings.diagnosis_background else None
-        yield
-        if recovery:
-            await recovery
+        try:
+            yield
+        finally:
+            stopping.set()
+            await monitor
+            if recovery:
+                await recovery
 
     application = FastAPI(title="Enterprise Ops Agent", version="0.2.0", lifespan=lifespan)
     assets = Path(__file__).parent / "static"
@@ -183,13 +220,41 @@ def create_app(agent=None, *, identities=None):
     def portal_list(scope: Literal["mine", "support"] = "mine",
                     group: Literal["action_required", "processing", "completed"] | None = None,
                     query: str = Query(default="", max_length=300),
+                    queue: Literal["unassigned", "mine", "overdue"] | None = None,
                     limit: int = Query(default=30, ge=1, le=100), offset: int = Query(default=0, ge=0),
                     principal: Principal = Depends(current_user)):
-        return PortalService(application.state.service).list(principal, scope=scope, group=group, query=query, limit=limit, offset=offset)
+        return PortalService(application.state.service).list(principal, scope=scope, group=group, query=query, queue=queue, limit=limit, offset=offset)
 
     @application.get("/portal/tickets/{ticket_id}")
     def portal_detail(ticket_id: str, scope: Literal["mine", "support"] = "mine", principal: Principal = Depends(current_user)):
-        return PortalService(application.state.service).get(principal, ticket_id, scope)
+        view = PortalService(application.state.service).get(principal, ticket_id, scope)
+        if scope == "support":
+            view["support"]["assignees"] = application.state.identities.support_people(view["department"], view["requester"])
+        return view
+
+    @application.post("/portal/tickets/{ticket_id}/claim")
+    def claim_case(ticket_id: str, body: CaseRevisionRequest, principal: Principal = Depends(current_user)):
+        return present_ticket(application.state.service.claim(principal, ticket_id, body.revision).to_dict())
+
+    @application.post("/portal/tickets/{ticket_id}/transfer")
+    def transfer_case(ticket_id: str, body: TransferRequest, principal: Principal = Depends(current_user)):
+        if principal.role not in {"manager", "admin"}:
+            raise AuthorizationError()
+        try:
+            target = application.state.identities.principal(body.assignee)
+        except AuthenticationError:
+            raise ResourceNotFoundError() from None
+        return present_ticket(application.state.service.transfer(principal, ticket_id, target, body.revision, body.reason).to_dict())
+
+    @application.post("/portal/tickets/{ticket_id}/request-info")
+    def request_case_info(ticket_id: str, body: InformationRequest, principal: Principal = Depends(current_user)):
+        return present_ticket(application.state.service.request_info(principal, ticket_id, body.field, body.revision).to_dict())
+
+    @application.post("/portal/tickets/{ticket_id}/follow-up")
+    def follow_up(ticket_id: str, body: FollowUpRequest, background_tasks: BackgroundTasks, principal: Principal = Depends(current_user)):
+        state = application.state.service.follow_up(principal, ticket_id, body.answer, body.revision)
+        schedule(state, background_tasks)
+        return present_ticket(state.to_dict())
 
     @application.post("/portal/tickets", status_code=201)
     def portal_create(body: TicketRequest, background_tasks: BackgroundTasks,

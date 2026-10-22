@@ -10,6 +10,7 @@ from .errors import ConfigurationError
 
 ROOT = Path(__file__).resolve().parents[1]
 
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="AGENT_", env_file=ROOT / ".env", env_file_encoding="utf-8",
@@ -37,6 +38,8 @@ class Settings(BaseSettings):
     diagnosis_deadline: float = Field(default=60, gt=0, le=120)
     diagnosis_prefetch: bool = True
     diagnosis_background: bool = True
+    diagnosis_max_attempts: int = Field(default=3, ge=1, le=10)
+    diagnosis_max_questions: int = Field(default=2, ge=1, le=5)
     runbooks_dir: Path | None = None
     runbook_strategy: Literal["bm25", "vector", "hybrid"] = "hybrid"
     deepseek_api_key: SecretStr = Field(default=SecretStr(""), validation_alias="DEEPSEEK_API_KEY")
@@ -47,13 +50,14 @@ class Settings(BaseSettings):
     deepseek_temperature: float = Field(default=0.1, ge=0, le=2, validation_alias="DEEPSEEK_TEMPERATURE")
     rag_backend: Literal["chroma", "lexical"] = "chroma"
     rag_hybrid: bool = True
-
+    # 检索后的安全增强：语义去重只在有可用 embedding 时启用；
+    # rerank 默认 optional，模型未预置时保留 RRF 结果并记录降级原因。
     rag_semantic_dedup: bool = True
     rag_semantic_dedup_threshold: float = Field(default=0.94, gt=0, le=1)
     rag_rerank_mode: Literal["off", "optional", "required"] = "optional"
     rag_reranker_model: str = "BAAI/bge-reranker-base"
     rag_rerank_candidate_k: int = Field(default=12, ge=1, le=100)
-
+    # Cross-Encoder 分数没有跨模型统一标尺；该阈值只在 reranker 实际运行时生效。
     rag_rerank_min_score: float = -100.0
     embedding_model: str | None = None
     rag_chunk_size: int = Field(default=500, ge=1, le=10000)
@@ -108,17 +112,20 @@ class Settings(BaseSettings):
                 object.__setattr__(self, "embedding_model", str(candidate.resolve()))
         return self
 
-def get_settings(**overrides) -> Settings:
 
+def get_settings(**overrides) -> Settings:
+    # 不做全局缓存：每次构造应用读取一次；已运行的应用持有不可变快照。
     try:
         return Settings(**overrides)
     except ValidationError as exc:
         fields = ["/".join(map(str, item["loc"])) or "configuration" for item in exc.errors()]
-
+        # 不插入验证器的输入值或异常原文，防止包含 API key。
         raise ConfigurationError("配置校验失败：" + ", ".join(fields)) from None
     except (OSError, ValueError):
         raise ConfigurationError("配置文件无法读取或格式不正确") from None
 
+
+# 旧脚本导入常量仍可用，新入口统一注入 Settings。
 def __getattr__(name):
     mapping = {"LLM_MODE": "llm_mode", "LLM_STRICT": "llm_strict"}
     field = mapping.get(name, name.lower())

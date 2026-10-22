@@ -1,12 +1,21 @@
-"""SQLite-backed persistence for tickets, approvals, events, snapshots and operations."""
+"""存储层：将 Python 字典转换为 JSON 文本，再保存到 SQLite 文件。
 
+SQLite 是 Python 自带支持的小型数据库，不需要单独启动数据库服务器。
+维护 tickets、approvals、events、states 和 operations，分别保存业务、快照和幂等操作。
+“持久化”就是数据落到硬盘文件，程序退出后还能读回来。
+
+注意：仅 events.payload 做简单邮箱/手机号遮盖；工单和审批的原始字段未脱敏。
+PII 指可识别个人身份的信息；本示例的正则匹配不覆盖全部个人信息。
+"""
+
+# json 负责字典与文本互转；re 负责按文本模式查找和替换。
 import json
 import re
-
+# sqlite3 负责连接数据库并执行 SQL（数据库查询语言）。
 import sqlite3
 import hashlib
 import os
-
+# contextmanager 将带 yield 的函数变成可以配合 with 使用的上下文管理器。
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, List
@@ -14,25 +23,35 @@ from typing import Any, Dict, List
 from .models import now_iso
 from .errors import StorageError
 
+
 def mask_pii(value: str) -> str:
-    """Mask common email addresses and mainland mobile numbers."""
-
+    """输入一段文本，返回遮盖常见邮箱和 1 开头的 11 位号码后的新文本。"""
+    # re.sub(匹配模式, 替换文本, 原文本)。r 前缀让反斜杠按正则需要保留。
+    # \w 包含字母、数字、下划线及 Unicode 词字符；+ 表示前一部分出现一次以上。
+    # @ 左右是用户名和域名；\. 匹配真正的点；{2,} 表示至少两个字母。
     value = re.sub(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", "***@***", value)
-
+    # \d 是数字，1\d{10} 是 1 后跟 10 位数字。
+    # (?<!\d) / (?!\d) 要求前后不是数字，避免截取更长编号的一部分。
     return re.sub(r"(?<!\d)1\d{10}(?!\d)", "1**********", value)
+
 
 class AuditStore:
     """保存工单、审批和节点事件，确保程序重启后仍可查询。"""
 
     def __init__(self, db_path: Path, timeout: float = 5):
-        """Open or initialize the configured SQLite database."""
+        """输入数据库文件路径，增量创建表；表已存在时保留原数据。"""
         self.db_path = Path(db_path)
         self.timeout = timeout
-
+        # parent 是文件的上级目录。parents=True 连上级目录一起创建；
+        # exist_ok=True 表示目录已存在也不报错。
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-
+        # with 进入 _db() 取得连接，离开时由 _db() 负责提交和关闭。
         with self._db() as conn:
-
+            # executescript 可一次执行多条 SQL；三引号允许写多行字符串。
+            # CREATE TABLE IF NOT EXISTS：仅在表不存在时建表。
+            # TEXT 是文本列；PRIMARY KEY 是唯一标识；NOT NULL 不允许空值。
+            # payload 放整张对象的 JSON；events 的整数主键自动递增。
+            # ticket_id 是代码约定的关联字段，此处未定义 SQL 外键约束。
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS tickets (
@@ -62,7 +81,7 @@ class AuditStore:
 
     def _connect(self) -> sqlite3.Connection:
         """打开一个新数据库连接；文件不存在时 SQLite 会创建它。"""
-
+        # 每次操作独立连接，避免将同一个 SQLite 连接跨 HTTP 请求线程使用。
         return sqlite3.connect(self.db_path, timeout=self.timeout)
 
     def once(self, key, payload, operation, *, precondition=None, ticket_id=None, kind="workflow", initial_state=None,
@@ -190,21 +209,24 @@ class AuditStore:
         conn = None
         try:
             conn = self._connect()
-
+            # 暂时把连接交给 with 里面的代码；那段代码完成后再从这里继续。
             yield conn
-
+            # 将改动提交到硬盘。如果 with 内发生异常，这行会被跳过。
             conn.commit()
         except sqlite3.Error:
             raise StorageError() from None
         finally:
-
+            # 无论成功还是异常都关闭；未提交的普通事务会随关闭而回滚。
+            # sqlite3.Connection 自带的 with 不负责关闭，所以这里显式 close。
             if conn is not None:
                 conn.close()
 
     def save_ticket(self, ticket: Dict[str, Any]) -> None:
         """输入工单字典，按 id 保存；相同 id 再保存时替换旧记录。"""
         with self._db() as conn:
-
+            # SQL 的 ? 是参数占位符；数据用第二个参数传入，避免拼接进 SQL。
+            # json.dumps：字典 -> JSON 文本；ensure_ascii=False 保留中文可读性。
+            # INSERT OR REPLACE 在主键重复时替换记录，并非完整的版本历史。
             conn.execute(
                 "INSERT OR REPLACE INTO tickets(id, payload, updated_at) VALUES (?, ?, ?)",
                 (ticket["id"], json.dumps(ticket, ensure_ascii=False), ticket["updated_at"]),
@@ -213,9 +235,10 @@ class AuditStore:
     def get_ticket(self, ticket_id: str) -> Dict[str, Any] | None:
         """输入工单编号；找到返回字典，找不到返回 None。"""
         with self._db() as conn:
-
+            # SELECT 选列，WHERE 限制编号；fetchone() 取第一行。
+            # (ticket_id,) 是单元素元组，结尾逗号不能省略。
             row = conn.execute("SELECT payload FROM tickets WHERE id = ?", (ticket_id,)).fetchone()
-
+        # row[0] 是结果行的第一列；json.loads：JSON 文本 -> Python 字典。
         return json.loads(row[0]) if row else None
 
     def save_approval(self, approval: Dict[str, Any]) -> None:
@@ -236,7 +259,7 @@ class AuditStore:
         """为工单追加一个节点事件；先转文本、再遮盖 PII、最后入库。"""
         safe = mask_pii(json.dumps(payload, ensure_ascii=False))
         with self._db() as conn:
-
+            # 使用 INSERT 追加，不覆盖之前的事件。now_iso() 记录写入时间。
             conn.execute(
                 "INSERT INTO events(ticket_id, node, payload, created_at) VALUES (?, ?, ?, ?)",
                 (ticket_id, node, safe, now_iso()),
@@ -245,10 +268,11 @@ class AuditStore:
     def list_events(self, ticket_id: str) -> List[Dict[str, Any]]:
         """返回某张工单的所有节点事件；没有事件时返回空列表。"""
         with self._db() as conn:
-
+            # ORDER BY id 按新增顺序排序，fetchall() 取所有匹配行。
             rows = conn.execute(
                 "SELECT node, payload, created_at FROM events WHERE ticket_id = ? ORDER BY id",
                 (ticket_id,),
             ).fetchall()
-
+        # 列表推导式：逐行解包成 n（节点）、p（JSON）、t（时间），转为字典。
+        # 当前 CLI/API 未暴露这个查询方法，可在 Python 中直接调用它。
         return [{"node": n, "payload": json.loads(p), "created_at": t} for n, p, t in rows]

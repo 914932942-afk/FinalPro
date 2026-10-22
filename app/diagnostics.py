@@ -17,6 +17,7 @@ LABELS = {"service_outage": "观察到 VPN 服务异常", "certificate_expired":
           "account_disabled": "观察到账号停用与认证拒绝", "access_missing": "观察到缺少 VPN 授权与访问拒绝",
           "inconclusive": "现有证据不足以确定原因"}
 
+
 class DiagnosticStep(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     kind: Literal["tool", "finish"]
@@ -36,17 +37,20 @@ class DiagnosticStep(BaseModel):
             raise ValueError("duplicate evidence")
         return self
 
+
 class AccessRecord(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     enabled: bool
     vpn_access: bool
     recent_error: Literal["none", "unknown", "tls_certificate_expired", "auth_rejected", "access_denied", "service_unavailable"]
 
+
 class Telemetry(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     simulated: Literal[True]
     service: Literal["healthy", "outage", "unknown"]
     accounts: dict[str, AccessRecord]
+
 
 def checked_observation(raw, tool, owner):
     """适配器边界裁剪字段，拒绝批量账号、自由文本或伪造作用域。"""
@@ -71,9 +75,11 @@ def checked_observation(raw, tool, owner):
         raise ValueError("unsupported observation data")
     return raw
 
+
 class ReadOnlyDiagnostics(Protocol):
     def read(self, tool: ToolName, owner: str, *, timeout: float) -> dict:
         """仅返回 owner 的 VPN 数据；真实适配器必须在 timeout 内结束并给出同一快照 ID。"""
+
 
 class LocalVPNDiagnostics:
     """本机模拟遥测。查询参数无账号/路径入口；身份只能由服务端传入。"""
@@ -98,6 +104,7 @@ class LocalVPNDiagnostics:
         return {"resource": "vpn", "owner": owner, "tool": tool, "data": payload, "simulated": True,
                 "snapshot_id": hashlib.sha256(raw).hexdigest(), "observed_at": now_iso()}
 
+
 def supported_findings(observations):
     """仅验证受控遥测字段，不声称能证明自由文本根因。"""
     data = {o["tool"]: o["data"] for o in observations}
@@ -115,6 +122,7 @@ def supported_findings(observations):
         findings.add("access_missing")
     return findings
 
+
 def validate_finding(step, observations):
     by_id = {o["id"]: o for o in observations}
     if any(ref not in by_id for ref in step.evidence_ids):
@@ -123,6 +131,7 @@ def validate_finding(step, observations):
         return
     if step.finding not in supported_findings([by_id[ref] for ref in step.evidence_ids]):
         raise ValueError("finding not supported by cited observations")
+
 
 class RuleDiagnosticModel:
     """离线演示策略，明确标识 rule，不能把它计为真实模型 ReAct。"""
@@ -139,6 +148,7 @@ class RuleDiagnosticModel:
                 return DiagnosticStep(kind="tool", tool=tool, finding=None, evidence_ids=[], reason="补充缺失观察"), {}
         return DiagnosticStep(kind="finish", tool=None, finding="inconclusive",
                               evidence_ids=[o["id"] for o in observations], reason="证据不足"), {}
+
 
 class DeepSeekDiagnosticModel:
     source = "deepseek"
@@ -181,7 +191,7 @@ class DeepSeekDiagnosticModel:
             try:
                 step = DiagnosticStep.model_validate_json(response["choices"][0]["message"]["content"])
             except (ValidationError, KeyError, IndexError, TypeError) as exc:
-
+                # 保留失败调用的已知用量和契约错误类型；不保存未经校验的长文本。
                 metadata["validation_errors"] = ([{"type": e["type"], "loc": list(e["loc"])} for e in exc.errors()]
                     if isinstance(exc, ValidationError) else [{"type": type(exc).__name__}])
                 error = ModelOutputError()
@@ -189,6 +199,7 @@ class DeepSeekDiagnosticModel:
                 raise error from None
             return step, metadata
         return self.breaker.call(request_and_validate)
+
 
 class DiagnosticRunner:
     def __init__(self, adapter, model, *, mode="react", max_tools=3, max_models=4, deadline_seconds=60, clock=time.time):
@@ -254,7 +265,7 @@ class DiagnosticRunner:
                 if session["model_calls"] >= self.max_models:
                     return finish("inconclusive", [], "model_budget")
                 session["model_calls"] += 1
-                checkpoint(session)
+                checkpoint(session)  # 崩溃后仍消耗这次预算，不能无限重试模型。
                 try:
                     step, metadata = self.model.choose(text, session["observations"], allowed if self.mode in {"react", "rule"} else [], timeout=remaining)
                     step = DiagnosticStep.model_validate(step.model_dump() if isinstance(step, DiagnosticStep) else step)
@@ -276,7 +287,8 @@ class DiagnosticRunner:
                 return finish("inconclusive", [], "forbidden_or_repeated_tool")
             session["tool_calls"] += 1
             session["pending_tool"] = {"tool": step.tool, "id": f"obs-{session['tool_calls']}"}
-            checkpoint(session)
+            checkpoint(session)  # 只读操作中断可在相同快照上恢复，不重置步数。
+
 
 def incident_attachment(session):
     """附到登记请求中，明确是观察证据，不是修复成功或授权凭据。"""

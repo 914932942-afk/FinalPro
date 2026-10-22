@@ -5,8 +5,9 @@ run_demo.py 写死了两条案例；本文件用 argparse 从终端读取用户�
 两者都会调用 workflow.py，业务逻辑相同。
 """
 
+# argparse 负责解析 --title 等命令行参数，并自动生成 --help 帮助。
 import argparse
-
+# json 将状态字典格式化成可读文本。
 import json
 import os
 
@@ -20,11 +21,13 @@ from .auth import IdentityStore
 from .service import TicketService
 from .errors import AgentError, AuthorizationError
 
+
 def build_agent() -> EnterpriseAgent:
     """组装数据库、知识库、工具和 Agent，返回可调用的 Agent 对象。"""
     settings = get_settings()
     audit = AuditStore(settings.db_path, timeout=settings.sqlite_timeout)
-
+    # 先执行最里面的 KnowledgeBase，再构造 EnterpriseTools，最后构造 Agent。
+    # CLI 与 run_demo 使用同一个模型工厂，避免两个入口配置不一致。
     return EnterpriseAgent(
         EnterpriseTools(KnowledgeBase(settings.kb_dir, settings=settings), audit,
                         adapter=build_action_adapter(settings)),
@@ -32,6 +35,7 @@ def build_agent() -> EnterpriseAgent:
         model=build_model_from_env(settings),
         settings=settings,
     )
+
 
 def build_action_adapter(settings):
     from .action_adapter import SimulatedActionAdapter
@@ -41,23 +45,24 @@ def build_action_adapter(settings):
                                    timeout=settings.action_timeout)
     return SimulatedActionAdapter()
 
+
 def main() -> None:
     """读取命令 -> 构造对象 -> 执行业务 -> 打印 JSON。"""
-
+    # parser 是整个命令行程序的参数解析器。
     parser = argparse.ArgumentParser(description="Enterprise Ops Agent")
-
+    # 子命令分成 run 和 approve，选中的名字存到 args.command。
     sub = parser.add_subparsers(dest="command", required=True)
     run = sub.add_parser("run", help="处理一个工单")
-
+    # required=True 是必填；default=... 是用户没传参数时的默认值。
     run.add_argument("--title", required=True)
     run.add_argument("--description", required=True)
     run.add_argument("--severity", default="medium", choices=["low", "medium", "high", "critical"])
     run.add_argument("--idempotency-key", default=None)
     sub.add_parser("index", help="将 Markdown 分块并更新 Chroma 向量索引")
     approve = sub.add_parser("approve", help="审批高风险动作")
-
+    # 没有 -- 前缀的是位置参数，如 approve A-12345678。
     approve.add_argument("approval_id")
-
+    # store_true：命令中出现 --reject 就存 True，否则默认 False。
     approve.add_argument("--reject", action="store_true")
     clarify = sub.add_parser("clarify", help="补充等待澄清的工单")
     clarify.add_argument("ticket_id")
@@ -80,9 +85,20 @@ def main() -> None:
     feedback.add_argument("--note", required=True)
     feedback.add_argument("--evidence", required=True)
     feedback.add_argument("--issue-resolved", choices=["yes", "no", "unknown"], default="unknown")
+    for command in ("claim", "transfer", "request-info", "follow-up"):
+        operation = sub.add_parser(command, help="认领、转派或补充工单信息")
+        operation.add_argument("ticket_id")
+        operation.add_argument("--revision", type=int, required=True)
+        if command == "transfer":
+            operation.add_argument("--assignee", required=True)
+            operation.add_argument("--reason", required=True)
+        if command == "request-info":
+            operation.add_argument("--field", choices=["occurred_at", "symptom", "reproduction", "previous_access"], required=True)
+        if command == "follow-up":
+            operation.add_argument("--answer", required=True)
     for name in ("recover", "operations", "investigate"):
         sub.add_parser(name, help="恢复或核查异常工单").add_argument("ticket_id")
-
+    # 真正读取当前终端输入；非法参数时 argparse 会打印用法并退出。
     args = parser.parse_args()
     agent = build_agent()
     try:
@@ -94,7 +110,17 @@ def main() -> None:
     if state is not None:
         print(json.dumps(state.to_dict() if hasattr(state, "to_dict") else state, ensure_ascii=False, indent=2))
 
+
 def execute_command(agent, service, principal, args):
+    if args.command == "claim":
+        return service.claim(principal, args.ticket_id, args.revision)
+    if args.command == "transfer":
+        target = IdentityStore(agent.settings.auth_file).principal(args.assignee)
+        return service.transfer(principal, args.ticket_id, target, args.revision, args.reason)
+    if args.command == "request-info":
+        return service.request_info(principal, args.ticket_id, args.field, args.revision)
+    if args.command == "follow-up":
+        return service.follow_up(principal, args.ticket_id, args.answer, args.revision)
     if args.command == "investigate":
         return service.investigate(principal, args.ticket_id)
     if args.command == "feedback":
@@ -123,5 +149,7 @@ def execute_command(agent, service, principal, args):
     else:
         return service.approve(principal, args.approval_id, not args.reject)
 
+
+# Python 执行这个模块时 __name__ 为 "__main__"；被 import 时不会自动 main()。
 if __name__ == "__main__":
     main()
