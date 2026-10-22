@@ -1,4 +1,4 @@
-"""Demo 身份认证：独立随机 API Key，服务端仅存摘要和预置身份。"""
+"""Local identities: salted password hashes for users, separate keys for CLI clients."""
 import argparse
 import hashlib
 import hmac
@@ -11,15 +11,45 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool, ValidationError
 
 from .errors import AuthenticationError, ConfigurationError
 
+
 class Principal(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
     user_id: str = Field(min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_.-]+$")
     role: Literal["employee", "manager", "admin"]
     department: str = Field(min_length=1, max_length=200)
 
+
 class Credential(Principal):
     token_sha256: str = Field(pattern=r"^[0-9a-f]{64}$", repr=False)
     enabled: StrictBool = True
+    password_hash: str | None = Field(default=None, pattern=r"^pbkdf2_sha256\$600000\$[a-f0-9]{32}\$[a-f0-9]{64}$", repr=False)
+
+
+class PasswordHasher:
+    iterations = 600_000
+    dummy_hash = "pbkdf2_sha256$600000$" + "0" * 32 + "$" + "0" * 64
+
+    @classmethod
+    def hash(cls, password: str) -> str:
+        if not isinstance(password, str) or not 12 <= len(password) <= 128:
+            raise ValueError("Password must contain 12 to 128 characters")
+        salt = secrets.token_bytes(16)
+        digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, cls.iterations)
+        return f"pbkdf2_sha256${cls.iterations}${salt.hex()}${digest.hex()}"
+
+    @classmethod
+    def verify(cls, password: str, encoded: str) -> bool:
+        try:
+            algorithm, rounds, salt, expected = encoded.split("$")
+            if algorithm != "pbkdf2_sha256" or int(rounds) != cls.iterations or len(salt) != 32 or len(expected) != 64:
+                return False
+            if not isinstance(password, str) or not 1 <= len(password) <= 128:
+                return False
+            actual = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), bytes.fromhex(salt), cls.iterations)
+            return hmac.compare_digest(actual.hex(), expected)
+        except (ValueError, TypeError):
+            return False
+
 
 class IdentityStore:
     """启动时读取服务端配置；轮换或禁用 Key 后重启服务生效。"""
@@ -36,6 +66,8 @@ class IdentityStore:
         except (OSError, ValueError, TypeError, ValidationError):
             raise ConfigurationError("身份文件缺失或无效，请先运行 python -m app.auth init") from None
         self._records = records
+        self.path = Path(path)
+        self._by_user = {record.user_id: record for record in records}
 
     def authenticate(self, token: str | None) -> Principal:
         if not token or not 32 <= len(token) <= 256:
@@ -45,6 +77,62 @@ class IdentityStore:
             if hmac.compare_digest(digest, record.token_sha256) and record.enabled:
                 return Principal(user_id=record.user_id, role=record.role, department=record.department)
         raise AuthenticationError()
+
+    def authenticate_password(self, username: str, password: str) -> Principal:
+        record = self._by_user.get(username)
+        encoded = record.password_hash if record and record.password_hash else PasswordHasher.dummy_hash
+        valid = PasswordHasher.verify(password, encoded)
+        if not valid or not record or not record.enabled or not record.password_hash:
+            raise AuthenticationError()
+        return Principal(user_id=record.user_id, role=record.role, department=record.department)
+
+    def session_identity(self, user_id: str) -> tuple[Principal, str]:
+        record = self._by_user.get(user_id)
+        if not record or not record.enabled or not record.password_hash:
+            raise AuthenticationError()
+        principal = Principal(user_id=record.user_id, role=record.role, department=record.department)
+        revision = hashlib.sha256(record.password_hash.encode()).hexdigest()
+        return principal, revision
+
+
+def initialize_local_passwords(path: Path) -> Path:
+    """Add missing password hashes without changing identity ownership, roles or keys.
+
+    The local handoff file holds generated initial passwords for the operator;
+    authentication reads only salted hashes from auth.json. Existing passwords
+    are never silently reset, and repeated startup does not overwrite the file.
+    """
+    path = Path(path)
+    store = IdentityStore(path)
+    accounts_path = path.with_name(path.stem + ".accounts.txt")
+    missing = [record for record in store._records if record.password_hash is None]
+    if not missing:
+        return accounts_path
+    if accounts_path.exists():
+        raise ConfigurationError("存在初始账号文件但账号初始化未完成，请核查本机身份配置；不会覆盖已有密码")
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    passwords = {record.user_id: secrets.token_urlsafe(12) for record in missing}
+    labels = {"employee": "员工", "manager": "经理", "admin": "管理员"}
+    lines = ["IT 服务中心 · 本机初始账号", "", "登录地址：http://127.0.0.1:8080/",
+             "此文件仅用于交付本机初始密码，请勿分享或提交到版本库。",
+             "服务端使用 auth.json 中的密码哈希校验身份，不读取此文件。", ""]
+    for record in raw:
+        if record["user_id"] in passwords:
+            password = passwords[record["user_id"]]
+            record["password_hash"] = PasswordHasher.hash(password)
+            lines.extend([f"账号：{record['user_id']}", f"身份：{labels[record['role']]} · {record['department']}", f"初始密码：{password}", ""])
+    # Atomic replacement leaves existing keys and ownership intact on failure.
+    temporary = path.with_name(path.name + ".password-init.tmp")
+    try:
+        with accounts_path.open("x", encoding="utf-8") as output:
+            output.write("\n".join(lines))
+        with temporary.open("x", encoding="utf-8") as output:
+            json.dump(raw, output, ensure_ascii=False, indent=2)
+        temporary.replace(path)
+    except OSError:
+        raise ConfigurationError("本机账号初始化未完成，请核查身份文件与初始账号文件") from None
+    return accounts_path
+
 
 def initialize_demo_identities(path: Path) -> Path:
     """显式初始化，不覆盖已有凭据；明文 Key 只写入本机演示凭据文件。"""
@@ -66,17 +154,20 @@ def initialize_demo_identities(path: Path) -> Path:
         json.dump(records, output, ensure_ascii=False, indent=2)
     return keys_path
 
+
 def main():
     parser = argparse.ArgumentParser(description="初始化本机 Demo 身份，无默认通用密码")
-    parser.add_argument("command", choices=["init"])
-    parser.parse_args()
+    parser.add_argument("command", choices=["init", "init-passwords"])
+    args = parser.parse_args()
     from .config import get_settings
     try:
         settings = get_settings()
-        keys_path = initialize_demo_identities(settings.auth_file)
+        keys_path = (initialize_demo_identities(settings.auth_file) if args.command == "init"
+                     else initialize_local_passwords(settings.auth_file))
     except ConfigurationError as exc:
         raise SystemExit(str(exc)) from None
-    print(f"身份配置：{settings.auth_file}\n本机演示凭据：{keys_path}\n请勿分享凭据文件或提交版本库。")
+    print(f"身份配置：{settings.auth_file}\n本机凭据文件：{keys_path}\n请勿分享凭据文件或提交版本库。")
+
 
 if __name__ == "__main__":
     main()

@@ -1,18 +1,45 @@
 <!doctype html>
 <html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IT 服务工作台</title><link rel="stylesheet" href="/static/app.css"><script src="/static/app.js" defer></script></head>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>IT 服务中心 · 我的工单</title>
+  <link rel="stylesheet" href="/static/app.css?v=20261022-auth2">
+  <script src="/static/app.js?v=20261022-auth2" defer></script>
+</head>
 <body>
-<header><div class="brand"><span class="mark">IT</span><div><strong>服务与证据工作台</strong><small>受理 · 调查 · 人工交接</small></div></div><div class="account"><span id="identity">未连接身份</span><button id="logout" class="quiet" hidden>切换身份</button><a href="/docs" target="_blank" rel="noopener">接口文档 ↗</a></div></header>
-<main>
-<section id="login" class="welcome"><div><div class="eyebrow">IT SERVICE AGENT</div><h1>把问题交给流程，<br>让每一步都有依据。</h1><p>从模糊描述到可核查的调查建议。查看处理进度、补充信息，并把证据完整交给处理人。</p><div class="intro-grid"><article><b>01</b><h3>描述诉求</h3><p>先澄清必要信息，敏感动作需确认与审批。</p></article><article><b>02</b><h3>循证调查</h3><p>关联当前会话与适用规程，保留引用和不确定性。</p></article><article><b>03</b><h3>交接闭环</h3><p>独立处理人核查反馈，区分建议采纳与问题解决。</p></article></div></div><form id="connect" class="panel login-card"><h2>连接演示身份</h2><p>使用本机预置身份的 API Key。身份与权限由服务端确认。</p><label for="api-key">API Key</label><input id="api-key" type="password" required minlength="32" autocomplete="off" placeholder="粘贴当前演示用户的 Key"><button type="submit">连接工作台</button><small>Key 仅保留在页面内存，刷新后需重新输入。页面不提供角色自选或默认管理员口令。</small></form></section>
-<div id="notice" role="status" aria-live="polite" hidden></div>
-<section id="workspace" hidden>
-<div class="page-heading"><div><div class="eyebrow">WORKBENCH</div><h1>我的服务工单</h1><p id="runtime">正在读取运行模式…</p></div><button id="new-ticket">＋ 新建工单</button></div>
-<div class="boundary">演示环境 · 日志与业务对象为模拟数据。完成受理或生成报告，不等于外部故障已解决。</div>
-<div class="layout"><aside class="panel tickets"><div class="section-top"><h2>可访问工单</h2><button id="refresh" class="quiet">刷新</button></div><label for="filter" class="sr-only">筛选状态</label><select id="filter"><option value="">全部状态</option><option value="awaiting_clarification">待补充 / 确认</option><option value="awaiting_approval">待审批</option><option value="awaiting_investigation">调查排队</option><option value="investigating">调查中</option><option value="manual_review">待人工核查</option><option value="closed">已交付</option><option value="failed">流程停止</option></select><div id="ticket-list"></div><button id="more" class="quiet" hidden>加载更多</button></aside>
-<section id="detail" class="detail"><div class="panel empty"><h2>选择一张工单</h2><p>左侧仅显示你有权访问的工单。也可以从新建工单开始。</p></div></section></div>
-</section>
-</main>
-<dialog id="create-dialog"><form id="create-form"><div class="section-top"><h2>新建服务工单</h2><button type="button" id="close-create" class="quiet">关闭</button></div><p>请描述现在遇到的问题或需要的权限，不确定的信息可以在后续补充。</p><label for="title">标题</label><input id="title" required maxlength="300" placeholder="例如 ERP 页面一直等待"><label for="description">问题描述</label><textarea id="description" required maxlength="10000" rows="5" placeholder="说明资源、当前现象、发生时间，以及之前是否正常使用。"></textarea><label for="severity">影响级别</label><select id="severity"><option value="medium">一般</option><option value="low">较低</option><option value="high">较高</option><option value="critical">严重</option></select><p id="pending-note" class="muted">请求会绑定一个固定提交标识，重复点击不会主动更换标识。</p><div id="create-error" role="alert"></div><button id="submit-ticket" type="submit">提交工单</button></form></dialog>
-<footer>IT 服务 Agent · 可信身份与受限执行 · 只读调查与证据交接</footer>
-</body></html>
+<a class="skip-link" href="#main-content">跳至主要内容</a>
+<aside class="sidebar">
+  <a class="brand" href="/" aria-label="IT 服务中心首页"><span class="brand-mark">it<span>·</span></span><span><strong>IT 服务中心</strong><small>让工作顺畅一点</small></span></a>
+  <div class="nav-caption">服务门户</div>
+  <nav aria-label="主要导航">
+    <button id="nav-mine" class="nav-item active" type="button"><span data-icon="tickets"></span><span>我的工单</span><span id="nav-count" class="nav-count" hidden></span></button>
+    <button id="nav-create" class="nav-item" type="button"><span data-icon="plus"></span><span>提交工单</span></button>
+    <button id="nav-support" class="nav-item" type="button" hidden><span data-icon="shield"></span><span>审批与处理</span></button>
+  </nav>
+  <div class="sidebar-help"><span data-icon="help"></span><strong>提交前的小提示</strong><p>说明出现问题的系统、具体表现和发生时间，有助于更快定位。</p><span class="help-foot">请勿填写密码或验证码</span></div>
+  <div class="sidebar-bottom"><span class="environment-dot"></span> 本地演示环境</div>
+</aside>
+<div class="app-shell">
+  <header class="topbar"><div class="breadcrumb">服务门户 <span>/</span> <strong id="breadcrumb-current">我的工单</strong></div><div class="account"><span class="demo-tag">演示环境</span><span id="identity" class="identity" hidden></span><button id="logout" type="button" class="text-button" hidden>退出登录</button></div></header>
+  <main id="main-content">
+    <section id="login" class="login-layout">
+      <div class="login-intro"><span class="eyebrow">YOUR IT SUPPORT</span><h1>工作遇到问题，<br>从这里获得帮助。</h1><p>提交服务申请、补充问题信息，<br>随时查看每一步处理进展。</p><div class="login-benefits"><div><span data-icon="plus"></span><span><strong>提交一个问题</strong><small>报修、账号或访问权限申请</small></span></div><div><span data-icon="clock"></span><span><strong>进度清楚可见</strong><small>需要你操作时，集中提醒</small></span></div><div><span data-icon="check"></span><span><strong>处理结果有回应</strong><small>是否完成、下一步做什么，一目了然</small></span></div></div></div>
+      <form id="connect" class="login-card"><span class="card-kicker">欢迎回来</span><h2>登录服务中心</h2><p>使用你的工作账号登录，查看申请和处理进度。</p><label for="username">账号</label><input id="username" name="username" type="text" required maxlength="100" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="请输入账号"><label for="password">密码</label><input id="password" name="password" type="password" required maxlength="128" autocomplete="current-password" placeholder="请输入密码"><div class="login-assistance">忘记密码或需要开通账号？请联系本机管理员。</div><button class="primary wide" type="submit">登录 <span aria-hidden="true">→</span></button><div id="login-error" class="form-error" role="alert"></div><div class="login-note"><span data-icon="lock"></span><span>身份与访问权限由系统验证。登录状态最长保留 8 小时。</span></div></form>
+    </section>
+    <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+    <section id="workspace" hidden>
+      <div class="page-heading"><div><span class="eyebrow" id="page-eyebrow">SERVICE REQUESTS</span><h1 id="page-title">我的工单</h1><p id="page-description">在这里查看申请进度，及时补充需要的信息。</p></div><button id="new-ticket" class="primary" type="button"><span data-icon="plus"></span>提交工单</button></div>
+      <div class="stats" aria-label="工单概览"><button class="stat" type="button" data-filter=""><span class="stat-icon blue" data-icon="tickets"></span><span><small>全部工单</small><strong id="count-total">0</strong></span><span class="stat-trailing">全部记录</span></button><button class="stat" type="button" data-filter="action_required"><span class="stat-icon amber" data-icon="message"></span><span><small>待补充 / 确认</small><strong id="count-action_required">0</strong></span><span class="stat-trailing">需要关注</span></button><button class="stat" type="button" data-filter="processing"><span class="stat-icon blue" data-icon="clock"></span><span><small>处理中</small><strong id="count-processing">0</strong></span><span class="stat-trailing">跟进进展</span></button><button class="stat" type="button" data-filter="completed"><span class="stat-icon green" data-icon="check"></span><span><small>已结束</small><strong id="count-completed">0</strong></span><span class="stat-trailing">查看结果</span></button></div>
+      <div class="workspace-grid"><aside class="ticket-pane"><div class="pane-heading"><h2 id="list-title">工单列表</h2><button id="refresh" class="icon-button" type="button" aria-label="刷新工单" title="刷新工单"><span data-icon="refresh"></span></button></div><label class="search-box" for="ticket-search"><span data-icon="search"></span><input id="ticket-search" type="search" placeholder="搜索标题或工单编号" maxlength="300" autocomplete="off"></label><div class="filter-row"><label for="filter">状态</label><select id="filter"><option value="">全部状态</option><option value="action_required">待补充 / 确认</option><option value="processing">处理中</option><option value="completed">已结束</option></select><span id="list-total" class="subtle"></span></div><div id="ticket-list" class="ticket-list" aria-label="工单列表"></div><button id="more" class="secondary load-more" type="button" hidden>加载更多</button></aside><section id="detail" class="detail" aria-label="工单详情"><article class="card empty-detail"><span class="empty-icon" data-icon="tickets"></span><h2>选择一张工单，查看处理进展</h2><p>也可以点击“提交工单”，告诉我们你需要什么帮助。</p></article></section></div>
+    </section>
+    <footer>本地演示 · 业务操作使用模拟数据 <span>IT 服务中心</span></footer>
+  </main>
+</div>
+<dialog id="create-dialog" aria-labelledby="create-heading"><form id="create-form"><div class="dialog-heading"><div><span class="eyebrow">NEW REQUEST</span><h2 id="create-heading">提交服务工单</h2></div><button type="button" id="close-create" class="icon-button" aria-label="关闭新建工单">×</button></div><p class="dialog-description">请尽量描述具体情况，我们会根据你的信息继续跟进。</p><label for="title">用一句话描述问题 <span class="required">*</span></label><input id="title" required maxlength="300" placeholder="例如：ERP 报表页面一直加载"><label for="description">具体情况 <span class="required">*</span></label><textarea id="description" required maxlength="10000" rows="6" placeholder="建议说明：
+· 哪个系统、哪个页面出现问题？
+· 具体表现或报错内容是什么？
+· 何时开始，之前是否正常？"></textarea><p class="field-help">请勿填写密码、验证码或其他敏感凭证。</p><label for="severity">对工作的影响</label><select id="severity"><option value="medium">一般 · 影响部分工作</option><option value="low">较低 · 可以继续工作</option><option value="high">较高 · 主要工作受阻</option><option value="critical">紧急 · 大范围工作中断</option></select><div id="create-error" class="form-error" role="alert"></div><p id="pending-note" class="field-help">提交后可在“我的工单”查看进度。</p><div class="dialog-actions"><button id="cancel-create" class="secondary" type="button">暂不提交</button><button id="submit-ticket" class="primary" type="submit">提交工单</button></div></form></dialog>
+<dialog id="cancel-dialog" aria-labelledby="cancel-heading"><form id="cancel-form"><div class="dialog-heading"><h2 id="cancel-heading">撤销这张工单</h2><button id="close-cancel" class="icon-button" type="button" aria-label="关闭撤销窗口">×</button></div><p>撤销后将停止这张等待中的申请。</p><label for="cancel-reason">撤销原因</label><textarea id="cancel-reason" required maxlength="2000" rows="3" placeholder="例如：问题已自行恢复，不再需要处理。"></textarea><div id="cancel-error" class="form-error" role="alert"></div><div class="dialog-actions"><button id="keep-ticket" class="secondary" type="button">保留工单</button><button class="danger" type="submit">确认撤销</button></div></form></dialog>
+</body>
+</html>

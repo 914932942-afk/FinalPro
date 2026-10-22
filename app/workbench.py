@@ -9,8 +9,9 @@ import sys
 import time
 import webbrowser
 
-from .auth import initialize_demo_identities
+from .auth import initialize_demo_identities, initialize_local_passwords
 from .config import get_settings
+
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
@@ -26,6 +27,7 @@ def main():
         except OSError:parser.error(f"port {port} already used; existing processes are not stopped")
     cfg=get_settings()
     if not cfg.auth_file.exists():initialize_demo_identities(cfg.auth_file)
+    accounts_path = initialize_local_passwords(cfg.auth_file)
     cfg.data_dir.mkdir(parents=True,exist_ok=True)
     token_file=cfg.data_dir/"demo_service.key"
     if not token_file.exists():
@@ -55,7 +57,7 @@ def main():
             except httpx.HTTPError:pass
             time.sleep(.1)
         else:raise RuntimeError("workbench startup timed out")
-        print(f"Workbench: {url}\nIdentity keys stay in: {cfg.auth_file.with_name(cfg.auth_file.stem+'.keys.json')}\nBusiness and logs remain simulated. Press Ctrl+C to stop both child processes.",flush=True)
+        print(f"Workbench: {url}\nLocal account instructions: {accounts_path}\nBusiness and logs remain simulated. Press Ctrl+C to stop both child processes.",flush=True)
         if not args.no_browser:webbrowser.open(url)
         while all(p.poll() is None for p in children):time.sleep(.3)
     except KeyboardInterrupt:pass
@@ -65,5 +67,6 @@ def main():
                 process.terminate()
                 try:process.wait(timeout=10)
                 except subprocess.TimeoutExpired:process.kill();process.wait(timeout=5)
+
 
 if __name__=="__main__":main()
