@@ -17,6 +17,7 @@ from .cli import build_agent
 from .auth import IdentityStore, Principal
 from .service import TicketService
 from .portal import PortalService, present_ticket
+from .models import AgentState
 from .errors import AgentError, IdempotencyConflict, OperationPending, AuthenticationError, AuthorizationError, ResourceNotFoundError
 from .sessions import SessionStore, LoginAttemptLimiter, SESSION_COOKIE, PORTAL_HEADER, CSRF_HEADER
 
@@ -85,15 +86,6 @@ class InformationRequest(CaseRevisionRequest):
 
 
 def create_app(agent=None, *, identities=None):
-    def investigate_pending(ticket_id):
-        try:
-            application.state.agent.investigate(ticket_id)
-        except Exception as exc:
-            # The durable next_node remains available for recovery; never log secrets or source text.
-            import logging
-            logging.getLogger(__name__).warning("Investigation remains recoverable: %s", type(exc).__name__)
-            application.state.agent.fail_investigation(ticket_id, type(exc).__name__)
-
     @asynccontextmanager
     async def lifespan(application):
         application.state.agent = agent or build_agent()
@@ -104,6 +96,10 @@ def create_app(agent=None, *, identities=None):
         application.state.service = TicketService(application.state.agent)
         import asyncio
         await asyncio.to_thread(application.state.agent.migrate_cases)
+        from .investigation_jobs import InvestigationSupervisor
+        supervisor = InvestigationSupervisor(application.state.agent)
+        application.state.investigation_supervisor = supervisor
+        supervisor.start()
         stopping = asyncio.Event()
         async def monitor_cases():
             while not stopping.is_set():
@@ -113,22 +109,21 @@ def create_app(agent=None, *, identities=None):
                     import logging
                     logging.getLogger(__name__).warning("Case deadline check failed")
                 try:
-                    await asyncio.wait_for(stopping.wait(), timeout=30)
+                    await asyncio.to_thread(supervisor.scan)
+                except Exception:
+                    import logging
+                    logging.getLogger(__name__).warning("Investigation deadline check failed")
+                try:
+                    await asyncio.wait_for(stopping.wait(), timeout=application.state.agent.settings.diagnosis_worker_poll)
                 except asyncio.TimeoutError:
                     pass
         monitor = asyncio.create_task(monitor_cases())
-        async def resume_queued():
-            for ticket in application.state.agent.audit.list_tickets():
-                if ticket.get("investigation_status") in {"queued", "running"}:
-                    await asyncio.to_thread(investigate_pending, ticket["id"])
-        recovery = asyncio.create_task(resume_queued()) if application.state.agent.settings.diagnosis_background else None
         try:
             yield
         finally:
             stopping.set()
             await monitor
-            if recovery:
-                await recovery
+            supervisor.close()
 
     application = FastAPI(title="Enterprise Ops Agent", version="0.2.0", lifespan=lifespan)
     assets = Path(__file__).parent / "static"
@@ -323,7 +318,14 @@ def create_app(agent=None, *, identities=None):
 
     def schedule(state, background_tasks):
         if state.ticket.investigation_status == "queued" and application.state.agent.settings.diagnosis_background:
-            background_tasks.add_task(investigate_pending, state.ticket.id)
+            background_tasks.add_task(application.state.investigation_supervisor.submit, state.ticket.id, state.ticket.case_revision)
+
+    @application.post("/portal/tickets/{ticket_id}/retry-investigation")
+    def retry_investigation(ticket_id: str, body: CaseRevisionRequest, background_tasks: BackgroundTasks,
+                           principal: Principal = Depends(current_user)):
+        state = application.state.service.retry_investigation(principal, ticket_id, body.revision)
+        schedule(state, background_tasks)
+        return portal_detail(ticket_id, scope="support", principal=principal)
 
     @application.get("/tickets/{ticket_id}")
     def get_ticket(ticket_id: str, principal: Principal = Depends(current_user)):
@@ -350,7 +352,11 @@ def create_app(agent=None, *, identities=None):
         return state.to_dict()
 
     @application.post("/tickets/{ticket_id}/investigate")
-    def investigate(ticket_id: str, principal: Principal = Depends(current_user)):
+    def investigate(ticket_id: str, background_tasks: BackgroundTasks, principal: Principal = Depends(current_user)):
+        if application.state.agent.settings.diagnosis_background:
+            state = application.state.service.get_state(principal, ticket_id)
+            schedule(AgentState.from_dict(state), background_tasks)
+            return state
         return application.state.service.investigate(principal, ticket_id).to_dict()
 
     @application.post("/tickets/{ticket_id}/feedback")

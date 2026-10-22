@@ -17,6 +17,7 @@ from .policy import (analyze_request, build_plan, decision_problem, validate_exe
 from .reliability import CircuitBreaker
 from .tools import EnterpriseTools
 from .case_management import CaseLifecycle, USER_QUESTIONS
+from .registration import RegistrationContext
 
 
 class GraphState(TypedDict):
@@ -38,6 +39,8 @@ class EnterpriseAgent:
         self.investigation_runners = {}
         self.investigation_knowledge = None
         self._investigation_lock = RLock()
+        from .investigation_jobs import InvestigationJobs
+        self.investigation_jobs = InvestigationJobs(self)
         self.model = model or RuleBasedModel()
         if not isinstance(self.model, (RuleBasedModel, ResilientDecisionModel)):
             self.model = ResilientDecisionModel(self.model, strict=strict_model,
@@ -374,11 +377,12 @@ class EnterpriseAgent:
             state.clarification["confirmation_plan"] = plan.model_dump()
         return state
 
-    def _diagnose(self, state):
+    def _diagnose(self, state, *, persist=None):
         """为已校验的本人故障计划补充证据，不创建或修改执行计划。"""
         from .diagnostics import (DiagnosticRunner, LocalVPNDiagnostics, DeepSeekDiagnosticModel,
                                   RuleDiagnosticModel, incident_attachment)
         import hashlib
+        persist = persist or self._persist
         plan = state.ticket.execution_plan or {}
         primary = getattr(self.model, "primary", self.model)
         investigate = (self.settings.diagnosis_mode == "react" and self.settings.diagnosis_backend == "investigation"
@@ -432,7 +436,7 @@ class EnterpriseAgent:
         def checkpoint(session):
             state.diagnosis = session
             state.next_node = "diagnose"
-            self._persist(state, "diagnostic_checkpoint", {"tool_calls": session["tool_calls"],
+            persist(state, "diagnostic_checkpoint", {"tool_calls": session["tool_calls"],
                 "model_calls": session["model_calls"], "status": session["status"],
                 "pending_tool": session["pending_tool"]})
         investigation_text = saved_understanding(state).text + "\n" + "\n".join(
@@ -479,8 +483,19 @@ class EnterpriseAgent:
             return self._manual(state, "执行计划与用户证据或审批不一致，已阻止执行")
         action = state.ticket.recommended_action
         key = self.tools.action_key(state.ticket, action)
+        cached = self.audit.get_operation(key)
+        if action == "open_incident" and (cached is None or state.ticket.registration_context is not None):
+            try:
+                context = RegistrationContext.from_state(state).model_dump()
+                if state.ticket.registration_context is not None and state.ticket.registration_context != context:
+                    return self._manual(state, "登记信息快照与已验证的用户证据不一致，已阻止执行")
+            except (ValueError, TypeError, KeyError):
+                return self._manual(state, "无法生成有效的登记信息快照，已阻止执行")
+            if state.ticket.registration_context is None:
+                state.ticket.registration_context = context
+                # Persist before reserving/calling the downstream action so a crash reuses the same facts.
+                self._persist(state, "registration_prepared", {"version": context["version"], "input_digest": context["input_digest"]})
         try:
-            cached = self.audit.get_operation(key)
             if cached and cached["status"] == "completed":
                 state.action_result = self.tools.execute_action(state.ticket, action)
             else:
@@ -508,6 +523,7 @@ class EnterpriseAgent:
             state.ticket.status = "awaiting_investigation"
             state.ticket.investigation_status = "queued"
             state.resolution["type"] = "incident_registered"
+            self.investigation_jobs.queue(state)
         elif CaseLifecycle.incident(state):
             CaseLifecycle.handoff(state)
         return state
@@ -522,26 +538,13 @@ class EnterpriseAgent:
                 and (self.diagnostic_runner is not None or
                      (self.settings.investigation_file if modern else self.settings.diagnosis_file).is_file()))
 
-    def investigate(self, ticket_id):
-        """Worker entry. Service/API checks caller access; persisted ticket binds ownership."""
-        with self.audit.ticket_lock(ticket_id):
-            raw = self.audit.get_state(ticket_id)
-            if not raw:
-                return None
-            state = AgentState.from_dict(raw)
-            if state.next_node not in {"diagnose", "enrich"}:
-                return state
-            if state.workflow_version != 2 or not state.action_result or state.action_result.status != "succeeded":
-                raise IdempotencyConflict("必须先核查事件登记结果，不能直接继续旧版调查")
-            state.ticket.status = "investigating"
-            state.ticket.investigation_status = "running"
-            self._persist(state, "investigation_started")
-            return self._continue(state)
+    def investigate(self, ticket_id, *, revision=None):
+        return self.investigation_jobs.run(ticket_id, revision=revision)
 
-    def _enrich(self, state):
+    def _enrich(self, state, *, guard=None):
         if state.ticket.diagnostic_report:
             try:
-                result = self.tools.attach_evidence(state.ticket)
+                result = self.tools.attach_evidence(state.ticket, guard=guard)
                 state.enrichment_result = result.to_dict()
                 if result.status != "succeeded":
                     raise ValueError("attachment not confirmed")
@@ -741,6 +744,7 @@ class EnterpriseAgent:
                 state.ticket.diagnostic_report = None
                 state.error, state.error_info = None, None
                 state.ticket.status, state.ticket.investigation_status, state.next_node = "awaiting_investigation", "queued", "diagnose"
+                self.investigation_jobs.queue(state)
             else:
                 CaseLifecycle.handoff(state)
                 state.next_node = previous_next
@@ -775,19 +779,15 @@ class EnterpriseAgent:
                     self._persist(state, "case_overdue", {"team": assignment["team"], "assignee": assignment["assignee"]})
 
     def fail_investigation(self, ticket_id, reason):
-        with self.audit.ticket_lock(ticket_id):
-            raw = self.audit.get_state(ticket_id)
-            if not raw:
-                return
-            state = AgentState.from_dict(raw)
-            if state.ticket.status not in {"awaiting_investigation", "investigating"}:
-                return
-            CaseLifecycle.handoff(state)
-            state.ticket.investigation_status = "failed"
-            state.degradation.append({"component": "investigation_worker", "reason": reason})
-            self._persist(state, "investigation_worker_failed")
+        return self.investigation_jobs.fail(ticket_id, reason)
 
     def recover(self, ticket_id, actor):
+        snapshot = self.audit.get_state(ticket_id)
+        if snapshot.get("next_node") in {"diagnose", "enrich"} and snapshot.get("workflow_version", 1) >= 2:
+            state = AgentState.from_dict(snapshot)
+            if (state.ticket.investigation_job or {}).get("status") == "failed":
+                self.investigation_jobs.retry(ticket_id, actor, state.ticket.case_revision)
+            return self.investigate(ticket_id)
         with self.audit.ticket_lock(ticket_id):
             raw = self.audit.get_state(ticket_id)
             if "next_node" not in raw:

@@ -20,6 +20,10 @@ from app.errors import ActionRejectedError, IdempotencyConflict, OperationPendin
 from app.http_actions import IncidentHTTPAdapter
 from app.knowledge import KnowledgeBase
 from app.models import Ticket
+from app.config import get_settings
+from app.auth import Principal
+from app.service import TicketService
+from app.workflow import EnterpriseAgent
 from app.tools import EnterpriseTools
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -120,3 +124,44 @@ class HTTPActionTests(unittest.TestCase):
             values=list(pool.map(lambda _:store.write("open_incident","one",body),range(4)))
         self.assertTrue(all(x==values[0] for x in values))
         self.assertEqual(self.count("incidents"),1)
+
+    def test_clarification_reaches_the_separate_http_service_without_duplicate_registration(self):
+        with self.server() as base:
+            tools,audit=self.tools(IncidentHTTPAdapter(base,self.key))
+            cfg=get_settings(_env_file=None,data_dir=self.root,db_path=audit.db_path,llm_mode="offline",
+                rag_backend="lexical",diagnosis_mode="off",diagnosis_background=False)
+            agent=EnterpriseAgent(tools,audit,settings=cfg)
+            service=TicketService(agent)
+            owner=Principal(user_id="alice",role="employee",department="IT")
+            state=service.create(owner,title="系统打不开",description="请帮我看看")
+            self.assertEqual(self.count("incidents"),0)
+            done=service.clarify(owner,state.ticket.id,"ERP 登录后报错 503",state.clarification_round)
+            with closing(sqlite3.connect(self.root/"remote.db")) as db:
+                payload=json.loads(db.execute("SELECT payload FROM incidents WHERE ticket_id=?",(state.ticket.id,)).fetchone()[0])["payload"]
+            self.assertEqual(payload["description"],"请帮我看看")
+            self.assertEqual(payload["registration_context"],done.ticket.registration_context)
+            self.assertIn("ERP 登录后报错 503",payload["registration_context"]["effective_description"])
+            replay=service.clarify(owner,state.ticket.id,"ERP 登录后报错 503",state.clarification_round)
+            self.assertEqual(replay.action_result.to_dict(),done.action_result.to_dict())
+            self.assertEqual(self.count("incidents"),1)
+
+    def test_frozen_registration_survives_response_loss_without_a_second_http_write(self):
+        with self.server("--test-after-commit-delay","0.8") as base:
+            tools,audit=self.tools(IncidentHTTPAdapter(base,self.key,timeout=.15))
+            cfg=get_settings(_env_file=None,data_dir=self.root,db_path=audit.db_path,llm_mode="offline",
+                rag_backend="lexical",diagnosis_mode="off",diagnosis_background=False)
+            agent=EnterpriseAgent(tools,audit,settings=cfg)
+            service=TicketService(agent)
+            owner=Principal(user_id="alice",role="employee",department="IT")
+            waiting=service.create(owner,title="系统打不开",description="请帮我看看")
+            unknown=service.clarify(owner,waiting.ticket.id,"ERP 登录后报错 503",waiting.clarification_round)
+            self.assertEqual(unknown.action_result.status,"unknown")
+            with closing(sqlite3.connect(self.root/"remote.db")) as db:
+                body=json.loads(db.execute("SELECT payload FROM incidents WHERE ticket_id=?",(waiting.ticket.id,)).fetchone()[0])["payload"]
+            self.assertEqual(body["registration_context"],unknown.ticket.registration_context)
+            restarted=EnterpriseAgent(tools,AuditStore(audit.db_path),settings=cfg)
+            manager=Principal(user_id="manager",role="manager",department="IT")
+            recovered=TicketService(restarted).recover(manager,waiting.ticket.id)
+            self.assertEqual(recovered.action_result.status,"unknown")
+            self.assertEqual(recovered.ticket.registration_context,unknown.ticket.registration_context)
+            self.assertEqual(self.count("incidents"),1)

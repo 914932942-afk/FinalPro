@@ -5,6 +5,7 @@ from .errors import ActionRejectedError, InvalidActionError, ToolResultError
 from .knowledge import KnowledgeBase
 from .models import ActionResult, Ticket
 from .model_adapter import ALLOWED_ACTIONS
+from .registration import incident_payload
 
 
 class EnterpriseTools:
@@ -35,6 +36,8 @@ class EnterpriseTools:
             payload["plan"] = ticket.execution_plan
         if ticket.diagnostic_report:
             payload["diagnostic_report"] = ticket.diagnostic_report
+        if action == "open_incident" and ticket.registration_context is not None:
+            payload["registration"] = incident_payload(ticket)
         raw = self.audit.once(key, payload, perform, ticket_id=ticket.id, kind="tool")
         if isinstance(raw, str):
             # 旧版工具 ledger 保存字符串，读取兼容且绝不再调用下游。
@@ -50,9 +53,11 @@ class EnterpriseTools:
     def _execute_action(self, ticket: Ticket, action: str, *, idempotency_key: str) -> ActionResult:
         return self.adapter.execute(ticket, action, idempotency_key=idempotency_key)
 
-    def attach_evidence(self, ticket):
+    def attach_evidence(self, ticket, *, guard=None):
         key = f"evidence:{ticket.id}:v{max(ticket.investigation_attempt, 1)}"
         def perform():
+            if guard:
+                guard()
             result = self.adapter.attach_evidence(ticket, idempotency_key=key)
             if (not isinstance(result, ActionResult) or result.action != "attach_evidence"
                     or result.idempotency_key != key):

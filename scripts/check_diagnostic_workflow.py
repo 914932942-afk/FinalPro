@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -47,17 +48,22 @@ def main():
                 headers = {"Authorization": "Bearer " + keys["alice"], "Idempotency-Key": expected}
                 body = {"title": "VPN 故障", "description": "VPN 连接失败，报错超时，请登记排查。"}
                 response = client.post("/tickets", headers=headers, json=body)
-                state = response.json()
+                accepted = response.json()
+                state = accepted
                 ticket_id = state.get("ticket", {}).get("id", "missing")
+                deadline = time.monotonic() + cfg.diagnosis_queue_timeout + cfg.diagnosis_worker_timeout + 10
+                while state.get("ticket", {}).get("investigation_status") in {"queued", "running"} and time.monotonic() < deadline:
+                    time.sleep(.05)
+                    state = client.get(f"/tickets/{ticket_id}/state", headers=headers).json()
                 replay = client.post("/tickets", headers=headers, json=body)
                 peer = client.get(f"/tickets/{ticket_id}/state", headers={"Authorization": "Bearer " + keys["bob"]})
                 diagnosis = state.get("diagnosis") or {}
-                checks = {"created": response.status_code == 201, "closed": state.get("ticket", {}).get("status") == "closed",
+                checks = {"created": response.status_code == 201, "support_handoff": state.get("ticket", {}).get("status") == "awaiting_support",
                     "correct_finding": diagnosis.get("finding") == expected,
                     "diagnostic_source": diagnosis.get("source") == ("deepseek" if args.live else "rule"),
                     "registered_only": state.get("ticket", {}).get("recommended_action") == "open_incident",
                     "write_simulated": (state.get("action_result") or {}).get("simulated") is True,
-                    "replay_equal": replay.json() == state, "peer_denied": peer.status_code == 404}
+                    "replay_equal": replay.json() == accepted, "peer_denied": peer.status_code == 404}
                 rows.append({"expected": expected, "checks": checks, "passed": all(checks.values()), "state": state})
                 print(json.dumps({"expected": expected, "checks": checks}, ensure_ascii=False), flush=True)
         report = {"live": args.live, "model": cfg.deepseek_model if args.live else None,

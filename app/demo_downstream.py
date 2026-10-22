@@ -12,6 +12,7 @@ from uuid import uuid5, NAMESPACE_URL
 
 from fastapi import FastAPI, Header, HTTPException, Depends
 from pydantic import BaseModel, ConfigDict, Field
+from .registration import RegistrationContext
 
 
 class Incident(BaseModel):
@@ -22,6 +23,7 @@ class Incident(BaseModel):
     title: str = Field(min_length=1, max_length=300)
     description: str = Field(min_length=1, max_length=10000)
     severity: str = Field(max_length=20)
+    registration_context: RegistrationContext | None = None
 
 
 class Attachment(BaseModel):
@@ -117,7 +119,8 @@ def create_app(path, api_key, *, after_commit_delay=0, reject_attachments=False)
 
     @app.post("/incidents", status_code=201, dependencies=[Depends(authorized)])
     def incident(body: Incident, idempotency_key: str = Header(min_length=1, max_length=256)):
-        return write("open_incident", body.model_dump(), idempotency_key)
+        # Omit the new optional field for legacy requests so existing receipt hashes remain valid.
+        return write("open_incident", body.model_dump(exclude_none=True), idempotency_key)
 
     @app.post("/attachments", dependencies=[Depends(authorized)])
     def attachment(body: Attachment, idempotency_key: str = Header(min_length=1, max_length=256)):

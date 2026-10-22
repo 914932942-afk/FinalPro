@@ -85,7 +85,7 @@ def main() -> None:
     feedback.add_argument("--note", required=True)
     feedback.add_argument("--evidence", required=True)
     feedback.add_argument("--issue-resolved", choices=["yes", "no", "unknown"], default="unknown")
-    for command in ("claim", "transfer", "request-info", "follow-up"):
+    for command in ("claim", "transfer", "request-info", "follow-up", "retry-investigation"):
         operation = sub.add_parser(command, help="认领、转派或补充工单信息")
         operation.add_argument("ticket_id")
         operation.add_argument("--revision", type=int, required=True)
@@ -112,6 +112,8 @@ def main() -> None:
 
 
 def execute_command(agent, service, principal, args):
+    if args.command == "retry-investigation":
+        return service.retry_investigation(principal, args.ticket_id, args.revision)
     if args.command == "claim":
         return service.claim(principal, args.ticket_id, args.revision)
     if args.command == "transfer":

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+import time
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
@@ -70,6 +71,10 @@ def main():
                 accepted=response.json()
                 ticket_id=accepted.get("ticket",{}).get("id","missing")
                 state=client.get(f"/tickets/{ticket_id}/state",headers=headers).json()
+                deadline=time.monotonic()+cfg.diagnosis_queue_timeout+cfg.diagnosis_worker_timeout+10
+                while state.get("ticket",{}).get("investigation_status") in {"queued","running"} and time.monotonic()<deadline:
+                    time.sleep(.05)
+                    state=client.get(f"/tickets/{ticket_id}/state",headers=headers).json()
                 diagnostic=state.get("diagnosis") or {}
                 replay=client.post("/tickets",headers=headers,json=body)
                 denied=client.get(f"/tickets/{ticket_id}/state",headers={"Authorization":"Bearer "+keys["bob"]})

@@ -151,6 +151,13 @@ class TicketService:
         self._operator(principal, ticket_id)
         return self.agent.recover(ticket_id, principal.user_id)
 
+    def retry_investigation(self, principal, ticket_id, revision):
+        self._case_revision(revision)
+        ticket = self._operator(principal, ticket_id)
+        if ticket["owner_id"] == principal.user_id:
+            raise AuthorizationError("不能处理自己的申请")
+        return self.agent.investigation_jobs.retry(ticket_id, principal.user_id, revision)
+
     def claim(self, principal, ticket_id, revision):
         self._case_revision(revision)
         ticket = self._operator(principal, ticket_id)

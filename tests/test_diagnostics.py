@@ -267,6 +267,12 @@ class DiagnosticsTests(unittest.TestCase):
             ticket_id = created.json()["ticket"]["id"]
             self.assertEqual(client.get(f"/tickets/{ticket_id}/state", headers=auth_headers(keys, "bob")).status_code, 404)
             own = client.get(f"/tickets/{ticket_id}/state", headers=auth_headers(keys)).json()
+            import time
+            deadline = time.monotonic() + 5
+            while own["ticket"]["investigation_status"] in {"queued", "running"} and time.monotonic() < deadline:
+                time.sleep(.02)
+                own = client.get(f"/tickets/{ticket_id}/state", headers=auth_headers(keys)).json()
+            self.assertEqual(own["ticket"]["investigation_status"], "completed")
             self.assertEqual(own["diagnosis"]["finding"], "certificate_expired")
 
 

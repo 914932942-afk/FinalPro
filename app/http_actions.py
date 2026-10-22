@@ -6,6 +6,7 @@ from typing import Literal
 from .action_adapter import SimulatedActionAdapter
 from .errors import ActionRejectedError, IdempotencyConflict, ToolResultError, ToolTimeoutError, ToolUnavailableError
 from .models import ActionResult
+from .registration import incident_payload
 
 
 class Receipt(BaseModel):
@@ -62,11 +63,7 @@ class IncidentHTTPAdapter:
     def execute(self, ticket, action, *, idempotency_key):
         if action != "open_incident":
             return self.local.execute(ticket, action, idempotency_key=idempotency_key)
-        return self._write(ticket, action, "/incidents", {
-            "ticket_id": ticket.id, "owner": ticket.owner_id or ticket.requester,
-            "resource": (ticket.execution_plan or {}).get("resource", "unknown"),
-            "title": ticket.title, "description": ticket.description, "severity": ticket.severity,
-        }, idempotency_key)
+        return self._write(ticket, action, "/incidents", incident_payload(ticket), idempotency_key)
 
     def attach_evidence(self, ticket, *, idempotency_key):
         return self._write(ticket, "attach_evidence", "/attachments", {

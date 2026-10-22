@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     diagnosis_background: bool = True
     diagnosis_max_attempts: int = Field(default=3, ge=1, le=10)
     diagnosis_max_questions: int = Field(default=2, ge=1, le=5)
+    diagnosis_worker_timeout: float = Field(default=90, gt=0, le=600)
+    diagnosis_queue_timeout: float = Field(default=120, gt=0, le=600)
+    diagnosis_worker_max_runs: int = Field(default=3, ge=1, le=5)
+    diagnosis_worker_poll: float = Field(default=5, gt=0, le=30)
+    diagnosis_workers: int = Field(default=2, ge=1, le=8)
     runbooks_dir: Path | None = None
     runbook_strategy: Literal["bm25", "vector", "hybrid"] = "hybrid"
     deepseek_api_key: SecretStr = Field(default=SecretStr(""), validation_alias="DEEPSEEK_API_KEY")

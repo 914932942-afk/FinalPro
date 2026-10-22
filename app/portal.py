@@ -177,6 +177,8 @@ class PortalService:
         independent = bool(ticket.get("owner_id")) and ticket["owner_id"] != principal.user_id
         required_role = approval.get("required_role")
         assignment = ticket.get("assignment") or {}
+        job = ticket.get("investigation_job") or {}
+        job_failed = job.get("status") == "failed"
         is_assignee = assignment.get("assignee") == principal.user_id
         case_active = ticket["status"] in CaseLifecycle.support_states
         can_approve = independent and ticket["status"] == "awaiting_approval" and required_role in {"manager", "admin"} and (required_role == "manager" or principal.role == "admin")
@@ -194,7 +196,11 @@ class PortalService:
                     and (state.get("action_result") or {}).get("status") != "unknown" and ticket.get("investigation_status") != "attachment_unknown",
                 "feedback_revision": len(ticket.get("feedback", [])) + 1,
                 "can_resolve": independent and is_assignee and case_active,
-                "can_recover": independent and is_assignee and case_active and state.get("next_node") is not None,
+                "can_recover": independent and is_assignee and case_active and state.get("next_node") is not None and not job_failed,
+                "can_retry_investigation": independent and is_assignee and case_active and job_failed and state.get("next_node") == "diagnose"
+                    and job.get("runs", 0) < job.get("max_runs", 3) and ticket.get("investigation_status") != "attachment_unknown",
+                "worker_issue": {"message": {"worker_timeout": "自动排查超过处理时限，已停止等待并交由支持人员跟进。", "queue_timeout": "排查任务未能及时启动，已交由支持人员处理。"}.get(job.get("reason"), "自动排查未能完成，请核查原因后决定是否重新排查。"),
+                    "remaining_runs": max(job.get("max_runs", 3) - job.get("runs", 0), 0), "escalated": bool(job.get("exhausted"))} if job_failed else None,
                 "summary": report.get("summary"), "next_check": report.get("next_check"),
                 "observations": observations, "citations": report.get("citations", []),
                 "feedback": [{"actor": r.get("actor"), "note": r.get("note"), "at": r.get("at")} for r in ticket.get("feedback", [])],
