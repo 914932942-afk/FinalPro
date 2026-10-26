@@ -89,8 +89,8 @@ class CaseFlowTests(unittest.TestCase):
             self.service.resolve(self.manager, state.ticket.id, "resolved", "已恢复", "test-record")
         state = self.claim(state)
         done = self.service.resolve(self.manager, state.ticket.id, "resolved", "支持人员已核查恢复", "test-record")
-        self.assertEqual(done.ticket.status, "resolved")
-        self.assertTrue(done.resolution["external_issue_resolved"])
+        self.assertEqual(done.ticket.status, "awaiting_verification")
+        self.assertIsNone(done.resolution["external_issue_resolved"])
         self.assertEqual(len(self.actions.registrations), 1)
 
     def test_unresolved_feedback_keeps_an_assigned_actionable_case(self):
@@ -101,7 +101,7 @@ class CaseFlowTests(unittest.TestCase):
         self.assertTrue(support["can_resolve"])
         self.assertTrue(support["can_request_info"])
         state = self.service.feedback(self.manager, state.ticket.id, 2, "accepted", "已核查恢复", "test-record-2", True)
-        self.assertEqual(state.ticket.status, "resolved")
+        self.assertEqual(state.ticket.status, "awaiting_verification")
         self.assertEqual(len(self.actions.registrations), 1)
 
     def test_non_assignee_cannot_resolve_or_feedback(self):
@@ -118,7 +118,7 @@ class CaseFlowTests(unittest.TestCase):
         state = self.service.feedback(self.manager, state.ticket.id, 1, "inconclusive", "复查仍未恢复", "record-2", False)
         self.assertEqual(state.ticket.status, "in_progress")
         done = self.service.resolve(self.manager, state.ticket.id, "resolved", "再次处理并核实恢复", "record-3")
-        self.assertEqual(done.ticket.status, "resolved")
+        self.assertEqual(done.ticket.status, "awaiting_verification")
         self.assertEqual(done.resolution["evidence"], "record-3")
         replay = self.service.resolve(self.manager, state.ticket.id, "resolved", "再次处理并核实恢复", "record-3")
         self.assertEqual(done.to_dict(), replay.to_dict())
@@ -140,7 +140,7 @@ class CaseFlowTests(unittest.TestCase):
         with self.assertRaises(IdempotencyConflict):
             self.service.resolve(self.manager, state.ticket.id, "resolved", "恢复", "")
         done = self.service.resolve(self.manager, state.ticket.id, "resolved", "已核查附件及问题恢复", "verified-receipt")
-        self.assertEqual(done.ticket.status, "resolved")
+        self.assertEqual(done.ticket.status, "awaiting_verification")
         self.assertEqual(self.audit.get_operation(key)["status"], "reconciled")
 
     def test_case_revisions_are_validated_for_non_http_callers(self):

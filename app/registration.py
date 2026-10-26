@@ -27,7 +27,7 @@ class RegistrationContext(BaseModel):
             effective_description=understanding.text,
             clarifications=[ClarificationAnswer(round_number=row["round"], answer=row["content"])
                 for row in state.conversation_history
-                if row.get("role") == "user" and row.get("kind") not in {"plan_confirmation", "diagnostic_followup"}],
+                if row.get("role") == "user" and row.get("kind") not in {"plan_confirmation", "diagnostic_followup", "case_verification"}],
             input_digest=understanding.input_digest,
             plan_digest=ExecutionPlan.model_validate(state.ticket.execution_plan).digest(),
         )

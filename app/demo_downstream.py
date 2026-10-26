@@ -30,6 +30,7 @@ class Attachment(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     ticket_id: str = Field(min_length=1, max_length=100)
     report: dict
+    version: int = Field(default=1, strict=True, ge=1, le=100)
 
 
 class IncidentStore:
@@ -37,11 +38,16 @@ class IncidentStore:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
-            db.executescript("""
-                CREATE TABLE IF NOT EXISTS incidents(ticket_id TEXT PRIMARY KEY, id TEXT NOT NULL, payload TEXT NOT NULL);
-                CREATE TABLE IF NOT EXISTS attachments(ticket_id TEXT PRIMARY KEY, payload TEXT NOT NULL);
-                CREATE TABLE IF NOT EXISTS receipts(key TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, payload TEXT NOT NULL);
-            """)
+            db.execute("BEGIN IMMEDIATE")
+            db.execute("CREATE TABLE IF NOT EXISTS incidents(ticket_id TEXT PRIMARY KEY, id TEXT NOT NULL, payload TEXT NOT NULL)")
+            db.execute("CREATE TABLE IF NOT EXISTS receipts(key TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, payload TEXT NOT NULL)")
+            columns = {row[1] for row in db.execute("PRAGMA table_info(attachments)")}
+            if columns and "version" not in columns:
+                db.execute("ALTER TABLE attachments RENAME TO attachments_legacy")
+            db.execute("CREATE TABLE IF NOT EXISTS attachments(ticket_id TEXT NOT NULL, version INTEGER NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(ticket_id,version))")
+            if columns and "version" not in columns:
+                db.execute("INSERT INTO attachments SELECT ticket_id,1,payload FROM attachments_legacy")
+                db.execute("DROP TABLE attachments_legacy")
 
     @contextmanager
     def connect(self):
@@ -72,10 +78,11 @@ class IncidentStore:
             else:
                 if not row:
                     raise HTTPException(404, "incident_missing")
-                if db.execute("SELECT 1 FROM attachments WHERE ticket_id=?", (ticket_id,)).fetchone():
-                    raise HTTPException(409, "attachment_already_written")
+                version = payload.get("version", 1)
+                if db.execute("SELECT 1 FROM attachments WHERE ticket_id=? AND version=?", (ticket_id,version)).fetchone():
+                    raise HTTPException(409, "attachment_version_already_written")
                 downstream_id = row[0]
-                db.execute("INSERT INTO attachments VALUES(?,?)", (ticket_id, content))
+                db.execute("INSERT INTO attachments VALUES(?,?,?)", (ticket_id, version, content))
             receipt = dict(action=action, status="succeeded", idempotency_key=key,
                            ticket_id=ticket_id, downstream_id=downstream_id, simulated=True)
             db.execute("INSERT INTO receipts VALUES(?,?,?)", (key, digest, json.dumps(receipt)))
@@ -126,7 +133,7 @@ def create_app(path, api_key, *, after_commit_delay=0, reject_attachments=False)
     def attachment(body: Attachment, idempotency_key: str = Header(min_length=1, max_length=256)):
         if reject_attachments:
             raise HTTPException(503, "test_attachment_unavailable")
-        return write("attach_evidence", body.model_dump(), idempotency_key)
+        return write("attach_evidence", body.model_dump(exclude_unset=True), idempotency_key)
 
     @app.get("/operations/{key:path}", dependencies=[Depends(authorized)])
     def lookup(key: str):

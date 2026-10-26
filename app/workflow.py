@@ -28,8 +28,8 @@ class EnterpriseAgent:
     HIGH_RISK = {"grant_access"}
     NODE_ORDER = ("intake", "clarify", "retrieve", "plan", "authorize", "execute", "finalize", "diagnose", "enrich")
     WAITING = {"awaiting_clarification", "awaiting_approval"}
-    TERMINAL = {"closed", "manual_review", "rejected", "cancelled", "resolved_manually", "resolved"}
-    CASE_WAITING = {"awaiting_support", "in_progress", "awaiting_user_info"}
+    TERMINAL = {"closed", "manual_review", "rejected", "cancelled", "resolved_manually", "resolved", "archived"}
+    CASE_WAITING = {"awaiting_support", "in_progress", "awaiting_user_info", "awaiting_verification"}
 
     def __init__(self, tools: EnterpriseTools, audit: AuditStore,
                  model: DecisionModel | None = None, strict_model: bool = False, *, settings=None, diagnostic_runner=None):
@@ -41,6 +41,8 @@ class EnterpriseAgent:
         self._investigation_lock = RLock()
         from .investigation_jobs import InvestigationJobs
         self.investigation_jobs = InvestigationJobs(self)
+        from .case_interactions import CaseInteractions
+        self.case_interactions = CaseInteractions(self)
         self.model = model or RuleBasedModel()
         if not isinstance(self.model, (RuleBasedModel, ResilientDecisionModel)):
             self.model = ResilientDecisionModel(self.model, strict=strict_model,
@@ -455,7 +457,7 @@ class EnterpriseAgent:
                 field = state.diagnosis["missing_fact"]
                 state.clarification = {"stage": "investigation", "question": USER_QUESTIONS[field], "missing_fields": [field]}
                 state.conversation_history.append({"role": "assistant", "kind": "diagnostic_question", "content": USER_QUESTIONS[field], "at": now_iso()})
-                CaseLifecycle.pause_for_user(state)
+                CaseLifecycle.pause_for_user(state, self.settings)
                 state.ticket.investigation_status = "waiting_user"
                 return state
         for observation in state.diagnosis.get("observations", []):
@@ -554,19 +556,23 @@ class EnterpriseAgent:
                 state.degradation.append({"component": "enrichment", "reason": type(exc).__name__})
                 return self._manual(state, "事件已登记，但附件更新结果不明，禁止盲目重试")
         CaseLifecycle.handoff(state)
+        state.ticket.case_revision += 1
         state.ticket.investigation_status = ("completed" if state.ticket.diagnostic_report else "unavailable")
         state.resolution = {**(state.resolution or {}), "type": "agent_task_completed", "external_issue_resolved": None}
         return state
 
-    def feedback(self, ticket_id, actor, revision, verdict, note, evidence, issue_resolved):
+    def feedback(self, ticket_id, actor, revision, verdict, note, evidence, issue_resolved, *, case_revision=None):
         with self.audit.ticket_lock(ticket_id):
             state = CaseLifecycle.normalize(AgentState.from_dict(self.audit.get_state(ticket_id)))
             previous_length = len(state.ticket.feedback)
             previous_status = state.ticket.status
+            previous_case_revision = state.ticket.case_revision
             def validate():
-                if previous_status not in CaseLifecycle.support_states | {"resolved", "closed", "resolved_manually"}:
+                if previous_status not in CaseLifecycle.support_states | {"awaiting_verification", "resolved", "closed", "resolved_manually"}:
                     raise IdempotencyConflict("调查附件完成并交接后才能核实")
                 self._require_assignee(state, actor)
+                if case_revision is not None and case_revision != previous_case_revision:
+                    raise IdempotencyConflict("工单或报告已有更新，请刷新后核查最新内容")
                 if ((state.action_result and state.action_result.status == "unknown")
                         or any(x["kind"] == "tool" for x in self.audit.pending_operations(ticket_id))):
                     raise IdempotencyConflict("执行结果未知，请核查凭证后使用人工结案，不能用反馈代替核查")
@@ -576,15 +582,21 @@ class EnterpriseAgent:
             import json
             payload = dict(actor=actor, revision=revision, verdict=verdict, note=note,
                            evidence=evidence, issue_resolved=issue_resolved)
+            if case_revision is not None:
+                payload["case_revision"] = case_revision
             report_hash = hashlib.sha256(json.dumps(state.ticket.diagnostic_report, sort_keys=True).encode()).hexdigest()
             state.ticket.feedback.append({**payload, "report_hash": report_hash, "at": now_iso()})
+            CaseLifecycle.retain_resolution(state)
             state.resolution = {**(state.resolution or {}), "external_issue_resolved": issue_resolved,
-                                "verified_by": actor, "feedback_revision": revision}
+                                "support_issue_resolved": issue_resolved, "reviewed_by": actor, "feedback_revision": revision, "at": now_iso()}
             if CaseLifecycle.incident(state):
                 if issue_resolved is True:
-                    state.ticket.status, state.next_node = "resolved", None
+                    CaseLifecycle.propose_resolution(state, actor, self.settings)
                 else:
+                    CaseLifecycle.resume_clock(state)
+                    state.ticket.waiting = None
                     CaseLifecycle.handoff(state)
+            state.ticket.case_revision += 1
             checkpoint = self._checkpoint(state, "diagnostic_feedback", payload)
             return AgentState.from_dict(self.audit.once(f"feedback:{ticket_id}:{revision}", payload, state.to_dict,
                 ticket_id=ticket_id, checkpoint=checkpoint, precondition=validate))
@@ -623,36 +635,66 @@ class EnterpriseAgent:
                 {"approved": approved, "approver": approver}, resume, precondition=validate, ticket_id=ticket_id,
                 checkpoint=checkpoint))
 
-    def cancel(self, ticket_id, actor, reason):
+    def cancel(self, ticket_id, actor, reason, *, case_revision=None):
         with self.audit.ticket_lock(ticket_id):
             state = AgentState.from_dict(self.audit.get_state(ticket_id))
             previous_status = state.ticket.status
+            previous_case_revision = state.ticket.case_revision
+            incident = CaseLifecycle.incident(state)
             def validate():
-                if previous_status not in self.WAITING:
+                if previous_status not in self.WAITING and not (incident and previous_status in CaseLifecycle.open_states):
                     raise IdempotencyConflict("只能取消等待澄清或审批的工单")
+                if case_revision is not None and previous_case_revision != case_revision:
+                    raise IdempotencyConflict("工单已有更新，请刷新后撤销")
+                if incident and ((state.action_result and state.action_result.status == "unknown")
+                        or any(row["kind"] == "tool" for row in self.audit.pending_operations(ticket_id))):
+                    raise IdempotencyConflict("仍有结果待核查的操作，请联系支持人员处理撤回")
+            CaseLifecycle.retain_resolution(state)
+            if state.ticket.assignment:
+                CaseLifecycle.resume_clock(state)
+            CaseLifecycle.invalidate_worker(state)
+            state.ticket.waiting = None
             state.ticket.status, state.next_node = "cancelled", None
-            state.result = "申请人已取消，未执行自动动作。"
+            state.result = "申请人已撤回后续处理，已登记的事件记录保留。" if incident else "申请人已取消，未执行自动动作。"
             if state.approval:
                 state.approval.status = "cancelled"
-            state.resolution = {"type": "cancelled", "by": actor, "reason": reason, "at": now_iso()}
+            state.resolution = {"type": "cancelled", "by": actor, "reason": reason, "at": now_iso(), "external_issue_resolved": None}
+            state.ticket.case_revision += 1
             checkpoint = self._checkpoint(state, "cancel", state.resolution)
-            return AgentState.from_dict(self.audit.once("cancel:" + ticket_id, {"actor": actor, "reason": reason},
+            payload = {"actor": actor, "reason": reason}
+            if case_revision is not None:
+                payload["case_revision"] = case_revision
+            return AgentState.from_dict(self.audit.once("cancel:" + ticket_id, payload,
                 state.to_dict, precondition=validate, ticket_id=ticket_id, checkpoint=checkpoint))
 
-    def resolve(self, ticket_id, actor, outcome, note, evidence):
+    def resolve(self, ticket_id, actor, outcome, note, evidence, *, case_revision=None):
         with self.audit.ticket_lock(ticket_id):
             state = CaseLifecycle.normalize(AgentState.from_dict(self.audit.get_state(ticket_id)))
             previous_status = state.ticket.status
+            previous_case_revision = state.ticket.case_revision
             def validate():
-                if previous_status not in CaseLifecycle.support_states:
+                if previous_status not in CaseLifecycle.support_states | {"awaiting_user_info", "awaiting_verification"}:
                     raise IdempotencyConflict("仅人工待办或失败工单可以人工结案")
                 self._require_assignee(state, actor)
+                if case_revision is not None and previous_case_revision != case_revision:
+                    raise IdempotencyConflict("工单或报告已有更新，请刷新后处理最新内容")
                 unknown = state.action_result and state.action_result.status == "unknown"
                 if (unknown or any(x["kind"] == "tool" for x in self.audit.pending_operations(ticket_id))) and not evidence.strip():
                     raise IdempotencyConflict("执行结果未知，必须填写核查凭证后才能结案")
-            state.ticket.status, state.next_node = ("resolved" if outcome == "resolved" else "rejected"), None
+            CaseLifecycle.retain_resolution(state)
+            if state.ticket.assignment:
+                CaseLifecycle.resume_clock(state)
+            CaseLifecycle.invalidate_worker(state)
+            state.ticket.waiting = None
+            state.ticket.status, state.next_node = ({"resolved": "resolved", "archived": "archived"}.get(outcome, "rejected")), None
             state.resolution = {"type": "manual", "by": actor, "outcome": outcome, "note": note,
-                                "evidence": evidence, "at": now_iso(), "external_issue_resolved": outcome == "resolved"}
+                                "evidence": evidence, "at": now_iso(), "external_issue_resolved": True if outcome == "resolved" else None}
+            if CaseLifecycle.incident(state) and outcome == "resolved":
+                CaseLifecycle.propose_resolution(state, actor, self.settings)
+            elif CaseLifecycle.incident(state) and outcome == "archived":
+                CaseLifecycle.set_reopen_window(state, self.settings)
+                CaseLifecycle.event(state, "archived", "支持人员已归档本次处理，尚未确认问题解决。", actor)
+            state.ticket.case_revision += 1
             if state.error:
                 state.resolution["previous_error"] = state.error
                 state.resolution["previous_error_info"] = state.error_info.to_dict() if state.error_info else None
@@ -664,8 +706,13 @@ class EnterpriseAgent:
             # A later unresolved feedback opens a new handling cycle; retries within a cycle replay.
             feedback_count = len(state.ticket.feedback)
             resolution_key = "resolve:" + ticket_id + (f":feedback{feedback_count}" if feedback_count else "")
+            if case_revision is not None:
+                resolution_key += f":case{case_revision}"
+            payload = {"actor": actor, "outcome": outcome, "note": note, "evidence": evidence}
+            if case_revision is not None:
+                payload["case_revision"] = case_revision
             return AgentState.from_dict(self.audit.once(resolution_key,
-                {"actor": actor, "outcome": outcome, "note": note, "evidence": evidence}, state.to_dict,
+                payload, state.to_dict,
                 precondition=validate, ticket_id=ticket_id, checkpoint=checkpoint))
 
     @staticmethod
@@ -682,7 +729,7 @@ class EnterpriseAgent:
             kind = "transfer" if target else "claim"
             target = target or actor
             def validate():
-                if previous_status not in CaseLifecycle.support_states | {"awaiting_user_info"} or previous_revision != revision:
+                if previous_status not in CaseLifecycle.support_states | {"awaiting_user_info", "awaiting_verification"} or previous_revision != revision:
                     raise IdempotencyConflict("工单状态或负责人已变化，请刷新后操作")
                 if kind == "transfer" and ((previous_assignee != actor and not allow_override) or target == previous_assignee):
                     raise IdempotencyConflict("仅当前处理人可以转派给其他人员")
@@ -690,7 +737,8 @@ class EnterpriseAgent:
                     raise IdempotencyConflict("工单已被其他处理人认领")
             assignment.update(assignee=target, assigned_by=actor, assigned_at=now_iso(), revision=revision + 1)
             assignment["history"].append({"action": kind, "actor": actor, "from": previous_assignee, "to": target, "reason": reason, "at": now_iso()})
-            if previous_status != "awaiting_user_info":
+            state.ticket.case_revision += 1
+            if previous_status not in {"awaiting_user_info", "awaiting_verification"}:
                 state.ticket.status = "in_progress"
             payload = dict(actor=actor, target=target, reason=reason, override=allow_override)
             checkpoint = self._checkpoint(state, "case_" + kind, payload)
@@ -712,7 +760,7 @@ class EnterpriseAgent:
             state.ticket.case_revision += 1
             state.clarification = {"stage": "investigation", "question": USER_QUESTIONS[field], "missing_fields": [field], "resume_node": state.next_node}
             state.conversation_history.append({"role": "assistant", "content": USER_QUESTIONS[field], "kind": "support_question", "at": now_iso()})
-            CaseLifecycle.pause_for_user(state)
+            CaseLifecycle.pause_for_user(state, self.settings)
             state.next_node = None
             self._persist(state, "support_question", {"actor": actor, "field": field})
             return state
@@ -738,6 +786,7 @@ class EnterpriseAgent:
             state.ticket.case_revision += 1
             state.clarification = None
             CaseLifecycle.resume_clock(state)
+            state.ticket.waiting = None
             if can_queue:
                 state.ticket.investigation_attempt = old_attempt + 1
                 state.diagnosis = None

@@ -68,6 +68,7 @@ class IncidentHTTPAdapter:
     def attach_evidence(self, ticket, *, idempotency_key):
         return self._write(ticket, "attach_evidence", "/attachments", {
             "ticket_id": ticket.id, "report": ticket.diagnostic_report,
+            "version": max(ticket.investigation_attempt, 1),
         }, idempotency_key)
 
     def lookup(self, key):

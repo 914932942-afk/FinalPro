@@ -64,6 +64,9 @@ class Ticket:
     investigation_attempt: int = 0
     registration_context: Optional[Dict[str, Any]] = None  # 首次登记的用户证据快照；原始描述保留。
     investigation_job: Optional[Dict[str, Any]] = None
+    waiting: Optional[Dict[str, Any]] = None
+    case_events: List[Dict[str, Any]] = field(default_factory=list)
+    resolution_history: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         """返回普通字典，供 JSON 输出或数据库保存使用。"""

@@ -46,7 +46,13 @@
 
 处理期限按严重程度设置：critical 1 小时、high 4 小时、medium 24 小时、low 72 小时，采用连续计时。等待申请人补充时暂停，收到回复后顺延等待时长。每 30 秒检查超期，写入一次升级记录并在支持队列突出显示；当前提醒范围是站内队列，没有邮件、短信或外部值班平台集成。
 
-`resolved` 表示当前处理人核实问题恢复；`rejected` 表示人工拒绝处理。反馈为未解决或尚未确认时回到可处理状态。结果未知的下游写操作必须先核查并在人工结案中填写凭证，不能通过普通反馈跳过。启动时会将历史未确认解决的关闭故障恢复为支持待办，原回执、报告及审计保留，不重新登记事件。
+支持人员认为已恢复时，故障进入 `awaiting_verification`；申请人实际验证后确认，才进入 `resolved`。`rejected` 表示人工拒绝处理，`archived` 表示结束受理但未确认解决。反馈为未解决或尚未确认时回到可处理状态。结果未知的下游写操作必须先核查并在人工处理时填写凭证，不能通过普通反馈、撤回或无凭证归档跳过。历史已结束记录不强制改成待验证；在有效期内仍可由申请人重新打开。
+
+用户等待默认规则：补充信息 48 小时、站内提醒 24 小时；超时解除 SLA 暂停并回到支持待办，处理人可继续联系或归档。支持侧提交处理结果后，验证期 72 小时、站内提醒 24 小时；超时归档为未确认解决。结束后 7 天内允许原单重开，恢复跟进期限，保留原登记、报告版本及各次处理记录。用户也可在处理过程中明确报告已自行验证恢复，或撤回后续处理，已发生的登记不会被撤销或重放。归档、撤回、解决分别记录，不能混淆。
+
+申请人入口为 `POST /portal/tickets/{id}/verify`，提交 `revision`、`verdict=confirmed/still_failing/recurred` 和 `note`（未恢复或复发时必填）。只有申请人可调用，版本过期或超过重开窗口会拒绝。HTTP 的 `/tickets/{id}/feedback`、`/tickets/{id}/resolve` 均要求页面读到的 `case_revision`；CLI 对应提供 `--case-revision`，申请人验证使用 `verify 工单ID --revision 版本 --verdict confirmed`。工单版本在报告交付、认领转派、补充、处理结果及验证等变化时递增，旧页面不能核查新报告。
+
+业务期限配置为 `AGENT_CASE_USER_REPLY_HOURS`、`AGENT_CASE_USER_REMINDER_HOURS`、`AGENT_CASE_VERIFICATION_HOURS`、`AGENT_CASE_VERIFICATION_REMINDER_HOURS`、`AGENT_CASE_REOPEN_DAYS`。由工作台后台巡检执行，提醒仅进入站内动态，不包含邮件或短信集成。
 
 新增同源入口如下；权限、状态和版本仍由服务端校验，Cookie 写请求继续要求 CSRF：
 
@@ -84,6 +90,8 @@ Agent 的 `IncidentHTTPAdapter` 使用独立 HTTP 服务，并复用原有操作
 | `GET /ready` | 检查服务认证和数据库读取 | 无业务写入 |
 
 独立服务把业务对象与幂等回执放在同一个 SQLite 事务中。同键同内容返回已有回执，同键不同内容拒绝；重启后回执仍可查询。
+
+`/attachments` 的 `version` 对应调查轮次，主键为工单加版本；同一工单允许多份报告，原版本禁止覆盖。缺少 `version` 的旧请求仍按版本 1 接收，旧回执的内容指纹保留，迁移和重启不会重复写入旧附件。
 
 新事件的 `/incidents` 请求保留原始 `title`、`description`，并携带 `registration_context`：`version=1`、`effective_description`（登记时有效的故障描述，明确更正会替换旧理解）、`clarifications`（登记前各轮用户补充）、`input_digest` 和 `plan_digest`。该快照在首次调用前保存，与验证过的用户证据和执行计划绑定；恢复时校验一致性，工具账本对完整出站数据计算指纹。不会把助手提示、模型轨迹或内部调用数据当作用户补充发送。
 

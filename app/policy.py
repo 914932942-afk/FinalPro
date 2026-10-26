@@ -51,7 +51,7 @@ def current_text(ticket, history=()):
     text = f"{ticket.title}\n{ticket.description}"
     # 明确的整单更正替换当前理解，原文和历史仍保留在快照中。
     for item in history:
-        if item.get("role") != "user" or item.get("kind") in {"plan_confirmation", "diagnostic_followup"}:
+        if item.get("role") != "user" or item.get("kind") in {"plan_confirmation", "diagnostic_followup", "case_verification"}:
             continue
         reply = item["content"].strip()
         correction = re.match(r"^(?:更正|改为|correction)\s*[:：]\s*(.+)$", reply, re.I | re.S)
@@ -64,7 +64,7 @@ def current_text(ticket, history=()):
 
 def input_digest(ticket, history=()):
     data = [ticket.title, ticket.description, ticket.owner_id or ticket.requester, ticket.severity,
-             [item for item in history if item.get("role") == "user" and item.get("kind") not in {"plan_confirmation", "diagnostic_followup"}]]
+             [item for item in history if item.get("role") == "user" and item.get("kind") not in {"plan_confirmation", "diagnostic_followup", "case_verification"}]]
     return hashlib.sha256(json.dumps(data, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
 
 

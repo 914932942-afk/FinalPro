@@ -98,20 +98,24 @@ class TicketService:
             raise AuthorizationError("旧工单无可信归属，请重新提交")
         return ticket
 
-    def cancel(self, principal, ticket_id, reason):
+    def cancel(self, principal, ticket_id, reason, *, case_revision=None):
         ticket = self.get_ticket(principal, ticket_id)
         if ticket.get("owner_id") != principal.user_id:
             raise AuthorizationError("只有申请人可以取消工单")
-        return self.agent.cancel(ticket_id, principal.user_id, self._text(reason))
+        if ticket.get("recommended_action") == "open_incident":
+            self._case_revision(case_revision)
+        return self.agent.cancel(ticket_id, principal.user_id, self._text(reason), case_revision=case_revision)
 
-    def resolve(self, principal, ticket_id, outcome, note, evidence=""):
+    def resolve(self, principal, ticket_id, outcome, note, evidence="", *, case_revision=None):
         ticket = self._operator(principal, ticket_id)
         if ticket["owner_id"] == principal.user_id:
             raise AuthorizationError("不能人工结案自己的工单")
-        if outcome not in {"resolved", "rejected"}:
+        if outcome not in {"resolved", "rejected", "archived"}:
             raise RequestValidationError()
+        if case_revision is not None:
+            self._case_revision(case_revision)
         return self.agent.resolve(ticket_id, principal.user_id, outcome, self._text(note),
-                                  self._text(evidence, required=False))
+                                  self._text(evidence, required=False), case_revision=case_revision)
 
     def inspect_operations(self, principal, ticket_id):
         self._operator(principal, ticket_id)
@@ -137,15 +141,27 @@ class TicketService:
         self.get_ticket(principal, ticket_id)
         return self.agent.investigate(ticket_id)
 
-    def feedback(self, principal, ticket_id, revision, verdict, note, evidence, issue_resolved=None):
+    def feedback(self, principal, ticket_id, revision, verdict, note, evidence, issue_resolved=None, *, case_revision=None):
         ticket = self._operator(principal, ticket_id)
         if ticket["owner_id"] == principal.user_id:
             raise AuthorizationError("不能验证自己的诊断结果")
         if (type(revision) is not int or revision < 1 or verdict not in {"accepted", "rejected", "inconclusive"}
                 or issue_resolved is not None and type(issue_resolved) is not bool):
             raise RequestValidationError()
+        if case_revision is not None:
+            self._case_revision(case_revision)
         return self.agent.feedback(ticket_id, principal.user_id, revision, verdict, self._text(note),
-                                   self._text(evidence), issue_resolved)
+                                   self._text(evidence), issue_resolved, case_revision=case_revision)
+
+    def verify_case(self, principal, ticket_id, revision, verdict, note=""):
+        ticket = self.get_ticket(principal, ticket_id)
+        if ticket["owner_id"] != principal.user_id:
+            raise AuthorizationError("只有申请人可以验证处理结果或重新打开工单")
+        self._case_revision(revision)
+        if verdict not in {"confirmed", "still_failing", "recurred"}:
+            raise RequestValidationError()
+        note = self._text(note, required=verdict != "confirmed")
+        return self.agent.case_interactions.verify(ticket_id, principal.user_id, revision, verdict, note)
 
     def recover(self, principal, ticket_id):
         self._operator(principal, ticket_id)

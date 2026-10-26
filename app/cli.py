@@ -73,18 +73,26 @@ def main() -> None:
     cancel = sub.add_parser("cancel", help="取消自己等待中的工单")
     cancel.add_argument("ticket_id")
     cancel.add_argument("--reason", required=True)
+    cancel.add_argument("--case-revision", type=int)
     resolve = sub.add_parser("resolve", help="人工结案，不触发工具调用")
     resolve.add_argument("ticket_id")
-    resolve.add_argument("--outcome", choices=["resolved", "rejected"], required=True)
+    resolve.add_argument("--outcome", choices=["resolved", "rejected", "archived"], required=True)
+    resolve.add_argument("--case-revision", type=int, required=True)
     resolve.add_argument("--note", required=True)
     resolve.add_argument("--evidence", default="")
     feedback = sub.add_parser("feedback", help="独立处理人记录诊断核实结果")
     feedback.add_argument("ticket_id")
     feedback.add_argument("--revision", type=int, required=True)
+    feedback.add_argument("--case-revision", type=int, required=True)
     feedback.add_argument("--verdict", choices=["accepted", "rejected", "inconclusive"], required=True)
     feedback.add_argument("--note", required=True)
     feedback.add_argument("--evidence", required=True)
     feedback.add_argument("--issue-resolved", choices=["yes", "no", "unknown"], default="unknown")
+    verify = sub.add_parser("verify", help="申请人验证处理结果或重新打开工单")
+    verify.add_argument("ticket_id")
+    verify.add_argument("--revision", type=int, required=True)
+    verify.add_argument("--verdict", choices=["confirmed", "still_failing", "recurred"], required=True)
+    verify.add_argument("--note", default="")
     for command in ("claim", "transfer", "request-info", "follow-up", "retry-investigation"):
         operation = sub.add_parser(command, help="认领、转派或补充工单信息")
         operation.add_argument("ticket_id")
@@ -112,6 +120,8 @@ def main() -> None:
 
 
 def execute_command(agent, service, principal, args):
+    if args.command == "verify":
+        return service.verify_case(principal, args.ticket_id, args.revision, args.verdict, args.note)
     if args.command == "retry-investigation":
         return service.retry_investigation(principal, args.ticket_id, args.revision)
     if args.command == "claim":
@@ -127,13 +137,13 @@ def execute_command(agent, service, principal, args):
         return service.investigate(principal, args.ticket_id)
     if args.command == "feedback":
         return service.feedback(principal, args.ticket_id, args.revision, args.verdict, args.note,
-                                args.evidence, {"yes": True, "no": False, "unknown": None}[args.issue_resolved])
+                                args.evidence, {"yes": True, "no": False, "unknown": None}[args.issue_resolved], case_revision=args.case_revision)
     if args.command == "list":
         return service.list_tickets(principal, args.status)
     if args.command == "cancel":
-        return service.cancel(principal, args.ticket_id, args.reason)
+        return service.cancel(principal, args.ticket_id, args.reason, case_revision=args.case_revision)
     if args.command == "resolve":
-        return service.resolve(principal, args.ticket_id, args.outcome, args.note, args.evidence)
+        return service.resolve(principal, args.ticket_id, args.outcome, args.note, args.evidence, case_revision=args.case_revision)
     if args.command == "recover":
         return service.recover(principal, args.ticket_id)
     if args.command == "operations":

@@ -1,5 +1,8 @@
 """Business case lifecycle, distinct from investigation execution status."""
 from datetime import datetime, timedelta, timezone
+from copy import deepcopy
+import hashlib
+import json
 
 from .models import now_iso
 
@@ -13,7 +16,7 @@ USER_QUESTIONS = {
 
 class CaseLifecycle:
     support_states = {"awaiting_support", "in_progress", "manual_review", "failed"}
-    open_states = support_states | {"awaiting_user_info", "awaiting_investigation", "investigating"}
+    open_states = support_states | {"awaiting_user_info", "awaiting_investigation", "investigating", "awaiting_verification"}
     teams = {"vpn": "网络支持", "erp": "应用支持", "reports_db": "数据服务支持"}
     hours = {"critical": 1, "high": 4, "medium": 24, "low": 72}
 
@@ -54,10 +57,69 @@ class CaseLifecycle:
         return state
 
     @classmethod
-    def pause_for_user(cls, state):
+    def pause_for_user(cls, state, settings=None):
         assignment = cls.ensure_assignment(state)
         assignment["paused_at"] = assignment.get("paused_at") or now_iso()
         state.ticket.status = "awaiting_user_info"
+        cls.start_wait(state, "user_info", settings)
+
+    @staticmethod
+    def report_hash(state):
+        return hashlib.sha256(json.dumps(state.ticket.diagnostic_report, sort_keys=True).encode()).hexdigest()
+
+    @staticmethod
+    def event(state, kind, message, actor=None):
+        state.ticket.case_events.append({"kind": kind, "message": message, "actor": actor, "at": now_iso()})
+
+    @staticmethod
+    def retain_resolution(state):
+        if state.resolution:
+            state.ticket.resolution_history.append({"resolution": deepcopy(state.resolution),
+                "case_revision": state.ticket.case_revision, "report_hash": CaseLifecycle.report_hash(state),
+                "assignment": deepcopy(state.ticket.assignment), "investigation_attempt": state.ticket.investigation_attempt, "at": now_iso()})
+
+    @staticmethod
+    def start_wait(state, kind, settings=None, *, started_at=None):
+        started = datetime.fromisoformat(started_at or now_iso())
+        ttl = getattr(settings, "case_user_reply_hours", 48) if kind == "user_info" else getattr(settings, "case_verification_hours", 72)
+        reminder = getattr(settings, "case_user_reminder_hours", 24) if kind == "user_info" else getattr(settings, "case_verification_reminder_hours", 24)
+        state.ticket.waiting = {"kind": kind, "started_at": started.isoformat(),
+            "remind_at": (started + timedelta(hours=min(reminder, ttl / 2))).isoformat(),
+            "expires_at": (started + timedelta(hours=ttl)).isoformat(), "reminded_at": None}
+
+    @classmethod
+    def propose_resolution(cls, state, actor, settings):
+        cls.ensure_assignment(state)["paused_at"] = now_iso()
+        state.ticket.status, state.next_node = "awaiting_verification", None
+        state.resolution.update(type="awaiting_user_verification", external_issue_resolved=None, support_issue_resolved=True,
+                                proposed_by=actor, proposed_at=now_iso())
+        cls.start_wait(state, "verification", settings)
+        cls.event(state, "verification_requested", "支持人员已提交处理结果，等待你验证是否恢复。", actor)
+
+    @staticmethod
+    def set_reopen_window(state, settings):
+        state.resolution["reopen_until"] = (datetime.now(timezone.utc) + timedelta(days=settings.case_reopen_days)).isoformat()
+
+    @staticmethod
+    def can_reopen(state, settings=None):
+        return CaseLifecycle.can_reopen_ticket(state.ticket.to_dict(), state.resolution or {}, settings)
+
+    @staticmethod
+    def can_reopen_ticket(ticket, resolution, settings=None):
+        if ticket.get("recommended_action") != "open_incident" or ticket["status"] not in {"resolved", "archived"}:
+            return False
+        deadline = resolution.get("reopen_until")
+        if not deadline:
+            ended = resolution.get("at") or ticket["updated_at"]
+            deadline = (datetime.fromisoformat(ended) + timedelta(days=getattr(settings, "case_reopen_days", 7))).isoformat()
+        return datetime.now(timezone.utc) <= datetime.fromisoformat(deadline)
+
+    @staticmethod
+    def invalidate_worker(state):
+        job = state.ticket.investigation_job
+        if job and job.get("status") in {"queued", "running"}:
+            job.update(status="cancelled", finished_at=now_iso())
+            state.ticket.investigation_status = "cancelled"
 
     @classmethod
     def resume_clock(cls, state):

@@ -105,7 +105,7 @@ class InvestigationJobTests(unittest.TestCase):
                 self.assertTrue(entered.wait(2))
                 failed = self.expire(state.ticket.id)
                 self.assertEqual(failed.ticket.investigation_job["reason"], "worker_timeout")
-                self.claim(failed)
+                failed = self.claim(failed)
                 resolved = self.service.resolve(self.manager, state.ticket.id, "resolved", "人工已核实恢复", "record-1")
                 release.set()
                 thread.join(3)
@@ -204,7 +204,7 @@ class InvestigationJobTests(unittest.TestCase):
                 self.assertTrue(entered.wait(2))
                 failed = self.expire(state.ticket.id)
                 old_token = failed.ticket.investigation_job["token"]
-                self.claim(failed)
+                failed = self.claim(failed)
                 self.service.retry_investigation(self.manager, state.ticket.id, failed.ticket.case_revision)
                 done = self.agent.investigate(state.ticket.id)
                 self.assertNotEqual(done.ticket.investigation_job["token"], old_token)
@@ -232,7 +232,7 @@ class InvestigationJobTests(unittest.TestCase):
                 self.assertTrue(entered.wait(2))
                 failed = self.expire(state.ticket.id)
                 self.assertEqual(failed.ticket.investigation_status, "attachment_unknown")
-                self.claim(failed)
+                failed = self.claim(failed)
                 with self.assertRaises(IdempotencyConflict):
                     self.service.retry_investigation(self.manager, state.ticket.id, failed.ticket.case_revision)
                 with self.assertRaises(IdempotencyConflict):
@@ -277,8 +277,9 @@ class InvestigationJobTests(unittest.TestCase):
                     time.sleep(.02)
                 self.assertEqual(view["status"]["code"], "pending_review")
                 self.assertEqual(client.post(url + "/retry-investigation", headers=auth_headers(keys), json={"revision": 0}).status_code, 403)
-                self.assertEqual(post_as_manager("/claim", {"revision": 0}).status_code, 200)
-                response = post_as_manager("/retry-investigation", {"revision": view["case_revision"]})
+                claimed = post_as_manager("/claim", {"revision": 0})
+                self.assertEqual(claimed.status_code, 200)
+                response = post_as_manager("/retry-investigation", {"revision": claimed.json()["case_revision"]})
                 self.assertEqual(response.status_code, 200, response.text)
                 self.assertEqual(response.json()["status"]["code"], "investigating")
             finally:

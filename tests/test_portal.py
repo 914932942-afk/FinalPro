@@ -184,7 +184,7 @@ class PortalTests(unittest.TestCase):
         response = self.get(state["ticket"]["id"]).json()
         self.assertEqual(response["status"]["code"], "confirmation")
         self.assertEqual(response["confirmation"][0], {"label": "申请事项", "value": "访问权限申请"})
-        result = self.client.post(f'/portal/tickets/{response["id"]}/cancel', headers=self.headers(), json={"reason": "不再需要"})
+        result = self.client.post(f'/portal/tickets/{response["id"]}/cancel', headers=self.headers(), json={"reason": "不再需要", "case_revision": response["case_revision"]})
         self.assertEqual(result.status_code, 200, result.text)
         self.assertEqual(result.json()["status"]["code"], "cancelled")
         self.assert_public(result.json())

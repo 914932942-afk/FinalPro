@@ -49,13 +49,15 @@ class ClarificationRequest(BaseModel):
 class CancelRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     reason: str = Field(min_length=1, max_length=2000)
+    case_revision: int | None = Field(default=None, strict=True, ge=0)
 
 
 class ResolutionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-    outcome: Literal["resolved", "rejected"]
+    outcome: Literal["resolved", "rejected", "archived"]
     note: str = Field(min_length=1, max_length=2000)
     evidence: str = Field(default="", max_length=2000)
+    case_revision: int = Field(strict=True, ge=0)
 
 
 class FeedbackRequest(BaseModel):
@@ -65,6 +67,7 @@ class FeedbackRequest(BaseModel):
     note: str = Field(min_length=1, max_length=2000)
     evidence: str = Field(min_length=1, max_length=2000)
     issue_resolved: StrictBool | None = None
+    case_revision: int = Field(strict=True, ge=0)
 
 
 class CaseRevisionRequest(BaseModel):
@@ -83,6 +86,11 @@ class TransferRequest(CaseRevisionRequest):
 
 class InformationRequest(CaseRevisionRequest):
     field: Literal["occurred_at", "symptom", "reproduction", "previous_access"]
+
+
+class VerificationRequest(CaseRevisionRequest):
+    verdict: Literal["confirmed", "still_failing", "recurred"]
+    note: str = Field(default="", max_length=2000)
 
 
 def create_app(agent=None, *, identities=None):
@@ -113,6 +121,11 @@ def create_app(agent=None, *, identities=None):
                 except Exception:
                     import logging
                     logging.getLogger(__name__).warning("Investigation deadline check failed")
+                try:
+                    await asyncio.to_thread(application.state.agent.case_interactions.maintain)
+                except Exception:
+                    import logging
+                    logging.getLogger(__name__).warning("Case reply deadline check failed")
                 try:
                     await asyncio.wait_for(stopping.wait(), timeout=application.state.agent.settings.diagnosis_worker_poll)
                 except asyncio.TimeoutError:
@@ -268,7 +281,11 @@ def create_app(agent=None, *, identities=None):
 
     @application.post("/portal/tickets/{ticket_id}/cancel")
     def portal_cancel(ticket_id: str, body: CancelRequest, principal: Principal = Depends(current_user)):
-        return present_ticket(application.state.service.cancel(principal, ticket_id, body.reason).to_dict())
+        return present_ticket(application.state.service.cancel(principal, ticket_id, body.reason, case_revision=body.case_revision).to_dict())
+
+    @application.post("/portal/tickets/{ticket_id}/verify")
+    def verify_case(ticket_id: str, body: VerificationRequest, principal: Principal = Depends(current_user)):
+        return present_ticket(application.state.service.verify_case(principal, ticket_id, body.revision, body.verdict, body.note).to_dict())
 
     @application.exception_handler(IdempotencyConflict)
     async def conflict(_request, exc):
@@ -365,7 +382,7 @@ def create_app(agent=None, *, identities=None):
 
     @application.post("/tickets/{ticket_id}/cancel")
     def cancel(ticket_id: str, body: CancelRequest, principal: Principal = Depends(current_user)):
-        return application.state.service.cancel(principal, ticket_id, body.reason).to_dict()
+        return application.state.service.cancel(principal, ticket_id, body.reason, case_revision=body.case_revision).to_dict()
 
     @application.post("/tickets/{ticket_id}/resolve")
     def resolve(ticket_id: str, body: ResolutionRequest, principal: Principal = Depends(current_user)):

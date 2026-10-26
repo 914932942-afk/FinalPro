@@ -99,7 +99,7 @@ class ClosedLoopTests(unittest.TestCase):
         manual = self.create("如何重置密码", "咨询流程")
         env["DEMO_API_KEY"] = keys["manager"]
         cli("claim", manual.ticket.id, "--revision", "0")
-        done = cli("resolve", manual.ticket.id, "--outcome", "resolved", "--note", "已提供操作说明")
+        done = cli("resolve", manual.ticket.id, "--outcome", "resolved", "--note", "已提供操作说明", "--case-revision", str(self.audit.get_ticket(manual.ticket.id)["case_revision"]))
         self.assertEqual(done["resolution"]["by"], "manager")
         self.assertEqual(cli("operations", manual.ticket.id)["pending_operations"], [])
 
@@ -325,9 +325,10 @@ class ClosedLoopTests(unittest.TestCase):
             self.assertEqual(client.get("/tickets?status=manual_review", headers=auth_headers(keys, "manager")).json()["total"], 1)
             self.assertEqual(client.get(path + "/operations", headers=auth_headers(keys)).status_code, 403)
             self.assertEqual(client.post(path + "/recover", headers=auth_headers(keys)).status_code, 403)
-            body = {"outcome": "rejected", "note": "请本人提交"}
+            body = {"outcome": "rejected", "note": "请本人提交", "case_revision": state.ticket.case_revision}
             self.assertEqual(client.post(path + "/resolve", json=body, headers=auth_headers(keys)).status_code, 403)
             self.assertEqual(client.post("/portal/tickets/" + state.ticket.id + "/claim", json={"revision": 0}, headers=auth_headers(keys, "manager")).status_code, 200)
+            body["case_revision"] = self.audit.get_ticket(state.ticket.id)["case_revision"]
             response = client.post(path + "/resolve", json=body, headers=auth_headers(keys, "manager"))
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json()["resolution"]["by"], "manager")

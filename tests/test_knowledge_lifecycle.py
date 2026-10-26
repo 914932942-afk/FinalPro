@@ -92,7 +92,8 @@ class LifecycleTests(unittest.TestCase):
         service.claim(self.manager, done.ticket.id, 0)
         verified = service.feedback(self.manager, *args)
         self.assertEqual(verified.ticket.diagnostic_report, done.ticket.diagnostic_report)
-        self.assertTrue(verified.resolution["external_issue_resolved"])
+        self.assertIsNone(verified.resolution["external_issue_resolved"])
+        self.assertEqual(verified.ticket.status, "awaiting_verification")
         self.assertEqual(service.feedback(self.manager, *args).to_dict(), verified.to_dict())
         with self.assertRaises(IdempotencyConflict):
             service.feedback(self.manager, done.ticket.id, 1, "accepted", "different", "record", True)
@@ -292,7 +293,7 @@ class LifecycleTests(unittest.TestCase):
         service,agent=self.service()
         identities,keys=demo_identities(self.root)
         state=self.complete(service,agent,self.create(service,agent))
-        body=dict(revision=1,verdict="inconclusive",note="补采证据",evidence="人工记录",issue_resolved=None)
+        body=dict(revision=1,verdict="inconclusive",note="补采证据",evidence="人工记录",issue_resolved=None,case_revision=state.ticket.case_revision)
         with TestClient(create_app(agent,identities=identities)) as client:
             url=f"/tickets/{state.ticket.id}/feedback"
             self.assertEqual(client.post(url,json=body).status_code,401)
@@ -300,6 +301,7 @@ class LifecycleTests(unittest.TestCase):
             self.assertEqual(client.post(url,json=body,headers=auth_headers(keys)).status_code,403)
             self.assertEqual(client.post(url,json={**body,"actor":"admin"},headers=auth_headers(keys,"manager")).status_code,422)
             self.assertEqual(client.post(f"/portal/tickets/{state.ticket.id}/claim", json={"revision":0}, headers=auth_headers(keys,"manager")).status_code,200)
+            body["case_revision"]=agent.audit.get_ticket(state.ticket.id)["case_revision"]
             response=client.post(url,json=body,headers=auth_headers(keys,"manager"))
             self.assertEqual(response.status_code,200)
             self.assertEqual(response.json()["ticket"]["feedback"][0]["actor"],"manager")
