@@ -2,17 +2,32 @@
 import hashlib
 import json
 
-from .auth import Principal
-from .errors import AuthorizationError, ResourceNotFoundError, RequestValidationError
+from .auth import Principal, IdentityStore
+from .case_access import CaseAccess
+from .errors import AuthenticationError, AuthorizationError, ResourceNotFoundError, RequestValidationError
 from .models import Ticket
 
 
 class TicketService:
-    def __init__(self, agent):
+    def __init__(self, agent, identities=None):
         self.agent = agent
+        self.identities = identities or (agent.authorization.identities if agent.authorization else None)
+        if self.identities is None and agent.settings.auth_file.is_file():
+            self.identities = IdentityStore(agent.settings.auth_file)
+        if self.identities:
+            agent.bind_identities(self.identities)
+
+    def current(self, principal):
+        if not self.identities:
+            return principal  # Trusted in-process callers without an identity store.
+        current = self.identities.principal(principal.user_id)
+        if (current.role, current.department) != (principal.role, principal.department):
+            raise AuthorizationError("身份权限已有变化，请重新登录")
+        return current
 
     def create(self, principal: Principal, *, title: str, description: str,
                severity: str = "medium", idempotency_key: str | None = None):
+        principal = self.current(principal)
         title = self._text(title, 300)
         description = self._text(description, 10000)
         if severity not in {"low", "medium", "high", "critical"}:
@@ -29,13 +44,11 @@ class TicketService:
         return self.agent.run(ticket, principal.role)
 
     def get_ticket(self, principal: Principal, ticket_id: str):
+        principal = self.current(principal)
         ticket = self.agent.audit.get_ticket(ticket_id)
         if ticket is None:
             raise ResourceNotFoundError()
-        owner = ticket.get("owner_id")
-        allowed = (principal.role == "admin" or owner == principal.user_id
-                   or (owner is not None and principal.role == "manager"
-                       and ticket["department"] == principal.department))
+        allowed = CaseAccess.can_read(principal, ticket)
         if not allowed:
             # 不向无权读取者暴露工单是否存在。
             raise ResourceNotFoundError()
@@ -58,6 +71,7 @@ class TicketService:
         return self.agent.clarify(ticket_id, answer, round_number)
 
     def approve(self, principal: Principal, approval_id: str, approved: bool):
+        principal = self.current(principal)
         if principal.role not in {"manager", "admin"}:
             raise AuthorizationError("只有经理或管理员可以审批")
         approval = self.agent.audit.get_approval(approval_id)
@@ -70,17 +84,16 @@ class TicketService:
         if ticket["owner_id"] == principal.user_id:
             raise AuthorizationError("不能审批自己的申请")
         required_role = approval.get("required_role")
-        if required_role not in {"manager", "admin"} or (required_role == "admin" and principal.role != "admin"):
+        if not CaseAccess.can_approve(principal, ticket, required_role):
             raise AuthorizationError("审批角色不满足要求")
         return self.agent.approve(approval_id, principal.user_id, approved)
 
     def list_tickets(self, principal: Principal, status=None, limit=50, offset=0):
+        principal = self.current(principal)
         if not 1 <= limit <= 100 or offset < 0:
             raise RequestValidationError()
         tickets = [ticket for ticket in self.agent.audit.list_tickets()
-                   if (principal.role == "admin" or ticket.get("owner_id") == principal.user_id
-                       or (ticket.get("owner_id") and principal.role == "manager"
-                           and ticket["department"] == principal.department))
+                   if CaseAccess.can_read(principal, ticket)
                    and (status is None or ticket["status"] == status)]
         return {"items": tickets[offset:offset + limit], "total": len(tickets)}
 
@@ -91,11 +104,16 @@ class TicketService:
         return value.strip()
 
     def _operator(self, principal, ticket_id):
-        if principal.role not in {"manager", "admin"}:
-            raise AuthorizationError("只有经理或管理员可以处理人工待办")
+        principal = self.current(principal)
+        if principal.role not in {"support", "manager", "admin"}:
+            raise AuthorizationError("只有授权的支持人员可以处理人工待办")
         ticket = self.get_ticket(principal, ticket_id)
+        if not CaseAccess.can_handle(principal, ticket):
+            raise AuthorizationError("当前支持组不能处理该工单")
         if not ticket.get("owner_id"):
             raise AuthorizationError("旧工单无可信归属，请重新提交")
+        if ticket["owner_id"] == principal.user_id:
+            raise AuthorizationError("不能处理自己的申请，请由其他授权支持人员跟进")
         return ticket
 
     def cancel(self, principal, ticket_id, reason, *, case_revision=None):
@@ -182,10 +200,15 @@ class TicketService:
         return self.agent.assign_case(ticket_id, principal.user_id, revision)
 
     def transfer(self, principal, ticket_id, target, revision, reason):
+        principal = self.current(principal)
+        try:
+            target = self.current(target)
+        except AuthenticationError:
+            raise AuthorizationError("目标处理人不存在或已停用") from None
         self._case_revision(revision)
         ticket = self._operator(principal, ticket_id)
-        if (principal.user_id == ticket["owner_id"] or target.user_id == ticket["owner_id"] or target.role not in {"manager", "admin"}
-                or (target.role != "admin" and target.department != ticket["department"])):
+        if (principal.user_id == ticket["owner_id"] or target.user_id == ticket["owner_id"]
+                or not CaseAccess.can_handle(target, ticket)):
             raise AuthorizationError("目标处理人不能访问或处理该工单")
         return self.agent.assign_case(ticket_id, principal.user_id, revision, target=target.user_id, reason=self._text(reason), allow_override=principal.role == "admin")
 
@@ -203,6 +226,41 @@ class TicketService:
         if ticket["owner_id"] != principal.user_id:
             raise AuthorizationError("只有申请人可以补充故障信息")
         return self.agent.follow_up(ticket_id, principal.user_id, self._text(answer, 10000), revision)
+
+    @staticmethod
+    def public_ticket(ticket):
+        fields = ("id", "title", "description", "requester", "owner_id", "department", "severity", "category",
+                  "status", "recommended_action", "created_at", "updated_at", "case_revision")
+        return {key: ticket[key] for key in fields if key in ticket}
+
+    def response(self, principal, state):
+        """Single projection boundary shared by every legacy HTTP and CLI response."""
+        from .portal import present_ticket
+        principal = self.current(principal)
+        raw = state.to_dict() if hasattr(state, "to_dict") else state
+        ticket = raw["ticket"]
+        if not CaseAccess.can_read(principal, ticket):
+            raise ResourceNotFoundError()
+        if CaseAccess.internal(principal, ticket):
+            return raw
+        view = present_ticket(raw)
+        approval = raw.get("approval")
+        return {"ticket": self.public_ticket(ticket), "user_role": raw.get("user_role", "employee"),
+                "approval": {key: approval.get(key) for key in ("id", "status", "required_role", "created_at", "expires_at")} if approval else None,
+                "clarification": {"need_clarify": bool(view["clarification"]), "question": (view["clarification"] or {}).get("question", "请补充具体情况。"),
+                                  "missing_fields": (raw.get("clarification") or {}).get("missing_fields", [])} if raw.get("clarification") else None,
+                "clarification_round": raw.get("clarification_round", 0),
+                "confirmation": {key: (raw.get("confirmation") or {}).get(key) for key in ("status", "round")} if raw.get("confirmation") else None,
+                "result": view["status"]["message"], "view": view}
+
+    def ticket_response(self, principal, ticket):
+        principal = self.current(principal)
+        if not CaseAccess.can_read(principal, ticket):
+            raise ResourceNotFoundError()
+        return ticket if CaseAccess.internal(principal, ticket) else self.public_ticket(ticket)
+
+    def list_response(self, principal, result):
+        return {**result, "items": [self.ticket_response(principal, ticket) for ticket in result["items"]]}
 
     @staticmethod
     def _case_revision(revision):

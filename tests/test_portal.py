@@ -111,14 +111,14 @@ class PortalTests(unittest.TestCase):
         alice = self.client.get("/portal/tickets", headers=self.headers()).json()["items"][0]
         self.assertEqual(self.get(alice["id"], "manager").status_code, 404)
 
-    def test_support_requires_role_and_obeys_department_scope(self):
+    def test_support_requires_role_and_obeys_support_group_across_departments(self):
         same = self.seed()
         foreign = self.seed(owner="bob", department="Finance")
         self.assertEqual(self.get(same["ticket"]["id"], scope="support").status_code, 403)
         self.assertEqual(self.client.get("/portal/tickets?scope=support", headers=self.headers()).status_code, 403)
         manager = self.client.get("/portal/tickets?scope=support", headers=self.headers("manager")).json()
-        self.assertEqual(manager["total"], 1)
-        self.assertEqual(self.get(foreign["ticket"]["id"], "manager", "support").status_code, 404)
+        self.assertEqual(manager["total"], 2)
+        self.assertEqual(self.get(foreign["ticket"]["id"], "manager", "support").status_code, 200)
         admin = self.client.get("/portal/tickets?scope=support", headers=self.headers("admin")).json()
         self.assertEqual(admin["total"], 2)
 
@@ -136,6 +136,9 @@ class PortalTests(unittest.TestCase):
     def test_approval_controls_respect_required_role_and_self_approval(self):
         state = self.seed(status="awaiting_approval", action="grant_access")
         state["approval"] = Approval(state["ticket"]["id"], "grant_access", "审批", required_role="admin").to_dict()
+        bound = AgentState.from_dict(state)
+        self.agent.authorization.stamp(bound)
+        state = bound.to_dict()
         self.audit.save_checkpoint(state, "test")
         ticket_id = state["ticket"]["id"]
         self.assertFalse(self.get(ticket_id, "manager", "support").json()["support"]["can_approve"])

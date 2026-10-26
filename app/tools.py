@@ -18,12 +18,14 @@ class EnterpriseTools:
         # 客户端键原样传给下游；无客户端键时才生成本地稳定键。
         return ticket.idempotency_key or f"tool:{ticket.id}:{action}"
 
-    def execute_action(self, ticket: Ticket, action: str) -> ActionResult:
+    def execute_action(self, ticket: Ticket, action: str, *, guard=None) -> ActionResult:
         if action not in ALLOWED_ACTIONS:
             raise InvalidActionError()
         key = self.action_key(ticket, action)
         def perform():
             try:
+                if guard:
+                    guard()
                 result = self._execute_action(ticket, action, idempotency_key=key)
             except ActionRejectedError as exc:
                 # 明确拒绝是终态，可以缓存；未知异常保留 operations.pending。

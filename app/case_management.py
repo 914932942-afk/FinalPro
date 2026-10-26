@@ -5,6 +5,7 @@ import hashlib
 import json
 
 from .models import now_iso
+from .case_access import CaseAccess, GROUPS
 
 USER_QUESTIONS = {
     "occurred_at": "问题是什么时候开始的？请提供大致日期和时间。",
@@ -29,11 +30,14 @@ class CaseLifecycle:
         if state.ticket.assignment is None:
             created = now_iso()
             state.ticket.assignment = {
-                "team": cls.teams.get((state.ticket.execution_plan or {}).get("resource"), "IT 服务支持"),
+                "team": GROUPS[CaseAccess.group(state.ticket.to_dict())],
+                "group_id": CaseAccess.group(state.ticket.to_dict()),
                 "assignee": None, "assigned_at": None, "assigned_by": None, "revision": 0,
                 "due_at": (datetime.fromisoformat(created) + timedelta(hours=cls.hours.get(state.ticket.severity, 24))).isoformat(),
                 "escalated_at": None, "history": [], "paused_at": None,
             }
+        state.ticket.assignment.update(group_id=CaseAccess.group(state.ticket.to_dict()),
+                                       team=GROUPS[CaseAccess.group(state.ticket.to_dict())])
         return state.ticket.assignment
 
     @classmethod

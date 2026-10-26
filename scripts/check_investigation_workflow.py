@@ -70,11 +70,12 @@ def main():
                 response=client.post("/tickets",headers=headers,json=body)
                 accepted=response.json()
                 ticket_id=accepted.get("ticket",{}).get("id","missing")
-                state=client.get(f"/tickets/{ticket_id}/state",headers=headers).json()
+                staff_headers={"Authorization":"Bearer "+keys["manager"]}
+                state=client.get(f"/tickets/{ticket_id}/state",headers=staff_headers).json()
                 deadline=time.monotonic()+cfg.diagnosis_queue_timeout+cfg.diagnosis_worker_timeout+10
                 while state.get("ticket",{}).get("investigation_status") in {"queued","running"} and time.monotonic()<deadline:
                     time.sleep(.05)
-                    state=client.get(f"/tickets/{ticket_id}/state",headers=headers).json()
+                    state=client.get(f"/tickets/{ticket_id}/state",headers=staff_headers).json()
                 diagnostic=state.get("diagnosis") or {}
                 replay=client.post("/tickets",headers=headers,json=body)
                 denied=client.get(f"/tickets/{ticket_id}/state",headers={"Authorization":"Bearer "+keys["bob"]})
@@ -87,7 +88,8 @@ def main():
                     "not_claimed_semantically_verified":diagnostic.get("verified") is False,
                     "owner_and_resource":bool(diagnostic.get("observations")) and all(o["owner"]=="alice" and o["resource"]==case["resource"] for o in diagnostic.get("observations",[])),
                     "only_simulated_incident":state.get("ticket",{}).get("recommended_action")=="open_incident" and (state.get("action_result") or {}).get("simulated") is True,
-                    "replay":replay.json()==accepted,"peer_denied":denied.status_code==404}
+                    "replay":replay.json()==accepted,"peer_denied":denied.status_code==404,
+                    "requester_projection":"trace" not in accepted and "diagnosis" not in accepted}
                 if case.get("handoff_topics"):
                     checks["required_handoff_topics"]=all(term in diagnostic.get("next_check","") for term in case["handoff_topics"])
                 retrievals=[o.get("retrieval") or {} for o in diagnostic.get("observations",[]) if o.get("tool")=="search_runbooks"]

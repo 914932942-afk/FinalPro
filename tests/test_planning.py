@@ -50,7 +50,7 @@ class PlanningTests(unittest.TestCase):
         self.audit = AuditStore(self.root / "test.db")
         self.tools = EnterpriseTools(KnowledgeBase(self.root / "kb", settings=self.cfg), self.audit)
         self.owner = Principal(user_id="alice", role="employee", department="IT")
-        self.manager = Principal(user_id="manager", role="manager", department="IT")
+        self.manager = Principal(user_id="manager", role="manager", department="IT", support_groups=["network", "applications", "data", "service_desk"])
 
     def tearDown(self):
         self.tmp.cleanup()

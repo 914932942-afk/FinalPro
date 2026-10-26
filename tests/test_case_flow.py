@@ -65,7 +65,7 @@ class CaseFlowTests(unittest.TestCase):
         self.agent = EnterpriseAgent(EnterpriseTools(KnowledgeBase(self.root / "kb", settings=self.cfg), self.audit, adapter=self.actions), self.audit, settings=self.cfg)
         self.service = TicketService(self.agent); self.portal = PortalService(self.service)
         self.user = Principal(user_id="alice", role="employee", department="IT")
-        self.manager = Principal(user_id="manager", role="manager", department="IT")
+        self.manager = Principal(user_id="manager", role="manager", department="IT", support_groups=["network", "applications", "data", "service_desk"])
         self.admin = Principal(user_id="admin", role="admin", department="IT")
     def tearDown(self): self.temp.cleanup()
     def create(self, description="ERP 报错 503", title="ERP 故障"):

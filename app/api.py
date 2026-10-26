@@ -101,7 +101,7 @@ def create_app(agent=None, *, identities=None):
         identity_path = application.state.identities.path
         application.state.sessions = SessionStore(identity_path.with_name(identity_path.stem + ".sessions.db"), application.state.identities)
         application.state.login_limiter = LoginAttemptLimiter()
-        application.state.service = TicketService(application.state.agent)
+        application.state.service = TicketService(application.state.agent, application.state.identities)
         import asyncio
         await asyncio.to_thread(application.state.agent.migrate_cases)
         from .investigation_jobs import InvestigationSupervisor
@@ -126,6 +126,11 @@ def create_app(agent=None, *, identities=None):
                 except Exception:
                     import logging
                     logging.getLogger(__name__).warning("Case reply deadline check failed")
+                try:
+                    await asyncio.to_thread(application.state.agent.authorization.maintain)
+                except Exception:
+                    import logging
+                    logging.getLogger(__name__).warning("Identity and approval check failed")
                 try:
                     await asyncio.wait_for(stopping.wait(), timeout=application.state.agent.settings.diagnosis_worker_poll)
                 except asyncio.TimeoutError:
@@ -237,7 +242,8 @@ def create_app(agent=None, *, identities=None):
     def portal_detail(ticket_id: str, scope: Literal["mine", "support"] = "mine", principal: Principal = Depends(current_user)):
         view = PortalService(application.state.service).get(principal, ticket_id, scope)
         if scope == "support":
-            view["support"]["assignees"] = application.state.identities.support_people(view["department"], view["requester"])
+            ticket = application.state.service.get_ticket(principal, ticket_id)
+            view["support"]["assignees"] = application.state.identities.support_people(ticket) if view["support"]["can_transfer"] else []
         return view
 
     @application.post("/portal/tickets/{ticket_id}/claim")
@@ -331,7 +337,7 @@ def create_app(agent=None, *, identities=None):
                       principal: Principal = Depends(current_user)):
         state = application.state.service.create(principal, **body.model_dump(), idempotency_key=idempotency_key)
         schedule(state, background_tasks)
-        return state.to_dict()
+        return application.state.service.response(principal, state)
 
     def schedule(state, background_tasks):
         if state.ticket.investigation_status == "queued" and application.state.agent.settings.diagnosis_background:
@@ -346,47 +352,47 @@ def create_app(agent=None, *, identities=None):
 
     @application.get("/tickets/{ticket_id}")
     def get_ticket(ticket_id: str, principal: Principal = Depends(current_user)):
-        return application.state.service.get_ticket(principal, ticket_id)
+        return application.state.service.ticket_response(principal, application.state.service.get_ticket(principal, ticket_id))
 
     @application.get("/tickets")
     def list_tickets(status: str | None = Query(default=None, max_length=40),
                      limit: int = Query(default=50, ge=1, le=100), offset: int = Query(default=0, ge=0),
                      principal: Principal = Depends(current_user)):
-        return application.state.service.list_tickets(principal, status, limit, offset)
+        return application.state.service.list_response(principal, application.state.service.list_tickets(principal, status, limit, offset))
 
     @application.get("/tickets/{ticket_id}/state")
     def get_state(ticket_id: str, principal: Principal = Depends(current_user)):
-        return application.state.service.get_state(principal, ticket_id)
+        return application.state.service.response(principal, application.state.service.get_state(principal, ticket_id))
 
     @application.post("/approvals/{approval_id}")
     def approve(approval_id: str, body: ApprovalRequest, principal: Principal = Depends(current_user)):
-        return application.state.service.approve(principal, approval_id, body.approved).to_dict()
+        return application.state.service.response(principal, application.state.service.approve(principal, approval_id, body.approved))
 
     @application.post("/tickets/{ticket_id}/clarify")
     def clarify(ticket_id: str, body: ClarificationRequest, background_tasks: BackgroundTasks, principal: Principal = Depends(current_user)):
         state = application.state.service.clarify(principal, ticket_id, body.answer, body.round_number)
         schedule(state, background_tasks)
-        return state.to_dict()
+        return application.state.service.response(principal, state)
 
     @application.post("/tickets/{ticket_id}/investigate")
     def investigate(ticket_id: str, background_tasks: BackgroundTasks, principal: Principal = Depends(current_user)):
         if application.state.agent.settings.diagnosis_background:
             state = application.state.service.get_state(principal, ticket_id)
             schedule(AgentState.from_dict(state), background_tasks)
-            return state
-        return application.state.service.investigate(principal, ticket_id).to_dict()
+            return application.state.service.response(principal, state)
+        return application.state.service.response(principal, application.state.service.investigate(principal, ticket_id))
 
     @application.post("/tickets/{ticket_id}/feedback")
     def feedback(ticket_id: str, body: FeedbackRequest, principal: Principal = Depends(current_user)):
-        return application.state.service.feedback(principal, ticket_id, **body.model_dump()).to_dict()
+        return application.state.service.response(principal, application.state.service.feedback(principal, ticket_id, **body.model_dump()))
 
     @application.post("/tickets/{ticket_id}/cancel")
     def cancel(ticket_id: str, body: CancelRequest, principal: Principal = Depends(current_user)):
-        return application.state.service.cancel(principal, ticket_id, body.reason, case_revision=body.case_revision).to_dict()
+        return application.state.service.response(principal, application.state.service.cancel(principal, ticket_id, body.reason, case_revision=body.case_revision))
 
     @application.post("/tickets/{ticket_id}/resolve")
     def resolve(ticket_id: str, body: ResolutionRequest, principal: Principal = Depends(current_user)):
-        return application.state.service.resolve(principal, ticket_id, **body.model_dump()).to_dict()
+        return application.state.service.response(principal, application.state.service.resolve(principal, ticket_id, **body.model_dump()))
 
     @application.get("/tickets/{ticket_id}/operations")
     def operations(ticket_id: str, principal: Principal = Depends(current_user)):
@@ -394,7 +400,7 @@ def create_app(agent=None, *, identities=None):
 
     @application.post("/tickets/{ticket_id}/recover")
     def recover(ticket_id: str, principal: Principal = Depends(current_user)):
-        return application.state.service.recover(principal, ticket_id).to_dict()
+        return application.state.service.response(principal, application.state.service.recover(principal, ticket_id))
 
     return application
 

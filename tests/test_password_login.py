@@ -60,7 +60,7 @@ class PasswordLoginTests(unittest.TestCase):
     def test_password_login_returns_identity_and_sets_protected_cookie(self):
         result = self.login("bob")
         self.assertEqual(result.status_code, 200, result.text)
-        self.assertEqual(result.json()["user"], {"user_id": "bob", "role": "employee", "department": "IT"})
+        self.assertEqual(result.json()["user"], {"user_id": "bob", "role": "employee", "department": "IT", "support_groups": []})
         cookie = result.headers["set-cookie"]
         self.assertIn("HttpOnly", cookie)
         self.assertIn("SameSite=strict", cookie)

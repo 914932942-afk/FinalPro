@@ -160,7 +160,7 @@ class HTTPActionTests(unittest.TestCase):
                 body=json.loads(db.execute("SELECT payload FROM incidents WHERE ticket_id=?",(waiting.ticket.id,)).fetchone()[0])["payload"]
             self.assertEqual(body["registration_context"],unknown.ticket.registration_context)
             restarted=EnterpriseAgent(tools,AuditStore(audit.db_path),settings=cfg)
-            manager=Principal(user_id="manager",role="manager",department="IT")
+            manager=Principal(user_id="manager",role="manager",department="IT",support_groups=["network","applications","data","service_desk"])
             recovered=TicketService(restarted).recover(manager,waiting.ticket.id)
             self.assertEqual(recovered.action_result.status,"unknown")
             self.assertEqual(recovered.ticket.registration_context,unknown.ticket.registration_context)

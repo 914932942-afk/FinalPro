@@ -188,8 +188,9 @@ class ClarificationTests(unittest.TestCase):
     def test_api_validation_replay_and_latest_state(self):
         identities, keys = demo_identities(Path(self.tmp.name))
         with TestClient(create_app(self.agent, identities=identities), headers=auth_headers(keys)) as client:
-            state = AgentState.from_dict(client.post("/tickets", json={
-                "title": "系统打不开", "description": "请帮我看看"}).json())
+            created = client.post("/tickets", json={"title": "系统打不开", "description": "请帮我看看"}).json()
+            self.assertNotIn("trace", created)
+            state = AgentState.from_dict(self.audit.get_state(created["ticket"]["id"]))
             url = f"/tickets/{state.ticket.id}/clarify"
             for body in ({"answer": " ", "round_number": 1}, {"answer": "ok", "round_number": True},
                          {"answer": "ok", "round_number": "1"}, {"answer": "ok", "round_number": 0},

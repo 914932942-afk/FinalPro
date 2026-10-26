@@ -6,6 +6,7 @@ included in requester responses.
 from .errors import AuthorizationError, ResourceNotFoundError, RequestValidationError
 from .case_management import CaseLifecycle
 from .models import AgentState
+from .case_access import CaseAccess
 
 RESOURCE_LABELS = {"erp": "ERP", "vpn": "VPN", "reports_db": "报表数据库", "self_account": "本人账号"}
 ACTION_LABELS = {"reset_password": "密码重置申请", "grant_access": "访问权限申请", "open_incident": "故障报修"}
@@ -23,6 +24,8 @@ def status_for(state):
     report = ticket.get("diagnostic_report") or {}
     resolution = state.get("resolution") or {}
     action = ticket.get("recommended_action")
+    if status == "manual_review" and (state.get("approval") or {}).get("status") == "invalidated":
+        return _status("pending_review", "申请需重新核查", "amber", "processing", "本次审批已失效", "申请身份、审批资格或有效期发生变化，本次申请已停止自动执行。", "请联系 IT 支持人员核查后重新提交申请。", 2)
     if status == "cancelled":
         return _status("cancelled", "已撤销", "neutral", "completed", "工单已撤销", "本次申请已撤销。", "如仍需帮助，可以重新提交一张工单。", 3)
     if status == "rejected" or (status == "resolved_manually" and resolution.get("outcome") == "rejected"):
@@ -108,7 +111,8 @@ def present_ticket(state, *, summary=False):
     activity = [{"label": "工单已提交", "at": ticket["created_at"]}]
     activity.extend({"label": row["message"], "at": row["at"]} for row in ticket.get("case_events", []))
     for row in assignment.get("history", []):
-        activity.append({"label": ("工单已由 " if row["action"] == "claim" else "工单已转派给 ") + row["to"] + " 负责", "at": row["at"]})
+        label = "处理人员已调整，正在安排新的负责人。" if row["action"] == "release" else ("工单已由 " if row["action"] == "claim" else "工单已转派给 ") + row["to"] + " 负责"
+        activity.append({"label": label, "at": row["at"]})
     if assignment.get("escalated_at"):
         activity.append({"label": "处理超时，已列入经理跟进队列", "at": assignment["escalated_at"]})
     approval = state.get("approval") or {}
@@ -140,10 +144,11 @@ class PortalService:
 
     @staticmethod
     def check_scope(principal, scope):
-        if scope == "support" and principal.role not in {"manager", "admin"}:
+        if scope == "support" and principal.role not in {"support", "manager", "admin"}:
             raise AuthorizationError("仅支持人员可以访问处理工作台")
 
     def get(self, principal, ticket_id, scope="mine"):
+        principal = self.service.current(principal)
         self.check_scope(principal, scope)
         state = self.service.get_state(principal, ticket_id)
         if scope == "mine" and state["ticket"].get("owner_id") != principal.user_id:
@@ -154,6 +159,7 @@ class PortalService:
         return view
 
     def list(self, principal, *, scope="mine", group=None, query="", queue=None, limit=30, offset=0):
+        principal = self.service.current(principal)
         self.check_scope(principal, scope)
         if queue and scope != "support":
             raise RequestValidationError()
@@ -186,26 +192,28 @@ class PortalService:
     def _support(state, principal):
         state = CaseLifecycle.normalize(AgentState.from_dict(state)).to_dict()
         ticket = state["ticket"]
-        report = ticket.get("diagnostic_report") or {}
+        handling = CaseAccess.internal(principal, ticket)
+        report = (ticket.get("diagnostic_report") or {}) if handling else {}
         approval = state.get("approval") or {}
         independent = bool(ticket.get("owner_id")) and ticket["owner_id"] != principal.user_id
+        operator = independent and handling
         required_role = approval.get("required_role")
         assignment = ticket.get("assignment") or {}
-        job = ticket.get("investigation_job") or {}
+        job = (ticket.get("investigation_job") or {}) if handling else {}
         job_failed = job.get("status") == "failed"
-        is_assignee = assignment.get("assignee") == principal.user_id
+        is_assignee = operator and assignment.get("assignee") == principal.user_id
         case_active = ticket["status"] in CaseLifecycle.support_states
-        can_approve = independent and ticket["status"] == "awaiting_approval" and required_role in {"manager", "admin"} and (required_role == "manager" or principal.role == "admin")
+        can_approve = ticket["status"] == "awaiting_approval" and CaseAccess.can_approve(principal, ticket, required_role)
         observations = [{"source": {"client_events": "客户端记录", "session_events": "关联会话记录", "search_runbooks": "排障规程"}.get(row.get("tool"), "诊断记录"),
                          "records": [{"reference": r.get("id"), "text": r.get("text", "")} for r in row.get("records", [])]}
                         for row in report.get("observations", [])]
         return {"approval_id": approval.get("id"), "can_approve": can_approve,
-                "can_claim": independent and ticket["status"] in CaseLifecycle.support_states | {"awaiting_user_info", "awaiting_verification"} and not assignment.get("assignee"),
+                "can_claim": operator and ticket["status"] in CaseLifecycle.support_states | {"awaiting_user_info", "awaiting_verification"} and not assignment.get("assignee"),
                 "is_assignee": is_assignee, "assignment_revision": assignment.get("revision", 0),
-                "can_transfer": independent and bool(assignment.get("assignee")) and (is_assignee or principal.role == "admin") and (case_active or ticket["status"] in {"awaiting_user_info", "awaiting_verification"}),
+                "can_transfer": operator and bool(assignment.get("assignee")) and (is_assignee or principal.role == "admin") and (case_active or ticket["status"] in {"awaiting_user_info", "awaiting_verification"}),
                 "can_request_info": independent and is_assignee and case_active and ticket.get("recommended_action") == "open_incident",
-                "assignment_history": assignment.get("history", []),
-                "can_investigate": ticket["status"] == "awaiting_investigation",
+                "assignment_history": assignment.get("history", []) if handling else [],
+                "can_investigate": operator and ticket["status"] == "awaiting_investigation",
                 "can_feedback": independent and is_assignee and ticket.get("recommended_action") == "open_incident" and ticket["status"] in CaseLifecycle.support_states | {"awaiting_verification"}
                     and (state.get("action_result") or {}).get("status") != "unknown" and ticket.get("investigation_status") != "attachment_unknown",
                 "feedback_revision": len(ticket.get("feedback", [])) + 1,
@@ -217,5 +225,5 @@ class PortalService:
                     "remaining_runs": max(job.get("max_runs", 3) - job.get("runs", 0), 0), "escalated": bool(job.get("exhausted"))} if job_failed else None,
                 "summary": report.get("summary"), "next_check": report.get("next_check"),
                 "observations": observations, "citations": report.get("citations", []),
-                "feedback": [{"actor": r.get("actor"), "note": r.get("note"), "at": r.get("at")} for r in ticket.get("feedback", [])],
+                "feedback": [{"actor": r.get("actor"), "note": r.get("note"), "at": r.get("at")} for r in ticket.get("feedback", [])] if handling else [],
                 "diagnostic_note": "未取得该申请人的故障记录，请核查日志来源与对应账号。" if observations and not any(row["records"] for row in observations) else None}

@@ -38,7 +38,7 @@ class ClosedLoopTests(unittest.TestCase):
         self.agent = EnterpriseAgent(self.tools, self.audit, settings=self.settings)
         self.service = TicketService(self.agent)
         self.alice = Principal(user_id="alice", role="employee", department="IT")
-        self.manager = Principal(user_id="manager", role="manager", department="IT")
+        self.manager = Principal(user_id="manager", role="manager", department="IT", support_groups=["network", "applications", "data", "service_desk"])
 
     def tearDown(self):
         self.tmp.cleanup()

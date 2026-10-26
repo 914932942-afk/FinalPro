@@ -89,6 +89,10 @@ class Approval:
     decided_at: Optional[str] = None  # 审批发生后才记录时间。
     plan: Optional[Dict[str, Any]] = None
     plan_digest: str = ""
+    created_at: Optional[str] = None
+    expires_at: Optional[str] = None
+    requester_revision: Optional[str] = None
+    approver_revision: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """将审批对象转成字典，保存前由工具层调用。"""

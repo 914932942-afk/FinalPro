@@ -62,7 +62,7 @@ class AuthenticationTests(unittest.TestCase):
 
     def test_identity_is_server_assigned_and_spoofed_fields_rejected(self):
         self.assertEqual(self.client.get("/me", headers=self.headers()).json(),
-                         {"user_id": "alice", "role": "employee", "department": "IT"})
+                         {"user_id": "alice", "role": "employee", "department": "IT", "support_groups": []})
         for field, value in (("user_role", "admin"), ("requester", "admin"), ("department", "Finance"), ("owner_id", "admin")):
             response = self.client.post("/tickets", headers=self.headers(),
                 json={"title": "权限", "description": "生产权限", field: value})
@@ -127,10 +127,10 @@ class AuthenticationTests(unittest.TestCase):
             result = client.post("/tickets", json={"title": "生产权限", "description": "申请报表数据库只读权限"},
                                  headers=self.headers()).json()
             url = f'/approvals/{result["approval"]["id"]}'
-            self.assertEqual(client.post(url, json={"approved": True}, headers=self.headers("manager")).status_code, 404)
+            self.assertEqual(client.post(url, json={"approved": True}, headers=self.headers("manager")).status_code, 403)
             self.assertEqual(client.post(url, json={"approved": True}, headers=self.headers("admin")).status_code, 200)
         result = self.create()
-        approval = result["approval"]
+        approval = self.audit.get_approval(result["approval"]["id"])
         approval["required_role"] = "admin"
         self.audit.save_approval(approval)
         url = f'/approvals/{approval["id"]}'
@@ -147,7 +147,9 @@ class AuthenticationTests(unittest.TestCase):
             self.assertEqual(first.json(), self.client.post("/tickets", json=body, headers=headers).json())
             results.append(first.json())
         self.assertNotEqual(results[0]["ticket"]["id"], results[1]["ticket"]["id"])
-        self.assertNotEqual(results[0]["action_result"]["idempotency_key"], results[1]["action_result"]["idempotency_key"])
+        states = [self.audit.get_state(result["ticket"]["id"]) for result in results]
+        self.assertNotEqual(states[0]["action_result"]["idempotency_key"], states[1]["action_result"]["idempotency_key"])
+        self.assertTrue(all("action_result" not in result for result in results))
 
     def test_keys_never_enter_responses_or_persisted_business_state(self):
         result = self.create()

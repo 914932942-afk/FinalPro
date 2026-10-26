@@ -206,7 +206,7 @@ class DiagnosticsTests(unittest.TestCase):
         rows = agent.audit.list_tickets()
         ticket_id = rows[0]["id"]
         self.assertEqual(agent.audit.get_state(ticket_id)["next_node"], "diagnose")
-        manager = Principal(user_id="manager", role="manager", department="IT")
+        manager = Principal(user_id="manager", role="manager", department="IT", support_groups=["network", "applications", "data", "service_desk"])
         done = service.recover(manager, ticket_id)
         self.assertEqual(done.ticket.status, "awaiting_support")
         self.assertEqual(done.diagnosis["tool_calls"], 2)
@@ -267,13 +267,16 @@ class DiagnosticsTests(unittest.TestCase):
             ticket_id = created.json()["ticket"]["id"]
             self.assertEqual(client.get(f"/tickets/{ticket_id}/state", headers=auth_headers(keys, "bob")).status_code, 404)
             own = client.get(f"/tickets/{ticket_id}/state", headers=auth_headers(keys)).json()
+            self.assertNotIn("diagnosis", own)
+            self.assertNotIn("diagnostic_report", own["ticket"])
+            internal = client.get(f"/tickets/{ticket_id}/state", headers=auth_headers(keys, "manager")).json()
             import time
             deadline = time.monotonic() + 5
-            while own["ticket"]["investigation_status"] in {"queued", "running"} and time.monotonic() < deadline:
+            while internal["ticket"]["investigation_status"] in {"queued", "running"} and time.monotonic() < deadline:
                 time.sleep(.02)
-                own = client.get(f"/tickets/{ticket_id}/state", headers=auth_headers(keys)).json()
-            self.assertEqual(own["ticket"]["investigation_status"], "completed")
-            self.assertEqual(own["diagnosis"]["finding"], "certificate_expired")
+                internal = client.get(f"/tickets/{ticket_id}/state", headers=auth_headers(keys, "manager")).json()
+            self.assertEqual(internal["ticket"]["investigation_status"], "completed")
+            self.assertEqual(internal["diagnosis"]["finding"], "certificate_expired")
 
 
 if __name__ == "__main__":

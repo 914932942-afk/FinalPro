@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     decision_min_confidence: float = Field(default=0.8, ge=0, le=1)
     planning_use_sop: bool = True
     require_action_confirmation: bool = False
+    approval_ttl_hours: float = Field(default=24, gt=0, le=168)
     diagnosis_mode: Literal["off", "react", "fixed", "rule"] = "react"
     diagnosis_backend: Literal["structured", "investigation"] = "investigation"
     investigation_file: Path | None = None

@@ -17,7 +17,7 @@ from .model_adapter import build_model_from_env
 from .tools import EnterpriseTools
 from .workflow import EnterpriseAgent
 from .config import get_settings
-from .auth import IdentityStore
+from .auth import IdentityStore, initialize_support_groups
 from .service import TicketService
 from .errors import AgentError, AuthorizationError
 
@@ -25,6 +25,8 @@ from .errors import AgentError, AuthorizationError
 def build_agent() -> EnterpriseAgent:
     """组装数据库、知识库、工具和 Agent，返回可调用的 Agent 对象。"""
     settings = get_settings()
+    if settings.auth_file.is_file():
+        initialize_support_groups(settings.auth_file)
     audit = AuditStore(settings.db_path, timeout=settings.sqlite_timeout)
     # 先执行最里面的 KnowledgeBase，再构造 EnterpriseTools，最后构造 Agent。
     # CLI 与 run_demo 使用同一个模型工厂，避免两个入口配置不一致。
@@ -116,7 +118,10 @@ def main() -> None:
     except AgentError as exc:
         raise SystemExit(f"{exc.http_status} {exc.code}: {exc}") from None
     if state is not None:
-        print(json.dumps(state.to_dict() if hasattr(state, "to_dict") else state, ensure_ascii=False, indent=2))
+        output = service.response(principal, state) if hasattr(state, "to_dict") else state
+        if isinstance(output, dict) and "items" in output:
+            output = service.list_response(principal, output)
+        print(json.dumps(output, ensure_ascii=False, indent=2))
 
 
 def execute_command(agent, service, principal, args):

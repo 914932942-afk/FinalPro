@@ -49,12 +49,13 @@ def main():
                 body = {"title": "VPN 故障", "description": "VPN 连接失败，报错超时，请登记排查。"}
                 response = client.post("/tickets", headers=headers, json=body)
                 accepted = response.json()
-                state = accepted
-                ticket_id = state.get("ticket", {}).get("id", "missing")
+                ticket_id = accepted.get("ticket", {}).get("id", "missing")
+                staff_headers = {"Authorization": "Bearer " + keys["manager"]}
+                state = client.get(f"/tickets/{ticket_id}/state", headers=staff_headers).json()
                 deadline = time.monotonic() + cfg.diagnosis_queue_timeout + cfg.diagnosis_worker_timeout + 10
                 while state.get("ticket", {}).get("investigation_status") in {"queued", "running"} and time.monotonic() < deadline:
                     time.sleep(.05)
-                    state = client.get(f"/tickets/{ticket_id}/state", headers=headers).json()
+                    state = client.get(f"/tickets/{ticket_id}/state", headers=staff_headers).json()
                 replay = client.post("/tickets", headers=headers, json=body)
                 peer = client.get(f"/tickets/{ticket_id}/state", headers={"Authorization": "Bearer " + keys["bob"]})
                 diagnosis = state.get("diagnosis") or {}
@@ -63,7 +64,8 @@ def main():
                     "diagnostic_source": diagnosis.get("source") == ("deepseek" if args.live else "rule"),
                     "registered_only": state.get("ticket", {}).get("recommended_action") == "open_incident",
                     "write_simulated": (state.get("action_result") or {}).get("simulated") is True,
-                    "replay_equal": replay.json() == accepted, "peer_denied": peer.status_code == 404}
+                    "replay_equal": replay.json() == accepted, "peer_denied": peer.status_code == 404,
+                    "requester_projection": "trace" not in accepted and "diagnosis" not in accepted}
                 rows.append({"expected": expected, "checks": checks, "passed": all(checks.values()), "state": state})
                 print(json.dumps({"expected": expected, "checks": checks}, ensure_ascii=False), flush=True)
         report = {"live": args.live, "model": cfg.deepseek_model if args.live else None,

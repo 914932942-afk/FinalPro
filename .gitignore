@@ -13,6 +13,7 @@ data/auth.keys.json
 data/*.accounts.txt
 data/*.sessions.db*
 data/*.password-init.tmp
+data/*.groups-init.tmp
 data/demo_service.db*
 data/demo_service.key
 data/*.db.locks/

@@ -34,7 +34,7 @@ class LifecycleTests(unittest.TestCase):
         self.knowledge = RunbookKnowledge(self.cfg.runbooks_dir, settings=self.cfg)
         self.adapter = InvestigationTools(self.events, self.cfg.runbooks_file, knowledge=self.knowledge)
         self.alice = Principal(user_id="alice", role="employee", department="IT")
-        self.manager = Principal(user_id="manager", role="manager", department="IT")
+        self.manager = Principal(user_id="manager", role="manager", department="IT", support_groups=["network", "applications", "data", "service_desk"])
 
     def tearDown(self):
         self.temp.cleanup()

@@ -63,7 +63,9 @@ async function main() {
     await page.waitForFunction(()=>document.querySelector('#detail .badge')?.textContent==='待支持核查');
     const clarified = (await api('alice','/tickets/'+unclear.id+'/state')).data;
     assert.equal(clarified.ticket.status,'awaiting_support');
-    assert.ok(clarified.action_result.downstream_id);
+    assert.equal(clarified.action_result,undefined);
+    const internal = (await api('manager','/tickets/'+unclear.id+'/state')).data;
+    assert.ok(internal.action_result.downstream_id);
     checks.clarification_to_http_incident = true;
     const permission = await create('申请报表数据库权限 '+Date.now(),'我需要申请报表数据库的只读权限，用于查看工作数据。');
     assert.equal(permission.status.code,'confirmation');

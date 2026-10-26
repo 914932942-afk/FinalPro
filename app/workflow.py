@@ -35,6 +35,7 @@ class EnterpriseAgent:
                  model: DecisionModel | None = None, strict_model: bool = False, *, settings=None, diagnostic_runner=None):
         self.settings = settings or get_settings()
         self.tools, self.audit = tools, audit
+        self.authorization = None
         self.diagnostic_runner = diagnostic_runner
         self.investigation_runners = {}
         self.investigation_knowledge = None
@@ -56,6 +57,10 @@ class EnterpriseAgent:
             self.model.strict = True
         self.tool_breaker = CircuitBreaker(self.settings.tool_failure_threshold, self.settings.tool_recovery_timeout)
         self.nodes = {name: getattr(self, "_" + name) for name in self.NODE_ORDER}
+
+    def bind_identities(self, identities):
+        from .authorization import ExecutionAuthorization
+        self.authorization = ExecutionAuthorization(self, identities)
 
     @property
     def planning_enabled(self):
@@ -473,6 +478,13 @@ class EnterpriseAgent:
             plan = ExecutionPlan.model_validate(state.ticket.execution_plan)
             state.approval = Approval(ticket_id=state.ticket.id, action=plan.action,
                                       reason="请核对具体账号、资源及权限后审批", plan=plan.model_dump(), plan_digest=plan.digest())
+            if self.authorization and state.ticket.owner_id:
+                from .authorization import AuthorizationRevoked
+                try:
+                    self.authorization.stamp(state)
+                except AuthorizationRevoked:
+                    state.approval.status = "invalidated"
+                    return self._manual(state, AuthorizationRevoked.public_message)
             state.ticket.status = "awaiting_approval"
         else:
             state.ticket.status = "authorized"
@@ -501,7 +513,11 @@ class EnterpriseAgent:
             if cached and cached["status"] == "completed":
                 state.action_result = self.tools.execute_action(state.ticket, action)
             else:
-                state.action_result = self.tool_breaker.call(lambda: self.tools.execute_action(state.ticket, action))
+                guard = (lambda: self.authorization.check(state, executing=True)) if self.authorization else None
+                state.action_result = self.tool_breaker.call(lambda: self.tools.execute_action(state.ticket, action, **({"guard": guard} if guard else {})))
+            if state.action_result.error and state.action_result.error.code == "authorization_revoked" and state.approval:
+                state.approval.status = "invalidated"
+                CaseLifecycle.ensure_assignment(state)
             state.result = state.action_result.message
             state.ticket.status = "executed" if state.action_result.status == "succeeded" else "manual_review"
             if state.action_result.error:
@@ -623,6 +639,14 @@ class EnterpriseAgent:
                         or raw["approval"].get("plan") != plan.model_dump()):
                     raise IdempotencyConflict("审批计划已发生变化，禁止沿用旧审批")
             state = AgentState.from_dict(raw)
+            if self.authorization and not self.audit.get_operation("approval:" + approval_id):
+                from .authorization import AuthorizationRevoked
+                try:
+                    actor = self.authorization.check(state, approver=approver)
+                except AuthorizationRevoked:
+                    self.authorization.invalidate(state)
+                    raise IdempotencyConflict("申请身份或审批条件已失效，请重新申请") from None
+                state.approval.approver_revision = self.authorization.identities.identity_revision(actor) if actor else None
             state.approval.status = "approved" if approved else "rejected"
             state.approval.decided_by, state.approval.decided_at = approver, now_iso()
             state.ticket.status = "authorized" if approved else "rejected"

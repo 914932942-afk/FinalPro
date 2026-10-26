@@ -51,7 +51,7 @@ class InvestigationJobTests(unittest.TestCase):
             self.audit, settings=self.cfg, diagnostic_runner=object())
         self.service = TicketService(self.agent)
         self.owner = Principal(user_id="alice", role="employee", department="IT")
-        self.manager = Principal(user_id="manager", role="manager", department="IT")
+        self.manager = Principal(user_id="manager", role="manager", department="IT", support_groups=["network", "applications", "data", "service_desk"])
         self.portal = PortalService(self.service)
 
     def tearDown(self):
