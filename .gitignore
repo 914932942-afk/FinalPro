@@ -9,6 +9,7 @@ tmp/
 # Generated data and model caches
 data/agent.db*
 data/auth.json
+data/account_bindings.json
 data/auth.keys.json
 data/*.accounts.txt
 data/*.sessions.db*

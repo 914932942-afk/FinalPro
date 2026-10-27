@@ -113,5 +113,10 @@ function boot({role='employee',url='http://127.0.0.1:8080/',ticket=structuredClo
  // Known validation rejection releases the key and allows the applicant to correct the form.
  const ad=boot({handler:(path,opts)=>path==='/portal/tickets'&&opts.method==='POST'?{status:422,data:{}}:null});await ad.login();ad.id('new-ticket').click();ad.id('title').value='VPN 故障';ad.id('description').value='连接失败';ad.submit('create-form');await settle();assert.equal(ad.w.sessionStorage.getItem(storageKey),null);assert.equal(ad.id('title').disabled,false);ad.dom.window.close();
  assert.deepEqual(errors,[]);
- console.log('PASS: CSS parse + 25 DOM flows, including refreshed submissions, user isolation, storage failure and lifecycle handling.');
+ // Applicants receive an actionable data-coverage explanation without internal codes or configuration controls.
+ const gapCase=structuredClone(base);gapCase.data_status={message:'尚未关联您在该系统中的业务账号。',next_action:'已交由支持人员核查，你可以继续补充故障现象。'};const ae=boot({ticket:gapCase});await ae.login();assert.match(ae.id('detail').textContent,/排查所需信息/);assert.match(ae.id('detail').textContent,/尚未关联/);assert.doesNotMatch(ae.id('detail').textContent,/account_unbound|account_bindings.json|数据接入待办/);ae.dom.window.close();
+ // Authorized staff see the precise handoff task and the case's mapped business account.
+ const gapSupport=structuredClone(caseTicket);gapSupport.data_status=gapCase.data_status;gapSupport.support={...gapSupport.support,data_issue:{code:'account_not_found',message:'日志源中尚未找到已关联的业务账号。',next_check:'请核对账号标识及日志覆盖范围。'},business_account:'erp.bob'};const gapStaffUi=boot({role:'manager',url:'http://127.0.0.1:8080/support',ticket:gapSupport});await gapStaffUi.login();assert.match(gapStaffUi.id('detail').textContent,/数据接入待办/);assert.match(gapStaffUi.id('detail').textContent,/erp.bob/);assert.match(gapStaffUi.id('detail').textContent,/核对账号标识及日志覆盖范围/);assert.doesNotMatch(gapStaffUi.id('detail').textContent,/account_not_found/);gapStaffUi.dom.window.close();
+ assert.deepEqual(errors,[]);
+ console.log('PASS: CSS parse + 27 DOM flows, including account-data gaps, separate support handoff and refreshed submissions.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

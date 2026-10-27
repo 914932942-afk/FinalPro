@@ -5,6 +5,7 @@ from .case_access import CaseAccess
 from .case_management import CaseLifecycle
 from .errors import ActionRejectedError, AuthenticationError, ConfigurationError
 from .models import AgentState, now_iso
+from .business_accounts import DiagnosticDataGap
 
 
 class AuthorizationRevoked(ActionRejectedError):
@@ -27,6 +28,7 @@ class ExecutionAuthorization:
 
     def stamp(self, state):
         owner = self.requester(state)
+        self.check_account(state)
         created = datetime.now(timezone.utc)
         state.approval.created_at = created.isoformat()
         state.approval.expires_at = (created + timedelta(hours=self.agent.settings.approval_ttl_hours)).isoformat()
@@ -37,6 +39,7 @@ class ExecutionAuthorization:
         if not state.ticket.owner_id:
             return
         owner = self.requester(state)
+        self.check_account(state)
         if state.ticket.recommended_action != "grant_access":
             return
         approval = state.approval
@@ -56,6 +59,30 @@ class ExecutionAuthorization:
         except (ValueError, TypeError, AuthenticationError, ConfigurationError):
             raise AuthorizationRevoked() from None
         return actor
+
+    def check_account(self, state):
+        scope = state.ticket.account_binding
+        if scope is None:
+            if self.agent.account_directory and state.ticket.recommended_action in {"grant_access", "reset_password"}:
+                raise AuthorizationRevoked()
+            return
+        if (scope.get("owner_id") != state.ticket.owner_id
+                or scope.get("resource") != (state.ticket.execution_plan or {}).get("resource")):
+            raise AuthorizationRevoked()
+        if state.ticket.recommended_action in {"grant_access", "reset_password"}:
+            try:
+                self.agent.account_directory.validate(scope, write=True)
+            except DiagnosticDataGap:
+                raise AuthorizationRevoked() from None
+            if state.approval and state.approval.account_binding != scope:
+                raise AuthorizationRevoked()
+            if (state.confirmation or {}).get("status") == "confirmed" and state.confirmation.get("account_binding") != scope:
+                raise AuthorizationRevoked()
+        elif scope.get("code") in {"ready", "business_account_disabled"}:
+            try:
+                self.agent.account_directory.validate(scope)
+            except DiagnosticDataGap:
+                raise AuthorizationRevoked() from None
 
     def invalidate(self, state):
         if state.approval:
@@ -78,6 +105,7 @@ class ExecutionAuthorization:
                 # Before a decision, there is no approver yet: validate owner and approval lifetime.
                 try:
                     owner = self.requester(state)
+                    self.check_account(state)
                     approval = state.approval
                     if (not approval or not approval.created_at or not approval.expires_at
                             or datetime.fromisoformat(approval.expires_at) <= datetime.now(timezone.utc)

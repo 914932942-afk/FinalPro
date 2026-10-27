@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "bindings": [
+    {
+      "user_id": "alice",
+      "resource": "self_account",
+      "account_id": "alice",
+      "enabled": true
+    },
+    {
+      "user_id": "alice",
+      "resource": "vpn",
+      "account_id": "alice",
+      "enabled": true
+    },
+    {
+      "user_id": "alice",
+      "resource": "erp",
+      "account_id": "alice",
+      "enabled": true
+    },
+    {
+      "user_id": "alice",
+      "resource": "reports_db",
+      "account_id": "alice",
+      "enabled": true
+    },
+    {
+      "user_id": "bob",
+      "resource": "self_account",
+      "account_id": "bob",
+      "enabled": true
+    },
+    {
+      "user_id": "bob",
+      "resource": "vpn",
+      "account_id": "vpn.bob",
+      "enabled": true
+    },
+    {
+      "user_id": "bob",
+      "resource": "erp",
+      "account_id": "erp.bob",
+      "enabled": true
+    },
+    {
+      "user_id": "bob",
+      "resource": "reports_db",
+      "account_id": "report.bob",
+      "enabled": true
+    },
+    {
+      "user_id": "manager",
+      "resource": "self_account",
+      "account_id": "manager",
+      "enabled": true
+    },
+    {
+      "user_id": "manager",
+      "resource": "vpn",
+      "account_id": "manager",
+      "enabled": true
+    },
+    {
+      "user_id": "manager",
+      "resource": "erp",
+      "account_id": "manager",
+      "enabled": true
+    },
+    {
+      "user_id": "manager",
+      "resource": "reports_db",
+      "account_id": "manager",
+      "enabled": true
+    },
+    {
+      "user_id": "admin",
+      "resource": "self_account",
+      "account_id": "admin",
+      "enabled": true
+    },
+    {
+      "user_id": "admin",
+      "resource": "vpn",
+      "account_id": "admin",
+      "enabled": true
+    },
+    {
+      "user_id": "admin",
+      "resource": "erp",
+      "account_id": "admin",
+      "enabled": true
+    },
+    {
+      "user_id": "admin",
+      "resource": "reports_db",
+      "account_id": "admin",
+      "enabled": true
+    }
+  ]
+}

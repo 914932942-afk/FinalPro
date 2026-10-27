@@ -205,6 +205,8 @@ def initialize_demo_identities(path: Path) -> Path:
         json.dump(keys, output, indent=2)
     with path.open("x", encoding="utf-8") as output:
         json.dump(records, output, ensure_ascii=False, indent=2)
+    from .business_accounts import initialize_demo_bindings
+    initialize_demo_bindings(path.with_name("account_bindings.json"), path)
     return keys_path
 
 

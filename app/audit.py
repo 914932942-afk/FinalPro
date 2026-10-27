@@ -197,7 +197,7 @@ class AuditStore:
             if raw is None:
                 raise OperationPending("原申请的状态需要支持人员核查，请勿重复建单")
             state = json.loads(raw)
-            reason = SubmissionPolicy.reuse_reason(state, window)
+            reason = SubmissionPolicy.reuse_reason(state, window, account_context=ticket.get("account_context"))
             if reason:
                 original = state["ticket"]
                 canonical = "ticket:" + (original.get("idempotency_key") or original["id"])

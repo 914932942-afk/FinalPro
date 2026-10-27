@@ -61,15 +61,32 @@ def status_for(state):
     return _status("processing", "处理中", "blue", "processing", "已收到，正在处理", "我们已收到你的申请，正在确认处理方式。", "后续进展会在这里更新。", 1)
 
 
-def plan_rows(plan):
+def plan_rows(plan, binding=None):
     if not plan:
         return []
     rows = [{"label": "申请事项", "value": ACTION_LABELS.get(plan.get("action"), "服务申请")},
-            {"label": "申请账号", "value": plan.get("account", "本人账号")},
+            {"label": "业务账号" if binding else "申请账号", "value": (binding.get("account_id") or "待关联") if binding else plan.get("account", "本人账号")},
             {"label": "目标系统", "value": RESOURCE_LABELS.get(plan.get("resource"), "待确认")}]
     if plan.get("permission"):
         rows.append({"label": "权限范围", "value": PERMISSION_LABELS.get(plan["permission"], "待确认")})
     return rows
+
+
+def diagnostic_data_issue(state):
+    from .business_accounts import DATA_GAPS, gap_detail
+    ticket = state["ticket"]
+    gap = (ticket.get("diagnostic_report") or {}).get("data_availability") or {}
+    if gap.get("code") in DATA_GAPS:
+        return gap_detail(gap["code"])
+    scope = ticket.get("account_binding") or {}
+    if scope.get("code") in DATA_GAPS:
+        return gap_detail(scope["code"])
+    if scope.get("code") == "business_account_disabled":
+        return {"code": "business_account_disabled", "message": "业务账号关联记录标记为停用，已交由支持人员核查。",
+                "next_check": "请核对业务账号停用原因及实际状态，核验完成前不执行账号变更。"}
+    if ticket.get("recommended_action") == "open_incident" and (ticket.get("execution_plan") or {}).get("resource") == "reports_db":
+        return gap_detail("diagnosis_not_supported")
+    return None
 
 
 def present_ticket(state, *, summary=False):
@@ -87,6 +104,8 @@ def present_ticket(state, *, summary=False):
                         "escalated": bool(assignment.get("escalated_at"))}
     waiting = ticket.get("waiting") or {}
     view["waiting"] = {"kind": waiting.get("kind"), "expires_at": waiting.get("expires_at"), "reminded_at": waiting.get("reminded_at")} if waiting else None
+    gap = diagnostic_data_issue(state)
+    view["data_status"] = {"message": gap["message"], "next_action": "已交由支持人员核查账号关联和日志覆盖，你可以继续补充故障现象。"} if gap else None
     if summary:
         return view
     clarification = state.get("clarification") or {}
@@ -125,8 +144,8 @@ def present_ticket(state, *, summary=False):
         question = clarification.get("question", "请补充具体情况。")
     case_open = ticket["status"] in CaseLifecycle.support_states | {"awaiting_user_info"} or (ticket["status"] == "closed" and ticket.get("recommended_action") == "open_incident" and (state.get("resolution") or {}).get("external_issue_resolved") is not True)
     view.update(clarification={"question": question, "round_number": state.get("clarification_round", 0), "stage": "investigation" if ticket["status"] == "awaiting_user_info" else "intake"} if ticket["status"] in {"awaiting_clarification", "awaiting_user_info"} else None,
-                confirmation=plan_rows((state.get("confirmation") or {}).get("plan")) if confirming else None,
-                request_details=plan_rows(ticket.get("execution_plan")), conversation=history, activity=activity,
+                confirmation=plan_rows((state.get("confirmation") or {}).get("plan"), ticket.get("account_binding")) if confirming else None,
+                request_details=plan_rows(ticket.get("execution_plan"), ticket.get("account_binding")), conversation=history, activity=activity,
                 can_cancel=ticket["status"] in {"awaiting_clarification", "awaiting_approval"} or (ticket.get("recommended_action") == "open_incident" and ticket["status"] in CaseLifecycle.open_states),
                 can_follow_up=case_open and ticket.get("recommended_action") == "open_incident", case_revision=ticket.get("case_revision", 0),
                 verification={"can_confirm": ticket["status"] == "awaiting_verification", "can_reopen": CaseLifecycle.can_reopen_ticket(ticket, resolution),
@@ -224,6 +243,7 @@ class PortalService:
                 "worker_issue": {"message": {"worker_timeout": "自动排查超过处理时限，已停止等待并交由支持人员跟进。", "queue_timeout": "排查任务未能及时启动，已交由支持人员处理。"}.get(job.get("reason"), "自动排查未能完成，请核查原因后决定是否重新排查。"),
                     "remaining_runs": max(job.get("max_runs", 3) - job.get("runs", 0), 0), "escalated": bool(job.get("exhausted"))} if job_failed else None,
                 "summary": report.get("summary"), "next_check": report.get("next_check"),
+                "data_issue": diagnostic_data_issue(state) if handling else None, "business_account": (ticket.get("account_binding") or report.get("account_scope") or {}).get("account_id") if handling else None,
                 "observations": observations, "citations": report.get("citations", []),
                 "feedback": [{"actor": r.get("actor"), "note": r.get("note"), "at": r.get("at")} for r in ticket.get("feedback", [])] if handling else [],
                 "diagnostic_note": "未取得该申请人的故障记录，请核查日志来源与对应账号。" if observations and not any(row["records"] for row in observations) else None}

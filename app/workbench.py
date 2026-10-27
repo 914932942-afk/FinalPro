@@ -28,6 +28,8 @@ def main():
     cfg=get_settings()
     if not cfg.auth_file.exists():initialize_demo_identities(cfg.auth_file)
     accounts_path = initialize_local_passwords(cfg.auth_file)
+    from .business_accounts import initialize_demo_bindings
+    initialize_demo_bindings(cfg.account_bindings_file, cfg.auth_file)
     cfg.data_dir.mkdir(parents=True,exist_ok=True)
     token_file=cfg.data_dir/"demo_service.key"
     if not token_file.exists():

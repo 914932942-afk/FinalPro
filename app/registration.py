@@ -42,4 +42,7 @@ def incident_payload(ticket):
     }
     if ticket.registration_context is not None:
         payload["registration_context"] = RegistrationContext.model_validate(ticket.registration_context).model_dump()
+    if ticket.account_binding is not None:
+        from .business_accounts import AccountSnapshot
+        payload["business_account"] = AccountSnapshot.model_validate(ticket.account_binding).model_dump(exclude_none=True)
     return payload

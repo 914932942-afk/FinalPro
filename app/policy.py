@@ -93,7 +93,8 @@ def request_constraints(ticket, history=()):
     if re.search(r"(?:同事|他人|别人|张三|李四)的?(?:账号|账户|密码)|(?:他的|她的)(?:账号|密码)", lower):
         result.blocked_reason = "当前仅支持本人账号操作，代他人申请需要人工处理"
         return result
-    if any(target not in {"我", "本人", "自己", subject.lower()} for target in targets):
+    self_names = {"我", "本人", "自己", subject.lower(), *(name.lower() for name in ticket.account_aliases)}
+    if any(target not in self_names for target in targets):
         result.blocked_reason = "当前仅支持本人账号操作，代他人申请需要人工处理"
         return result
     # Uncertainty in an incident report is normal; it is not authorization for

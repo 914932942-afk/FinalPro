@@ -2,9 +2,25 @@
   "simulated": true,
   "service": "healthy",
   "accounts": {
-    "alice": {"enabled": true, "vpn_access": true, "recent_error": "tls_certificate_expired"},
-    "bob": {"enabled": true, "vpn_access": true, "recent_error": "unknown"},
-    "manager": {"enabled": true, "vpn_access": true, "recent_error": "unknown"},
-    "admin": {"enabled": true, "vpn_access": true, "recent_error": "unknown"}
+    "alice": {
+      "enabled": true,
+      "vpn_access": true,
+      "recent_error": "tls_certificate_expired"
+    },
+    "manager": {
+      "enabled": true,
+      "vpn_access": true,
+      "recent_error": "unknown"
+    },
+    "admin": {
+      "enabled": true,
+      "vpn_access": true,
+      "recent_error": "unknown"
+    },
+    "vpn.bob": {
+      "enabled": true,
+      "vpn_access": false,
+      "recent_error": "access_denied"
+    }
   }
 }

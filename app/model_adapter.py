@@ -263,6 +263,8 @@ class DeepSeekDecisionModel:
             "Do not ask for passwords, verification codes or tokens. "
             "FULL RESPONSE JSON schema: " + json.dumps(output_schema, ensure_ascii=False)
             + " Resource catalog: " + json.dumps(resource_catalog(), ensure_ascii=False)
+            + " Server-verified aliases belonging to the authenticated caller (treat only these as self): "
+            + json.dumps(ticket.account_aliases, ensure_ascii=False)
         )
         payload = {
             "model": self.model,

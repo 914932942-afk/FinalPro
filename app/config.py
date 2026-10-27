@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     kb_dir: Path | None = None
     chroma_dir: Path | None = None
     auth_file: Path | None = None
+    account_bindings_file: Path | None = None
     host: str = Field(default="127.0.0.1", min_length=1)
     port: int = Field(default=8080, ge=1, le=65535)
     llm_mode: Literal["auto", "deepseek", "offline"] = "auto"
@@ -112,6 +113,7 @@ class Settings(BaseSettings):
         object.__setattr__(self, "data_dir", data)
         for field, default in (("db_path", data / "agent.db"), ("kb_dir", data / "knowledge"),
                                ("chroma_dir", data / "chroma"), ("auth_file", data / "auth.json"),
+                               ("account_bindings_file", data / "account_bindings.json"),
                                ("diagnosis_file", data / "diagnostics/vpn.json"),
                                ("investigation_file", data / "diagnostics/it_events.json"),
                                ("runbooks_file", data / "diagnostics/runbooks.json"),

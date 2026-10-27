@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 
 from .models import now_iso
 from .errors import ModelOutputError
+from .business_accounts import DiagnosticDataGap
 
 TOOLS = ("service_health", "access_status", "recent_errors")
 ToolName = Literal["service_health", "access_status", "recent_errors"]
@@ -83,10 +84,38 @@ class ReadOnlyDiagnostics(Protocol):
 
 class LocalVPNDiagnostics:
     """本机模拟遥测。查询参数无账号/路径入口；身份只能由服务端传入。"""
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, *, accounts=None):
         self.path = Path(path)
+        self.accounts = accounts
 
-    def read(self, tool, owner, *, timeout):
+    def check_scope(self, owner, expected=None):
+        scope = expected or (self.accounts.resolve(owner, "vpn") if self.accounts else None)
+        if scope:
+            if scope.get("owner_id") != owner or scope.get("resource") != "vpn":
+                raise DiagnosticDataGap("account_binding_changed")
+            if self.accounts:
+                self.accounts.validate(scope)
+            try:
+                with self.path.open("rb") as stream:
+                    raw = stream.read(65537)
+                if len(raw) > 65536:
+                    raise ValueError("telemetry exceeds size limit")
+                data = Telemetry.model_validate_json(raw)
+                if scope["account_id"] not in data.accounts:
+                    raise DiagnosticDataGap("account_not_found")
+            except FileNotFoundError:
+                raise DiagnosticDataGap("source_not_configured") from None
+            except PermissionError:
+                raise DiagnosticDataGap("source_forbidden") from None
+            except OSError:
+                raise DiagnosticDataGap("source_unavailable") from None
+            except (ValueError, ValidationError) as exc:
+                if isinstance(exc, DiagnosticDataGap):
+                    raise
+                raise DiagnosticDataGap("source_invalid") from None
+        return scope
+
+    def read(self, tool, owner, *, timeout, account_scope=None):
         if tool not in TOOLS or not owner or timeout <= 0:
             raise ValueError("invalid read scope")
         with self.path.open("rb") as stream:
@@ -94,15 +123,17 @@ class LocalVPNDiagnostics:
         if len(raw) > 65536:
             raise ValueError("telemetry too large")
         data = Telemetry.model_validate_json(raw)
-        record = data.accounts.get(owner)
+        scope = self.check_scope(owner, account_scope)
+        record = data.accounts.get(scope["account_id"] if scope else owner)
         if tool == "service_health":
             payload = {"status": data.service}
         elif tool == "access_status":
             payload = {"enabled": record.enabled, "vpn_access": record.vpn_access} if record else {"unavailable": True}
         else:
             payload = {"code": record.recent_error} if record else {"unavailable": True}
+        snapshot = json.dumps({"scope": scope, "service": data.service, "account": record.model_dump() if record else None}, sort_keys=True).encode() if scope else raw
         return {"resource": "vpn", "owner": owner, "tool": tool, "data": payload, "simulated": True,
-                "snapshot_id": hashlib.sha256(raw).hexdigest(), "observed_at": now_iso()}
+                "snapshot_id": hashlib.sha256(snapshot).hexdigest(), "observed_at": now_iso()}
 
 
 def supported_findings(observations):
@@ -209,7 +240,7 @@ class DiagnosticRunner:
         self.max_tools, self.max_models, self.deadline_seconds = max_tools, max_models, deadline_seconds
         self.clock = clock
 
-    def run(self, *, text, owner, binding, saved=None, checkpoint=lambda session: None):
+    def run(self, *, text, owner, binding, saved=None, checkpoint=lambda session: None, account_scope=None):
         changed_format = bool(saved and saved.get("binding") == binding and saved.get("owner") == owner
                               and saved.get("format") == "investigation_v1")
         previous = saved if changed_format else None
@@ -224,7 +255,7 @@ class DiagnosticRunner:
 
         def finish(finding, evidence, stop, *, verified=False):
             session.update(status="completed", finding=finding, evidence_ids=evidence, stop_reason=stop,
-                           verified=verified, summary=LABELS[finding], finished_at=now_iso())
+                           verified=verified, summary=session.get("data_availability", {}).get("message", LABELS[finding]), finished_at=now_iso())
             checkpoint(session)
             return session
 
@@ -236,15 +267,29 @@ class DiagnosticRunner:
             return finish("inconclusive", [], "configuration_changed")
         if session["mode"] != self.mode or session["source"] != self.model.source:
             return finish("inconclusive", [], "configuration_changed")
+        def scoped():
+            if getattr(self.adapter, "accounts", None) is not None:
+                session["account_scope"] = self.adapter.check_scope(owner, session.get("account_scope") or account_scope)
+        try:
+            scoped()
+        except DiagnosticDataGap as exc:
+            session["data_availability"] = exc.detail
+            return finish("inconclusive", [], "data_gap:" + exc.code)
         checkpoint(session)
         while True:
+            try:
+                scoped()
+            except DiagnosticDataGap as exc:
+                session["data_availability"] = exc.detail
+                return finish("inconclusive", [], "data_gap:" + exc.code)
             remaining = session["deadline_at"] - self.clock()
             if remaining <= 0:
                 return finish("inconclusive", [], "deadline")
             pending = session["pending_tool"]
             if pending:
                 try:
-                    observation = checked_observation(self.adapter.read(pending["tool"], owner, timeout=remaining), pending["tool"], owner)
+                    scope_options = {"account_scope": session["account_scope"]} if isinstance(self.adapter, LocalVPNDiagnostics) and session.get("account_scope") else {}
+                    observation = checked_observation(self.adapter.read(pending["tool"], owner, timeout=remaining, **scope_options), pending["tool"], owner)
                     if session["snapshot_id"] not in {None, observation["snapshot_id"]}:
                         raise ValueError("telemetry snapshot changed")
                     session["snapshot_id"] = observation["snapshot_id"]
@@ -277,6 +322,11 @@ class DiagnosticRunner:
                     return finish("inconclusive", [], "model_error:"+type(exc).__name__)
             if self.clock() >= session["deadline_at"]:
                 return finish("inconclusive", [], "deadline")
+            try:
+                scoped()
+            except DiagnosticDataGap as exc:
+                session["data_availability"] = exc.detail
+                return finish("inconclusive", [], "data_gap:" + exc.code)
             if step.kind == "finish":
                 try:
                     validate_finding(step, session["observations"])
@@ -296,6 +346,7 @@ def incident_attachment(session):
         from .investigation import investigation_attachment
         return investigation_attachment(session)
     return {"finding": session["finding"], "summary": session["summary"], "verified": session["verified"],
+            "data_availability": session.get("data_availability"), "account_scope": session.get("account_scope"),
             "simulated": all(o.get("simulated", False) for o in session["observations"]),
             "source": session["source"], "mode": session["mode"], "stop_reason": session["stop_reason"],
             "observations": session["observations"],

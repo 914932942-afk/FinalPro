@@ -41,6 +41,11 @@ class TicketService:
             key = "request:" + hashlib.sha256(identity.encode()).hexdigest()
         ticket = Ticket(title, description, principal.user_id, principal.department,
                         severity=severity, owner_id=principal.user_id, idempotency_key=key)
+        if self.agent.account_directory:
+            scopes = {resource: self.agent.account_directory.resolve(principal.user_id, resource)
+                      for resource in ("self_account", "vpn", "erp", "reports_db")}
+            ticket.account_aliases = sorted({scope["account_id"] for scope in scopes.values() if scope["account_id"]})
+            ticket.account_context = {resource: {key: scope[key] for key in ("code", "revision")} for resource, scope in scopes.items()}
         return self.agent.run(ticket, principal.role, deduplicate=True)
 
     def get_ticket(self, principal: Principal, ticket_id: str):
@@ -243,7 +248,7 @@ class TicketService:
         if not CaseAccess.can_read(principal, ticket):
             raise ResourceNotFoundError()
         if CaseAccess.internal(principal, ticket):
-            return {**raw, **({"submission": submission} if submission else {})}
+            return {**raw, "ticket": self.internal_ticket(ticket), **({"submission": submission} if submission else {})}
         view = present_ticket(raw)
         approval = raw.get("approval")
         return {"ticket": self.public_ticket(ticket), "user_role": raw.get("user_role", "employee"),
@@ -267,7 +272,12 @@ class TicketService:
         principal = self.current(principal)
         if not CaseAccess.can_read(principal, ticket):
             raise ResourceNotFoundError()
-        return ticket if CaseAccess.internal(principal, ticket) else self.public_ticket(ticket)
+        return self.internal_ticket(ticket) if CaseAccess.internal(principal, ticket) else self.public_ticket(ticket)
+
+    @staticmethod
+    def internal_ticket(ticket):
+        # Group access to one case must not disclose the requester's account catalog for other services.
+        return {key: value for key, value in ticket.items() if key not in {"account_aliases", "account_context"}}
 
     def list_response(self, principal, result):
         return {**result, "items": [self.ticket_response(principal, ticket) for ticket in result["items"]]}

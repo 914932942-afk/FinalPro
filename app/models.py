@@ -67,6 +67,9 @@ class Ticket:
     waiting: Optional[Dict[str, Any]] = None
     case_events: List[Dict[str, Any]] = field(default_factory=list)
     resolution_history: List[Dict[str, Any]] = field(default_factory=list)
+    account_binding: Optional[Dict[str, Any]] = None  # Frozen business target, distinct from the portal owner.
+    account_aliases: List[str] = field(default_factory=list)  # Server-verified self aliases, never user supplied.
+    account_context: Dict[str, Any] = field(default_factory=dict)  # Submission readiness; never execution authority.
 
     def to_dict(self) -> Dict[str, Any]:
         """返回普通字典，供 JSON 输出或数据库保存使用。"""
@@ -93,6 +96,7 @@ class Approval:
     expires_at: Optional[str] = None
     requester_revision: Optional[str] = None
     approver_revision: Optional[str] = None
+    account_binding: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """将审批对象转成字典，保存前由工具层调用。"""

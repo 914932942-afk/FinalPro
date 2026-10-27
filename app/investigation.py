@@ -12,6 +12,7 @@ from .diagnostics import DeepSeekDiagnosticModel
 from .model_adapter import DeepSeekDecisionModel
 from .models import now_iso
 from .errors import ModelOutputError
+from .business_accounts import DiagnosticDataGap, gap_detail
 
 
 class Citation(BaseModel):
@@ -77,12 +78,13 @@ def tokenize(text):
 
 class InvestigationTools:
     """只有本人的可见会话能查询；检索适用规程作为证据候选，不编码故障答案。"""
-    def __init__(self, telemetry_path, runbooks_path, resource="vpn", *, knowledge=None):
+    def __init__(self, telemetry_path, runbooks_path, resource="vpn", *, knowledge=None, accounts=None):
         self.telemetry_path, self.runbooks_path = Path(telemetry_path), Path(runbooks_path)
         if resource not in {"vpn", "erp"}:
             raise ValueError("unsupported investigation resource")
         self.resource = resource
         self.knowledge = knowledge
+        self.accounts = accounts
 
     def _load(self):
         blobs = []
@@ -99,15 +101,71 @@ class InvestigationTools:
         digest = hashlib.sha256(b"\0".join(blobs)).hexdigest()
         return telemetry, runbooks, digest
 
-    def capture(self, owner):
-        telemetry, runbooks, _ = self._load()
-        scope = {"owner": owner, "resource": self.resource,
-                 "account": telemetry.get("resources", {}).get(self.resource, {}).get("accounts", {}).get(
-                     owner, {"client_events": [], "sessions": {}}),
-                 "runbooks": [r for r in runbooks if r["resource"] == self.resource]}
-        scope["snapshot_id"] = hashlib.sha256(json.dumps(scope, sort_keys=True).encode()).hexdigest()
-        scope["captured_at"] = now_iso()
-        return scope
+    def capture(self, owner, *, expected_scope=None):
+        identity = expected_scope or (self.accounts.resolve(owner, self.resource) if self.accounts else None)
+        base = {"owner": owner, "resource": self.resource, "account": {"client_events": [], "sessions": {}}, "runbooks": [],
+                "account_scope": identity, "availability": {"code": "ready"}}
+        def freeze():
+            base["snapshot_id"] = hashlib.sha256(json.dumps(base, sort_keys=True).encode()).hexdigest()
+            base["captured_at"] = now_iso()
+            return base
+        try:
+            if identity:
+                if identity.get("owner_id") != owner or identity.get("resource") != self.resource:
+                    raise DiagnosticDataGap("account_binding_changed")
+                if self.accounts:
+                    self.accounts.validate(identity)
+            telemetry, runbooks, _ = self._load()
+            resource = telemetry.get("resources", {}).get(self.resource)
+            if not isinstance(resource, dict) or not isinstance(resource.get("accounts"), dict):
+                raise DiagnosticDataGap("source_not_configured")
+            declared = resource.get("source_status", "available")
+            if declared != "available":
+                raise DiagnosticDataGap({"forbidden": "source_forbidden", "unavailable": "source_unavailable",
+                                         "unconfigured": "source_not_configured"}.get(declared, "source_invalid"))
+            account_id = identity["account_id"] if identity else owner
+            account = resource["accounts"].get(account_id)
+            if account is None:
+                raise DiagnosticDataGap("account_not_found")
+            if (not isinstance(account, dict) or not isinstance(account.get("client_events"), list)
+                    or not isinstance(account.get("sessions"), dict) or account.get("owner_id", owner) != owner):
+                raise DiagnosticDataGap("source_invalid")
+            records = account["client_events"] + [row for rows in account["sessions"].values() for row in rows]
+            if (any(not isinstance(rows, list) for rows in account["sessions"].values())
+                    or any(not isinstance(row, dict) or not isinstance(row.get("id"), str) or not 1 <= len(row["id"]) <= 100
+                           or not isinstance(row.get("text"), str) or len(row["text"]) > 12000
+                           or row.get("owner_id", owner) != owner or row.get("account_id", account_id) != account_id for row in records)
+                    or len({row["id"] for row in records}) != len(records)):
+                raise DiagnosticDataGap("source_invalid")
+            base["account"] = account
+            base["runbooks"] = [r for r in runbooks if r["resource"] == self.resource]
+            if not records:
+                raise DiagnosticDataGap("no_records")
+            if not account["client_events"]:
+                raise DiagnosticDataGap("no_client_records")
+        except DiagnosticDataGap as exc:
+            base["availability"] = exc.detail
+        except FileNotFoundError:
+            base["availability"] = gap_detail("source_not_configured")
+        except PermissionError:
+            base["availability"] = gap_detail("source_forbidden")
+        except OSError:
+            base["availability"] = gap_detail("source_unavailable")
+        except (ValueError, TypeError, KeyError, AttributeError):
+            base["availability"] = gap_detail("source_invalid")
+        return freeze()
+
+    def validate_snapshot(self, snapshot, owner):
+        if snapshot.get("owner") != owner or snapshot.get("resource") != self.resource:
+            raise DiagnosticDataGap("account_binding_changed")
+        if self.accounts:
+            scope = snapshot.get("account_scope")
+            if scope is None:
+                raise DiagnosticDataGap("account_binding_changed")
+            self.accounts.validate(scope)
+        code = snapshot.get("availability", {}).get("code", "ready")
+        if code != "ready":
+            raise DiagnosticDataGap(code)
 
     def read(self, tool, argument, owner, observations, *, timeout, snapshot=None):
         if not owner or timeout <= 0:
@@ -115,18 +173,21 @@ class InvestigationTools:
         snapshot = snapshot or self.capture(owner)
         if snapshot["owner"] != owner or snapshot["resource"] != self.resource:
             raise ValueError("snapshot scope mismatch")
+        self.validate_snapshot(snapshot, owner)
         account, runbooks = snapshot["account"], snapshot["runbooks"]
         retrieval = None
         if tool == "client_events" and not argument:
             records = account["client_events"]
             # 引用句柄由后端提供；不依赖模型从自然语言里伪造账号/路径。
-            handles = [r["session_ref"] for r in records if r.get("session_ref") in account["sessions"]]
+            handles = [r["session_ref"] for r in records if isinstance(r.get("session_ref"), str)]
         elif tool == "session_events":
             visible = {ref for obs in observations for ref in obs.get("session_refs", [])}
-            if argument not in visible or argument not in account["sessions"]:
+            if argument not in visible:
                 raise ValueError("session was not observed in authenticated owner's events")
+            if argument not in account["sessions"] or not account["sessions"][argument]:
+                raise DiagnosticDataGap("session_records_missing")
             records = account["sessions"][argument]
-            handles = [r["session_ref"] for r in records if r.get("session_ref") in account["sessions"]]
+            handles = [r["session_ref"] for r in records if isinstance(r.get("session_ref"), str)]
         elif tool == "search_runbooks" and 1 <= len(argument.strip()) <= 200:
             if self.knowledge:
                 environments = set()
@@ -155,6 +216,7 @@ class InvestigationTools:
                     "severity", "reviewed_at", "content_hash", "provenance", "conflicted", "rerank_score", "event_at")
                    if k in record}})
         return {"tool": tool, "argument": argument, "owner": owner, "resource": self.resource, "records": cleaned,
+                "account_id": (snapshot.get("account_scope") or {}).get("account_id", owner),
                 "session_refs": list(dict.fromkeys(handles)), "snapshot_id": snapshot["snapshot_id"],
                 "captured_at": snapshot["captured_at"], "retrieval": retrieval,
                 "simulated": True, "observed_at": now_iso()}
@@ -247,7 +309,7 @@ class InvestigationRunner:
         if not 1 <= max_tools <= 5 or not 1 <= max_models <= 6 or not 0 < deadline_seconds <= 120:
             raise ValueError("invalid investigation budget")
 
-    def run(self, *, text, owner, binding, saved=None, checkpoint=lambda _: None):
+    def run(self, *, text, owner, binding, saved=None, checkpoint=lambda _: None, account_scope=None):
         incompatible = bool(saved and saved.get("binding") == binding and saved.get("owner") == owner
                             and saved.get("format") != "investigation_v1")
         previous = saved if incompatible else None
@@ -263,8 +325,8 @@ class InvestigationRunner:
         def finish(stop, step=None, *, waiting=False):
             session.update(status="awaiting_user_info" if waiting else "completed", stop_reason=stop, finished_at=now_iso(),
                 assessment=step.assessment if step else "insufficient", finding=step.runbook_id if step else None,
-                summary=step.summary if step else "证据调查未能完成，保留原故障交由人工核查。",
-                next_check=step.next_check if step else "请人工核对当前会话日志及适用的排障规程。",
+                summary=step.summary if step else session.get("data_availability", {}).get("message", "证据调查未能完成，保留原故障交由人工核查。"),
+                next_check=step.next_check if step else session.get("data_availability", {}).get("next_check", "请人工核对当前会话日志及适用的排障规程。"),
                 citations=[c.model_dump() for c in step.citations] if step else [],
                 evidence_verified=step is not None, verified=False)
             checkpoint(session)
@@ -280,15 +342,25 @@ class InvestigationRunner:
             if session["observations"]:
                 return finish("legacy_snapshot_requires_manual_review")
             try:
-                session["evidence_snapshot"] = self.adapter.capture(owner)
+                session["evidence_snapshot"] = self.adapter.capture(owner, **({"expected_scope": account_scope} if account_scope else {}))
             except Exception as exc:
                 return finish("snapshot_error:"+type(exc).__name__)
+        try:
+            self.adapter.validate_snapshot(session["evidence_snapshot"], owner)
+        except DiagnosticDataGap as exc:
+            session["data_availability"] = exc.detail
+            return finish("data_gap:" + exc.code)
         if self.prefetch and not session["observations"] and not session["pending_tool"] and session["tool_calls"] == 0:
             session["tool_calls"] = 1
             session["pending_tool"] = {"tool": "client_events", "argument": ""}
             session["prefetched"] = True
         checkpoint(session)
         while True:
+            try:
+                self.adapter.validate_snapshot(session["evidence_snapshot"], owner)
+            except DiagnosticDataGap as exc:
+                session["data_availability"] = exc.detail
+                return finish("data_gap:" + exc.code)
             remaining = session["deadline_at"]-self.clock()
             if remaining <= 0:
                 return finish("deadline")
@@ -301,6 +373,9 @@ class InvestigationRunner:
                             or session["snapshot_id"] not in {None, obs["snapshot_id"]}):
                         raise ValueError("owner or snapshot mismatch")
                     session["snapshot_id"] = obs["snapshot_id"]
+                except DiagnosticDataGap as exc:
+                    session["data_availability"] = exc.detail
+                    return finish("data_gap:" + exc.code)
                 except Exception as exc:
                     return finish("tool_error:"+type(exc).__name__)
                 if self.clock() >= session["deadline_at"]:
@@ -323,6 +398,11 @@ class InvestigationRunner:
                 return finish("model_error:"+type(exc).__name__)
             if self.clock() >= session["deadline_at"]:
                 return finish("deadline")
+            try:
+                self.adapter.validate_snapshot(session["evidence_snapshot"], owner)
+            except DiagnosticDataGap as exc:
+                session["data_availability"] = exc.detail
+                return finish("data_gap:" + exc.code)
             if step.kind == "ask_user":
                 session["missing_fact"] = step.missing_fact
                 return finish("user_input", waiting=True)
@@ -344,4 +424,6 @@ class InvestigationRunner:
 
 def investigation_attachment(session):
     return {key: session[key] for key in ("format", "source", "mode", "assessment", "finding", "summary",
-        "next_check", "citations", "evidence_verified", "verified", "observations", "stop_reason")} | {"simulated": True}
+        "next_check", "citations", "evidence_verified", "verified", "observations", "stop_reason")} | {
+        "simulated": True, "data_availability": session.get("data_availability"),
+        "account_scope": (session.get("evidence_snapshot") or {}).get("account_scope")}

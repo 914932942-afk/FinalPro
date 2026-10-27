@@ -17,10 +17,16 @@ class SubmissionPolicy:
         return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 
     @classmethod
-    def reuse_reason(cls, state, completed_window, *, now=None):
+    def reuse_reason(cls, state, completed_window, *, now=None, account_context=None):
         ticket = state["ticket"]
         if (state.get("approval") or {}).get("status") == "invalidated":
             return None  # A blocked authorization must allow a fresh, independently approved application.
+        scope = ticket.get("account_binding") or {}
+        current = (account_context or {}).get(scope.get("resource"), {})
+        if (ticket["status"] == "manual_review" and ticket.get("recommended_action") in {"grant_access", "reset_password"}
+                and scope.get("code") not in {None, "ready"} and current.get("code") == "ready"
+                and current.get("revision") != scope.get("revision")):
+            return None  # A repaired mapping requires a new plan/approval, not a silent target replacement.
         if ticket["status"] in cls.active:
             return "active_case"
         result = state.get("action_result") or {}

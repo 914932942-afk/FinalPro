@@ -30,8 +30,90 @@
               }
             ]
           }
+        },
+        "manager": {
+          "owner_id": "manager",
+          "client_events": [
+            {
+              "id": "manager-vpn-client-ok",
+              "text": "2026-10-27 09:00 VPN request completed; HTTP 200; session_ref=manager-vpn-normal",
+              "owner_id": "manager",
+              "account_id": "manager",
+              "session_ref": "manager-vpn-normal"
+            }
+          ],
+          "sessions": {
+            "manager-vpn-normal": [
+              {
+                "id": "manager-vpn-server-ok",
+                "text": "2026-10-27 09:00 authenticated account=manager; response=200; duration_ms=25.",
+                "owner_id": "manager",
+                "account_id": "manager"
+              }
+            ]
+          }
+        },
+        "admin": {
+          "owner_id": "admin",
+          "client_events": [
+            {
+              "id": "admin-vpn-client-ok",
+              "text": "2026-10-27 09:00 VPN request completed; HTTP 200; session_ref=admin-vpn-normal",
+              "owner_id": "admin",
+              "account_id": "admin",
+              "session_ref": "admin-vpn-normal"
+            }
+          ],
+          "sessions": {
+            "admin-vpn-normal": [
+              {
+                "id": "admin-vpn-server-ok",
+                "text": "2026-10-27 09:00 authenticated account=admin; response=200; duration_ms=25.",
+                "owner_id": "admin",
+                "account_id": "admin"
+              }
+            ]
+          }
+        },
+        "vpn.bob": {
+          "owner_id": "bob",
+          "client_events": [
+            {
+              "id": "bob-vpn-client-before",
+              "text": "2026-10-27 09:00 VPN connected; portal returned 200; session_ref=bob-vpn-before",
+              "owner_id": "bob",
+              "account_id": "vpn.bob",
+              "session_ref": "bob-vpn-before"
+            },
+            {
+              "id": "bob-vpn-client-current",
+              "text": "2026-10-27 10:45 VPN access refused after authentication; session_ref=bob-vpn-current",
+              "owner_id": "bob",
+              "account_id": "vpn.bob",
+              "session_ref": "bob-vpn-current"
+            }
+          ],
+          "sessions": {
+            "bob-vpn-before": [
+              {
+                "id": "bob-vpn-server-before",
+                "text": "2026-10-27 09:00 authenticated identity=vpn.bob; VPN authorization=allowed; tunnel established.",
+                "owner_id": "bob",
+                "account_id": "vpn.bob"
+              }
+            ],
+            "bob-vpn-current": [
+              {
+                "id": "bob-vpn-server-current",
+                "text": "2026-10-27 10:45 TLS verification passed; identity=vpn.bob authenticated; required_group=vpn-employees; authorization=denied; no tunnel allocated.",
+                "owner_id": "bob",
+                "account_id": "vpn.bob"
+              }
+            ]
+          }
         }
-      }
+      },
+      "source_status": "available"
     },
     "erp": {
       "accounts": {
@@ -51,8 +133,90 @@
               }
             ]
           }
+        },
+        "manager": {
+          "owner_id": "manager",
+          "client_events": [
+            {
+              "id": "manager-erp-client-ok",
+              "text": "2026-10-27 09:00 ERP request completed; HTTP 200; session_ref=manager-erp-normal",
+              "owner_id": "manager",
+              "account_id": "manager",
+              "session_ref": "manager-erp-normal"
+            }
+          ],
+          "sessions": {
+            "manager-erp-normal": [
+              {
+                "id": "manager-erp-server-ok",
+                "text": "2026-10-27 09:00 authenticated account=manager; response=200; duration_ms=25.",
+                "owner_id": "manager",
+                "account_id": "manager"
+              }
+            ]
+          }
+        },
+        "admin": {
+          "owner_id": "admin",
+          "client_events": [
+            {
+              "id": "admin-erp-client-ok",
+              "text": "2026-10-27 09:00 ERP request completed; HTTP 200; session_ref=admin-erp-normal",
+              "owner_id": "admin",
+              "account_id": "admin",
+              "session_ref": "admin-erp-normal"
+            }
+          ],
+          "sessions": {
+            "admin-erp-normal": [
+              {
+                "id": "admin-erp-server-ok",
+                "text": "2026-10-27 09:00 authenticated account=admin; response=200; duration_ms=25.",
+                "owner_id": "admin",
+                "account_id": "admin"
+              }
+            ]
+          }
+        },
+        "erp.bob": {
+          "owner_id": "bob",
+          "client_events": [
+            {
+              "id": "bob-erp-client-home",
+              "text": "2026-10-27 09:10 ERP home page opened; HTTP 200; session_ref=bob-erp-home",
+              "owner_id": "bob",
+              "account_id": "erp.bob",
+              "session_ref": "bob-erp-home"
+            },
+            {
+              "id": "bob-erp-client-report",
+              "text": "2026-10-27 10:35 ERP finance report refused; HTTP 403; session_ref=bob-erp-report",
+              "owner_id": "bob",
+              "account_id": "erp.bob",
+              "session_ref": "bob-erp-report"
+            }
+          ],
+          "sessions": {
+            "bob-erp-home": [
+              {
+                "id": "bob-erp-server-home",
+                "text": "2026-10-27 09:10 identity=erp.bob; route=/home; authorization=allowed; response=200.",
+                "owner_id": "bob",
+                "account_id": "erp.bob"
+              }
+            ],
+            "bob-erp-report": [
+              {
+                "id": "bob-erp-server-denied",
+                "text": "2026-10-27 10:35 identity=erp.bob authenticated; route=/finance/report; required_permission=reports.read; authorization=denied; HTTP 403. No role or permission change was performed.",
+                "owner_id": "bob",
+                "account_id": "erp.bob"
+              }
+            ]
+          }
         }
-      }
+      },
+      "source_status": "available"
     }
   }
 }

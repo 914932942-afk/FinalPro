@@ -36,6 +36,7 @@ class EnterpriseAgent:
         self.settings = settings or get_settings()
         self.tools, self.audit = tools, audit
         self.authorization = None
+        self.account_directory = None
         self.diagnostic_runner = diagnostic_runner
         self.investigation_runners = {}
         self.investigation_knowledge = None
@@ -60,7 +61,27 @@ class EnterpriseAgent:
 
     def bind_identities(self, identities):
         from .authorization import ExecutionAuthorization
+        from .business_accounts import AccountDirectory
         self.authorization = ExecutionAuthorization(self, identities)
+        self.account_directory = AccountDirectory(self.settings.account_bindings_file)
+
+    def _bind_account(self, state, plan):
+        if self.account_directory is None or not state.ticket.owner_id:
+            return True
+        from .business_accounts import DATA_GAPS
+        state.ticket.execution_plan = plan.model_dump()
+        state.ticket.recommended_action = plan.action
+        scope = self.account_directory.resolve(state.ticket.owner_id, plan.resource)
+        previous = state.ticket.account_binding
+        if (state.confirmation or {}).get("status") == "confirmed" and previous is not None and scope != previous:
+            self._manual(state, "业务账号关联已变化，需要重新核对目标账号")
+            return False
+        state.ticket.account_binding = scope
+        if plan.action in {"grant_access", "reset_password"} and scope["code"] != "ready":
+            message = DATA_GAPS.get(scope["code"], ("业务账号已停用，需要支持人员核查。",))[0]
+            self._manual(state, message)
+            return False
+        return True
 
     @property
     def planning_enabled(self):
@@ -204,7 +225,10 @@ class EnterpriseAgent:
             if result.source == "rule_fallback":
                 return self._manual(state, "模型故障期间不继续敏感操作")
             plan = build_plan(state.ticket, understanding)
+            if not self._bind_account(state, plan):
+                return state
             state.confirmation = {"status": "pending", "plan": plan.model_dump(), "plan_digest": plan.digest(),
+                                  "account_binding": dict(state.ticket.account_binding) if state.ticket.account_binding else None,
                                   "input_digest": input_digest(state.ticket, state.conversation_history),
                                   "round": state.clarification_round + 1}
             result = ClarificationDecision(True, ["confirmation"], result.source, result.metadata, result.interpretation)
@@ -212,7 +236,8 @@ class EnterpriseAgent:
             action_name = "创建密码重置任务" if plan.action == "reset_password" else "申请访问权限"
             resource_name = resource_catalog().get(plan.resource, {"name": "本人登录账号"})["name"]
             permission_name = {None: "不适用", "read_only": "只读", "use": "普通使用"}[plan.permission]
-            state.clarification["question"] = (f"请确认仅为本人账号 {plan.account} {action_name}，"
+            target_account = (state.ticket.account_binding or {}).get("account_id") or plan.account
+            state.clarification["question"] = (f"请确认仅为本人账号 {target_account} {action_name}，"
                 f"资源：{resource_name}，权限：{permission_name}。同意请回复“确认执行”；"
                 "如不一致，请直接说明正确诉求或取消工单。")
             state.clarification["confirmation_plan"] = plan.model_dump()
@@ -311,6 +336,8 @@ class EnterpriseAgent:
             return self._manual(state, issue)
         state.ticket.execution_plan = plan.model_dump()
         state.ticket.category, state.ticket.recommended_action = decision.category, plan.action
+        if not self._bind_account(state, plan):
+            return state
         state.ticket.status = "planned"
         return state
 
@@ -368,6 +395,8 @@ class EnterpriseAgent:
         state.ticket.execution_plan = plan.model_dump()
         state.ticket.recommended_action = plan.action
         state.ticket.category = {"reset_password": "access_support", "grant_access": "access_request", "open_incident": "incident"}[plan.action]
+        if not self._bind_account(state, plan):
+            return state
         state.ticket.status = "planned"
         needs_confirmation = plan.action in {"reset_password", "grant_access"} and (
             decision.source != "rule" or understanding.requires_confirmation or self.settings.require_action_confirmation)
@@ -376,11 +405,13 @@ class EnterpriseAgent:
             if state.clarification_round >= state.clarification_max_rounds:
                 return self._manual(state, "达到澄清轮次上限，不能省略必要信息或确认")
             state.confirmation = {"status": "pending", "plan": plan.model_dump(), "plan_digest": plan.digest(),
+                "account_binding": dict(state.ticket.account_binding) if state.ticket.account_binding else None,
                 "input_digest": input_digest(state.ticket, state.conversation_history), "round": state.clarification_round + 1}
             action_name = "创建密码重置任务" if plan.action == "reset_password" else "申请访问权限"
             resource_name = resource_catalog().get(plan.resource, {"name": "本人登录账号"})["name"]
             permission_name = {None: "不适用", "read_only": "只读", "use": "普通使用"}[plan.permission]
-            state = self._ask(state, "confirmation", question=f"请确认仅为本人账号 {plan.account} {action_name}，资源：{resource_name}，权限：{permission_name}。同意请回复“确认执行”；如不一致请说明正确诉求或取消。")
+            target_account = (state.ticket.account_binding or {}).get("account_id") or plan.account
+            state = self._ask(state, "confirmation", question=f"请确认仅为本人账号 {target_account} {action_name}，资源：{resource_name}，权限：{permission_name}。同意请回复“确认执行”；如不一致请说明正确诉求或取消。")
             state.clarification["confirmation_plan"] = plan.model_dump()
         return state
 
@@ -401,13 +432,20 @@ class EnterpriseAgent:
             validate_execution(state)  # 诊断也不能绕过用户证据与已验证身份。
         except (ValueError, TypeError):
             return self._manual(state, "诊断前执行计划校验失败")
+        account_scope = None
+        if self.account_directory:
+            from .business_accounts import DiagnosticDataGap
+            account_scope = state.ticket.account_binding or self.account_directory.resolve(state.ticket.owner_id, plan["resource"])
+            try:
+                self.account_directory.validate(account_scope)
+            except DiagnosticDataGap as exc:
+                return self._diagnostic_gap(state, account_scope, exc.code)
         runner = self.diagnostic_runner
         if investigate:
             from .investigation import InvestigationTools, InvestigationModel, InvestigationRunner
             frozen = bool((state.diagnosis or {}).get("evidence_snapshot"))
             if not self.settings.investigation_file.is_file() and not frozen:
-                state.diagnosis = {"status": "skipped", "stop_reason": "investigation_not_configured"}
-                return state
+                return self._diagnostic_gap(state, account_scope, "source_not_configured") if self.account_directory else self._skip_diagnosis(state, "investigation_not_configured")
             resource = plan["resource"]
             with self._investigation_lock:
                 if self.investigation_knowledge is None:
@@ -419,18 +457,17 @@ class EnterpriseAgent:
                     return state
                 if resource not in self.investigation_runners:
                     self.investigation_runners[resource] = InvestigationRunner(
-                        InvestigationTools(self.settings.investigation_file, self.settings.runbooks_file, resource, knowledge=knowledge),
+                        InvestigationTools(self.settings.investigation_file, self.settings.runbooks_file, resource, knowledge=knowledge, accounts=self.account_directory),
                         InvestigationModel(self.settings), deadline_seconds=self.settings.diagnosis_deadline,
                         prefetch=self.settings.diagnosis_prefetch)
                 runner = self.investigation_runners[resource]
         elif runner is None:
             if not self.settings.diagnosis_file.is_file():
-                state.diagnosis = {"status": "skipped", "stop_reason": "telemetry_not_configured"}
-                return state
+                return self._diagnostic_gap(state, account_scope, "source_not_configured") if self.account_directory else self._skip_diagnosis(state, "telemetry_not_configured")
             diagnostic_model = (DeepSeekDiagnosticModel(self.settings)
                 if isinstance(primary, DeepSeekDecisionModel) and self.settings.diagnosis_mode != "rule"
                 else RuleDiagnosticModel())
-            runner = DiagnosticRunner(LocalVPNDiagnostics(self.settings.diagnosis_file), diagnostic_model,
+            runner = DiagnosticRunner(LocalVPNDiagnostics(self.settings.diagnosis_file, accounts=self.account_directory), diagnostic_model,
               mode=("fixed" if self.settings.diagnosis_mode == "fixed" else
                     "rule" if diagnostic_model.source == "rule" else "react"),
                 deadline_seconds=self.settings.diagnosis_deadline)
@@ -448,8 +485,14 @@ class EnterpriseAgent:
                 "pending_tool": session["pending_tool"]})
         investigation_text = saved_understanding(state).text + "\n" + "\n".join(
             row["content"] for row in state.conversation_history if row.get("kind") == "diagnostic_followup")
+        if self.account_directory and isinstance(getattr(runner, "adapter", None), (LocalVPNDiagnostics,)):
+            runner.adapter.accounts = self.account_directory
+        from .investigation import InvestigationRunner, InvestigationTools
+        if self.account_directory and isinstance(getattr(runner, "adapter", None), InvestigationTools):
+            runner.adapter.accounts = self.account_directory
+        scope_options = {"account_scope": account_scope} if account_scope and isinstance(runner, (InvestigationRunner, DiagnosticRunner)) else {}
         state.diagnosis = runner.run(text=investigation_text, owner=state.ticket.owner_id,
-            binding=binding, saved=state.diagnosis, checkpoint=checkpoint)
+            binding=binding, saved=state.diagnosis, checkpoint=checkpoint, **scope_options)
         state.ticket.diagnostic_report = incident_attachment(state.diagnosis)
         if state.diagnosis.get("status") == "awaiting_user_info":
             if (state.investigation_questions >= self.settings.diagnosis_max_questions
@@ -473,11 +516,32 @@ class EnterpriseAgent:
             state.degradation.append({"component": "diagnosis", "reason": state.diagnosis["stop_reason"]})
         return state
 
+    @staticmethod
+    def _skip_diagnosis(state, reason):
+        state.diagnosis = {"status": "skipped", "stop_reason": reason}
+        return state
+
+    @staticmethod
+    def _diagnostic_gap(state, scope, code):
+        from .business_accounts import gap_detail
+        from .investigation import investigation_attachment
+        detail = gap_detail(code)
+        state.diagnosis = {"format": "investigation_v1", "source": "data_preflight", "mode": "react",
+            "owner": state.ticket.owner_id, "resource": (state.ticket.execution_plan or {}).get("resource"),
+            "status": "completed", "stop_reason": "data_gap:" + code, "assessment": "insufficient", "finding": None,
+            "summary": detail["message"], "next_check": detail["next_check"], "citations": [],
+            "verified": False, "evidence_verified": False, "observations": [], "decisions": [],
+            "tool_calls": 0, "model_calls": 0, "pending_tool": None, "data_availability": detail,
+            "evidence_snapshot": {"account_scope": scope}, "finished_at": now_iso()}
+        state.ticket.diagnostic_report = investigation_attachment(state.diagnosis)
+        return state
+
     def _authorize(self, state):
         if state.ticket.recommended_action in self.HIGH_RISK:
             plan = ExecutionPlan.model_validate(state.ticket.execution_plan)
             state.approval = Approval(ticket_id=state.ticket.id, action=plan.action,
-                                      reason="请核对具体账号、资源及权限后审批", plan=plan.model_dump(), plan_digest=plan.digest())
+                reason="请核对具体账号、资源及权限后审批", plan=plan.model_dump(), plan_digest=plan.digest(),
+                account_binding=dict(state.ticket.account_binding) if state.ticket.account_binding else None)
             if self.authorization and state.ticket.owner_id:
                 from .authorization import AuthorizationRevoked
                 try:
@@ -554,6 +618,7 @@ class EnterpriseAgent:
         return (self.settings.diagnosis_mode != "off" and plan.get("action") == "open_incident"
                 and plan.get("resource") in ({"vpn", "erp"} if modern else {"vpn"})
                 and (self.diagnostic_runner is not None or
+                     self.account_directory is not None or
                      (self.settings.investigation_file if modern else self.settings.diagnosis_file).is_file()))
 
     def investigate(self, ticket_id, *, revision=None):

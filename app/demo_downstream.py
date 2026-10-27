@@ -11,8 +11,9 @@ from pathlib import Path
 from uuid import uuid5, NAMESPACE_URL
 
 from fastapi import FastAPI, Header, HTTPException, Depends
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from .registration import RegistrationContext
+from .business_accounts import AccountSnapshot
 
 
 class Incident(BaseModel):
@@ -24,6 +25,13 @@ class Incident(BaseModel):
     description: str = Field(min_length=1, max_length=10000)
     severity: str = Field(max_length=20)
     registration_context: RegistrationContext | None = None
+    business_account: AccountSnapshot | None = None
+
+    @model_validator(mode="after")
+    def scoped_account(self):
+        if self.business_account and (self.business_account.owner_id != self.owner or self.business_account.resource != self.resource):
+            raise ValueError("business account does not match incident scope")
+        return self
 
 
 class Attachment(BaseModel):

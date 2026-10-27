@@ -136,6 +136,10 @@ class PortalTests(unittest.TestCase):
     def test_approval_controls_respect_required_role_and_self_approval(self):
         state = self.seed(status="awaiting_approval", action="grant_access")
         state["approval"] = Approval(state["ticket"]["id"], "grant_access", "审批", required_role="admin").to_dict()
+        scope = self.agent.account_directory.resolve("alice", "erp")
+        state["ticket"]["account_binding"] = scope
+        state["ticket"]["execution_plan"] = {"version": 1, "action": "grant_access", "account": "alice", "resource": "erp", "permission": "use", "severity": "medium"}
+        state["approval"]["account_binding"] = scope
         bound = AgentState.from_dict(state)
         self.agent.authorization.stamp(bound)
         state = bound.to_dict()

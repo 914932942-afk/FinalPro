@@ -26,10 +26,11 @@ class SimulatedActionAdapter:
     def execute(self, ticket: Ticket, action: str, *, idempotency_key: str) -> ActionResult:
         plan = ticket.execution_plan or {}
         target = plan.get("resource", "未指定资源")
+        account = (ticket.account_binding or {}).get("account_id") or plan.get("account", ticket.requester)
         messages = {
-            "reset_password": f"已为 {ticket.requester} 创建密码重置链接（演示模式，未触达真实 IAM）。",
+            "reset_password": f"已为 {account} 创建密码重置链接（演示模式，未触达真实 IAM）。",
             "open_incident": f"已模拟登记 {target} 事件，级别 {ticket.severity}，关联工单 {ticket.id}。",
-            "grant_access": f"已模拟为 {ticket.requester} 开通 {target} 的 {plan.get('permission', '未指定')} 权限，未触达真实 IAM。",
+            "grant_access": f"已模拟为 {account} 开通 {target} 的 {plan.get('permission', '未指定')} 权限，未触达真实 IAM。",
         }
         if action == "open_incident" and ticket.diagnostic_report:
             label = "待人工核查的诊断假设：" if ticket.diagnostic_report.get("format") == "investigation_v1" else "只读诊断附件："
