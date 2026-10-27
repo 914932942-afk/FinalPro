@@ -209,7 +209,7 @@ class PasswordLoginTests(unittest.TestCase):
         script = self.client.get("/static/app.js").text
         self.assertNotIn("Bearer ", script)
         self.assertNotIn("localStorage", script)
-        self.assertNotIn("sessionStorage", script)
+        self.assertNotRegex(script, r"sessionStorage\.setItem\([^;\n]*(?:password|csrf|apiKey)")
 
 
 class LocalAccountInitializationTests(unittest.TestCase):

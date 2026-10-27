@@ -46,7 +46,7 @@ def main():
                 telemetry.write_text(json.dumps({"simulated": True, "service": service,
                     "accounts": {"alice": {"enabled": True, "vpn_access": True, "recent_error": error}}}), encoding="utf-8")
                 headers = {"Authorization": "Bearer " + keys["alice"], "Idempotency-Key": expected}
-                body = {"title": "VPN 故障", "description": "VPN 连接失败，报错超时，请登记排查。"}
+                body = {"title": "VPN 故障", "description": f"VPN 连接失败，请登记排查。本次报错：{error}。"}
                 response = client.post("/tickets", headers=headers, json=body)
                 accepted = response.json()
                 ticket_id = accepted.get("ticket", {}).get("id", "missing")

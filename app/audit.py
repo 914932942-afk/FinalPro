@@ -71,6 +71,17 @@ class AuditStore:
                 CREATE TABLE IF NOT EXISTS states (
                     id TEXT PRIMARY KEY, payload TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS submission_cases (
+                    ticket_id TEXT PRIMARY KEY, owner_id TEXT NOT NULL,
+                    business_fingerprint TEXT NOT NULL, created_at TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS submission_case_lookup
+                    ON submission_cases(owner_id, business_fingerprint, created_at DESC);
+                CREATE TABLE IF NOT EXISTS submission_keys (
+                    key TEXT PRIMARY KEY, owner_id TEXT NOT NULL, fingerprint TEXT NOT NULL,
+                    ticket_id TEXT NOT NULL, canonical_key TEXT NOT NULL, reason TEXT,
+                    created_at TEXT NOT NULL
+                );
                 """
             )
             conn.execute("BEGIN IMMEDIATE")
@@ -85,13 +96,17 @@ class AuditStore:
         return sqlite3.connect(self.db_path, timeout=self.timeout)
 
     def once(self, key, payload, operation, *, precondition=None, ticket_id=None, kind="workflow", initial_state=None,
-             checkpoint=None):
+             checkpoint=None, submission_window=None):
         """跨进程原子占位；不明结果不自动重试，以避免重复副作用。"""
         import hashlib
         from .reliability import IdempotencyConflict, OperationPending
         fingerprint = hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
         with self._db() as conn:
             conn.execute("BEGIN IMMEDIATE")
+            if submission_window is not None:
+                reused = self._bind_submission(conn, key, fingerprint, initial_state, submission_window)
+                if reused is not None:
+                    return reused
             row = conn.execute("SELECT fingerprint,status,response FROM operations WHERE key=?", (key,)).fetchone()
             if row:
                 if row[0] != fingerprint:
@@ -111,6 +126,87 @@ class AuditStore:
         with self._db() as conn:
             conn.execute("UPDATE operations SET status='completed',response=? WHERE key=?", (json.dumps(result, ensure_ascii=False), key))
         return result
+
+    def _bind_submission(self, conn, key, fingerprint, initial_state, window):
+        """Bind all request keys to one case in the same transaction as its first checkpoint.
+
+        No model or downstream call runs while the SQLite write transaction is held.
+        A duplicate reads the current case; it never resumes or replays a business action.
+        """
+        from .errors import IdempotencyConflict, OperationPending
+        from .submission_policy import SubmissionPolicy
+        ticket = initial_state["ticket"]
+        owner = ticket.get("owner_id")
+        if not owner:
+            raise ValueError("submission requires a verified owner")
+        client_fingerprint = hashlib.sha256(json.dumps({field: ticket[field] for field in
+            ("owner_id", "title", "description", "severity")}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+
+        def current(ticket_id, reason):
+            row = conn.execute("SELECT payload FROM states WHERE id=?", (ticket_id,)).fetchone()
+            if row is None:
+                raise OperationPending("已有申请记录需要支持人员核查，请勿重复提交")
+            state = json.loads(row[0])
+            if state["ticket"].get("owner_id") != owner:
+                raise IdempotencyConflict("提交记录归属不一致，请联系支持人员")
+            state["submission_result"] = {"reused": True, "reason": reason, "ticket_id": ticket_id}
+            return state
+
+        alias = conn.execute("SELECT owner_id,fingerprint,ticket_id,canonical_key,reason FROM submission_keys WHERE key=?", (key,)).fetchone()
+        if alias:
+            if alias[0] != owner or alias[1] != client_fingerprint:
+                raise IdempotencyConflict("同一提交编号不能用于不同内容，请先确认原提交结果")
+            if alias[3] != key:
+                return current(alias[2], alias[4])
+            # Preserve the existing completed-request replay contract. A pending request can be viewed safely.
+            ledger = conn.execute("SELECT status,fingerprint FROM operations WHERE key=?", (key,)).fetchone()
+            if ledger and ledger[0] != "completed":
+                return current(alias[2], "processing")
+            if ledger and ledger[1] != fingerprint:
+                return current(alias[2], "existing_request")  # Reauthentication never executes an old request again.
+            return None
+
+        # Existing client keys from older versions must retain their original immutable receipt.
+        ledger = conn.execute("SELECT fingerprint,ticket_id FROM operations WHERE key=?", (key,)).fetchone()
+        if ledger:
+            original = conn.execute("SELECT payload FROM tickets WHERE id=?", (ledger[1],)).fetchone()
+            if original is None or json.loads(original[0]).get("owner_id") != owner:
+                raise IdempotencyConflict("原提交记录需要核查")
+            old = json.loads(original[0])
+            old_client = hashlib.sha256(json.dumps({field: old[field] for field in
+                ("owner_id", "title", "description", "severity")}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+            if old_client != client_fingerprint:
+                raise IdempotencyConflict("同一幂等键不能用于不同请求")
+            conn.execute("INSERT INTO submission_keys VALUES (?,?,?,?,?,?,?)", (key, owner, client_fingerprint, ledger[1], key, None, now_iso()))
+            if ledger[0] != fingerprint:
+                return current(ledger[1], "existing_request")
+            return None
+
+        # Backfill metadata only, including pre-upgrade cases; never change their snapshots or tool receipts.
+        legacy = conn.execute("SELECT t.payload FROM tickets t LEFT JOIN submission_cases c ON c.ticket_id=t.id WHERE c.ticket_id IS NULL").fetchall()
+        for (raw,) in legacy:
+            old = json.loads(raw)
+            if old.get("owner_id"):
+                conn.execute("INSERT OR IGNORE INTO submission_cases VALUES (?,?,?,?)",
+                             (old["id"], old["owner_id"], SubmissionPolicy.fingerprint(old), old["created_at"]))
+
+        business = SubmissionPolicy.fingerprint(ticket)
+        candidates = conn.execute("SELECT c.ticket_id,s.payload FROM submission_cases c LEFT JOIN states s ON s.id=c.ticket_id WHERE c.owner_id=? AND c.business_fingerprint=? ORDER BY c.created_at DESC,c.ticket_id",
+                                  (owner, business)).fetchall()
+        for candidate_id, raw in candidates:
+            if raw is None:
+                raise OperationPending("原申请的状态需要支持人员核查，请勿重复建单")
+            state = json.loads(raw)
+            reason = SubmissionPolicy.reuse_reason(state, window)
+            if reason:
+                original = state["ticket"]
+                canonical = "ticket:" + (original.get("idempotency_key") or original["id"])
+                conn.execute("INSERT INTO submission_keys VALUES (?,?,?,?,?,?,?)", (key, owner, client_fingerprint, candidate_id, canonical, reason, now_iso()))
+                return current(candidate_id, reason)
+
+        conn.execute("INSERT INTO submission_cases VALUES (?,?,?,?)", (ticket["id"], owner, business, ticket["created_at"]))
+        conn.execute("INSERT INTO submission_keys VALUES (?,?,?,?,?,?,?)", (key, owner, client_fingerprint, ticket["id"], key, None, now_iso()))
+        return None
 
     @staticmethod
     def _write_snapshot(conn, state):

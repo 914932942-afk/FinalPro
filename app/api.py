@@ -271,12 +271,14 @@ def create_app(agent=None, *, identities=None):
         return present_ticket(state.to_dict())
 
     @application.post("/portal/tickets", status_code=201)
-    def portal_create(body: TicketRequest, background_tasks: BackgroundTasks,
+    def portal_create(body: TicketRequest, background_tasks: BackgroundTasks, response: Response,
                       idempotency_key: Annotated[str | None, Header(min_length=1, max_length=200)] = None,
                       principal: Principal = Depends(current_user)):
         state = application.state.service.create(principal, **body.model_dump(), idempotency_key=idempotency_key)
         schedule(state, background_tasks)
-        return present_ticket(state.to_dict())
+        if state.submission_result:
+            response.status_code = 200
+        return application.state.service.submission_view(state)
 
     @application.post("/portal/tickets/{ticket_id}/clarify")
     def portal_clarify(ticket_id: str, body: ClarificationRequest, background_tasks: BackgroundTasks,
@@ -332,11 +334,13 @@ def create_app(agent=None, *, identities=None):
                 "simulated_business": True, "background": cfg.diagnosis_background}
 
     @application.post("/tickets", status_code=201)
-    def create_ticket(body: TicketRequest, background_tasks: BackgroundTasks,
+    def create_ticket(body: TicketRequest, background_tasks: BackgroundTasks, response: Response,
                       idempotency_key: Annotated[str | None, Header(min_length=1, max_length=200)] = None,
                       principal: Principal = Depends(current_user)):
         state = application.state.service.create(principal, **body.model_dump(), idempotency_key=idempotency_key)
         schedule(state, background_tasks)
+        if state.submission_result:
+            response.status_code = 200
         return application.state.service.response(principal, state)
 
     def schedule(state, background_tasks):

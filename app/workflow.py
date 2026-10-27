@@ -116,7 +116,7 @@ class EnterpriseAgent:
         graph = self._build_graph(self.NODE_ORDER[self.NODE_ORDER.index(state.next_node):])
         return AgentState.from_dict(graph.invoke({"state": state.to_dict()})["state"])
 
-    def run(self, ticket: Ticket, user_role: str = "employee") -> AgentState:
+    def run(self, ticket: Ticket, user_role: str = "employee", *, deduplicate=False) -> AgentState:
         payload = {k: getattr(ticket, k) for k in ("title", "description", "requester", "department", "severity")}
         payload["user_role"] = user_role
         if ticket.owner_id is not None:
@@ -130,7 +130,7 @@ class EnterpriseAgent:
                 current = AgentState.from_dict(self.audit.get_state(ticket.id))
                 return self._continue(current).to_dict()
         return AgentState.from_dict(self.audit.once(key, payload, process, ticket_id=ticket.id,
-                                                     initial_state=initial.to_dict()))
+            initial_state=initial.to_dict(), submission_window=self.settings.submission_completed_window_seconds if deduplicate else None))
 
     def _intake(self, state):
         state.ticket.category, state.ticket.status = "unclassified", "triaged"

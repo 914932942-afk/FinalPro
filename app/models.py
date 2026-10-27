@@ -172,6 +172,8 @@ class AgentState:
     investigation_questions: int = 0
     enrichment_result: Optional[Dict[str, Any]] = None
     workflow_version: int = 1  # Missing on historical snapshots; new requests explicitly use v2.
+    submission_result: Optional[Dict[str, Any]] = field(default=None, repr=False, compare=False)
+    # Transport-only reuse notice; deliberately omitted from checkpoints and immutable operation receipts.
 
     @classmethod
     def from_dict(cls, raw):

@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     planning_use_sop: bool = True
     require_action_confirmation: bool = False
     approval_ttl_hours: float = Field(default=24, gt=0, le=168)
+    submission_completed_window_seconds: int = Field(default=600, ge=0, le=86400)
     diagnosis_mode: Literal["off", "react", "fixed", "rule"] = "react"
     diagnosis_backend: Literal["structured", "investigation"] = "investigation"
     investigation_file: Path | None = None

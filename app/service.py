@@ -41,7 +41,7 @@ class TicketService:
             key = "request:" + hashlib.sha256(identity.encode()).hexdigest()
         ticket = Ticket(title, description, principal.user_id, principal.department,
                         severity=severity, owner_id=principal.user_id, idempotency_key=key)
-        return self.agent.run(ticket, principal.role)
+        return self.agent.run(ticket, principal.role, deduplicate=True)
 
     def get_ticket(self, principal: Principal, ticket_id: str):
         principal = self.current(principal)
@@ -238,20 +238,30 @@ class TicketService:
         from .portal import present_ticket
         principal = self.current(principal)
         raw = state.to_dict() if hasattr(state, "to_dict") else state
+        submission = getattr(state, "submission_result", None)
         ticket = raw["ticket"]
         if not CaseAccess.can_read(principal, ticket):
             raise ResourceNotFoundError()
         if CaseAccess.internal(principal, ticket):
-            return raw
+            return {**raw, **({"submission": submission} if submission else {})}
         view = present_ticket(raw)
         approval = raw.get("approval")
         return {"ticket": self.public_ticket(ticket), "user_role": raw.get("user_role", "employee"),
+                **({"submission": submission} if submission else {}),
                 "approval": {key: approval.get(key) for key in ("id", "status", "required_role", "created_at", "expires_at")} if approval else None,
                 "clarification": {"need_clarify": bool(view["clarification"]), "question": (view["clarification"] or {}).get("question", "请补充具体情况。"),
                                   "missing_fields": (raw.get("clarification") or {}).get("missing_fields", [])} if raw.get("clarification") else None,
                 "clarification_round": raw.get("clarification_round", 0),
                 "confirmation": {key: (raw.get("confirmation") or {}).get(key) for key in ("status", "round")} if raw.get("confirmation") else None,
                 "result": view["status"]["message"], "view": view}
+
+    @staticmethod
+    def submission_view(state):
+        from .portal import present_ticket
+        view = present_ticket(state.to_dict())
+        if state.submission_result:
+            view["submission"] = state.submission_result
+        return view
 
     def ticket_response(self, principal, ticket):
         principal = self.current(principal)

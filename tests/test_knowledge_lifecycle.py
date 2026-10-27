@@ -164,9 +164,12 @@ class LifecycleTests(unittest.TestCase):
         rules = RuleBasedModel()
         with patch.object(agent.model, "clarify", side_effect=rules.clarify), patch.object(agent.model, "plan", side_effect=rules.plan):
             second = service.create(self.alice, title="VPN 故障", description="VPN 连接失败，报错超时", idempotency_key="after-publish")
+        self.assertEqual(second.ticket.id, first.ticket.id)
+        second = service.follow_up(self.alice, second.ticket.id, "规程已更新，请继续排查本次故障。", second.ticket.case_revision)
         done = self.complete(service, agent, second)
         self.assertEqual(done.diagnosis["stop_reason"], "model_finish")
         self.assertEqual(len(done.diagnosis["evidence_snapshot"]["runbooks"]), 1)
+        self.assertEqual(sum(row["node"] == "execute" for row in agent.audit.list_events(done.ticket.id)), 1)
 
     def test_snapshot_scope_excludes_other_accounts_and_freezes_related_updates(self):
         snapshot = self.adapter.capture("alice")

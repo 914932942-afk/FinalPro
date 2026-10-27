@@ -128,6 +128,7 @@
       $('identity').hidden=false;$('logout').hidden=false;$('login').hidden=true;$('workspace').hidden=false;
       const authorized=['support','manager','admin'].includes(me.role);$('nav-support').hidden=!authorized;
       this.scope=location.pathname==='/support'&&authorized?'support':'mine';this.navigation();history.replaceState(null,'',this.scope==='support'?'/support':'/');
+      this.restoreSubmission();
     }
     async login() {
       if(this.busy||!$('connect').reportValidity())return;
@@ -147,6 +148,7 @@
     }
     resetSession() {
       this.epoch++;for(const request of this.requests)request.abort();this.stopPolling();clearTimeout(this.searching);
+      this.clearSubmission();
       this.csrf='';this.me=null;this.selected=null;this.active=null;this.pending=null;this.items=[];this.busy=false;this.cancelTarget=null;this.scope='mine';this.queue='';$('support-queue').value='';
       $('workspace').hidden=true;$('login').hidden=false;$('logout').hidden=true;$('logout').disabled=false;$('identity').hidden=true;$('identity').replaceChildren();$('nav-support').hidden=true;$('nav-count').hidden=true;
       $('username').value='';$('password').value='';$('login-error').textContent='';$('notice').hidden=true;$('ticket-search').value='';$('filter').value='';
@@ -291,19 +293,35 @@
       finally{if(session===this.epoch){this.busy=false;controls.forEach(({item,disabled})=>item.disabled=disabled);}}
     }
     openCreate(){if(!this.me){$('username').focus();return;}if(!this.busy)$('create-dialog').showModal();}
-    resetCreate(){$('create-form').reset();for(const id of ['title','description','severity','submit-ticket'])$(id).disabled=false;$('submit-ticket').textContent='提交工单';$('create-error').textContent='';$('pending-note').textContent='提交后可在“我的工单”查看进度。';}
+    submissionStorageKey(){return this.me?'it-service:pending-submission:'+this.me.user_id:null;}
+    saveSubmission(){try{sessionStorage.setItem(this.submissionStorageKey(),JSON.stringify({...this.pending,owner:this.me.user_id,version:1}));return true;}catch(_){return false;}}
+    clearSubmission(){const key=this.submissionStorageKey();if(key){try{sessionStorage.removeItem(key);}catch(_){}}this.pending=null;}
+    pendingSubmission(message){for(const id of ['title','description','severity'])$(id).disabled=true;$('submit-ticket').textContent='继续确认本次提交';$('cancel-create').textContent='稍后确认';$('pending-note').textContent=message;}
+    restoreSubmission(){
+      const key=this.submissionStorageKey();if(!key)return;
+      try{
+        const saved=JSON.parse(sessionStorage.getItem(key)||'null');if(!saved)return;
+        const body=saved.body;
+        if(saved.version!==1||saved.owner!==this.me.user_id||!/^[-a-f0-9]{36}$/i.test(saved.key)||!body||typeof body.title!=='string'||!body.title.trim()||body.title.length>300||typeof body.description!=='string'||!body.description.trim()||body.description.length>10000||!['low','medium','high','critical'].includes(body.severity))throw new Error('invalid draft');
+        this.pending={key:saved.key,body:{title:body.title,description:body.description,severity:body.severity}};
+        $('title').value=body.title;$('description').value=body.description;$('severity').value=body.severity;
+        this.pendingSubmission('上次提交结果尚未确认，已恢复本次内容。继续确认会沿用原提交，请勿另建相同申请。');$('create-dialog').showModal();
+      }catch(_){this.clearSubmission();}
+    }
+    resetCreate(){$('create-form').reset();for(const id of ['title','description','severity','submit-ticket'])$(id).disabled=false;$('submit-ticket').textContent='提交工单';$('cancel-create').textContent='暂不提交';$('create-error').textContent='';$('pending-note').textContent='提交后可在“我的工单”查看进度。';}
     async create() {
       if(this.busy||!this.me||!$('create-form').reportValidity())return;
       const session=this.epoch;this.busy=true;$('submit-ticket').disabled=true;$('submit-ticket').textContent='正在提交…';$('create-error').textContent='';
       if(!this.pending)this.pending={key:crypto.randomUUID(),body:{title:$('title').value,description:$('description').value,severity:$('severity').value}};
+      const saved=this.saveSubmission();
       for(const id of ['title','description','severity'])$(id).disabled=true;
       let created=null;
-      try{created=await this.api('/portal/tickets',{method:'POST',body:this.pending.body,headers:{'Idempotency-Key':this.pending.key}});if(session!==this.epoch)return;this.pending=null;this.resetCreate();$('create-dialog').close();}
+      try{created=await this.api('/portal/tickets',{method:'POST',body:this.pending.body,headers:{'Idempotency-Key':this.pending.key}});if(session!==this.epoch)return;this.clearSubmission();this.resetCreate();$('create-dialog').close();}
       catch(error){if(session!==this.epoch)return;if(error.status===401){this.handle(error);return;}$('create-error').textContent=error.message;
-        if([401,403,422].includes(error.status)){this.pending=null;for(const id of ['title','description','severity'])$(id).disabled=false;$('submit-ticket').textContent='提交工单';}
-        else{$('submit-ticket').textContent='继续确认本次提交';$('pending-note').textContent='提交结果尚未确认，已保留本次内容。请保留当前页面，重试会继续确认本次提交，避免重复创建。';}}
+        if([401,403,422].includes(error.status)){this.clearSubmission();for(const id of ['title','description','severity'])$(id).disabled=false;$('submit-ticket').textContent='提交工单';}
+        else{this.pendingSubmission(saved?'提交结果尚未确认，已保留本次内容，刷新后也能继续确认。请沿用本次提交，避免重复建单。':'提交结果尚未确认。当前浏览器无法保存待确认内容，请先保留页面；刷新后请查看“我的工单”。');}}
       finally{if(session===this.epoch){this.busy=false;$('submit-ticket').disabled=false;}}
-      if(created&&session===this.epoch){try{if(this.scope!=='mine'){this.scope='mine';this.queue='';$('support-queue').value='';this.navigation();history.replaceState(null,'','/');}this.selected=created.id;$('filter').value='';$('ticket-search').value='';this.notice('工单已提交。后续进展和待补充事项会在这里更新。');await this.list({keep:true});await this.load(created.id);}catch(error){this.handle(error);}}
+      if(created&&session===this.epoch){try{if(this.scope!=='mine'){this.scope='mine';this.queue='';$('support-queue').value='';this.navigation();history.replaceState(null,'','/');}this.selected=created.id;$('filter').value='';$('ticket-search').value='';this.notice(created.submission?.reused?(created.submission.reason==='recent_completion'?'该申请刚刚处理完成，已为你打开原工单。':'已找到本次申请的原工单，后续将继续在原工单跟进。'):'工单已提交。后续进展和待补充事项会在这里更新。');await this.list({keep:true});await this.load(created.id);}catch(error){this.handle(error);}}
     }
   }
   new PortalApp();

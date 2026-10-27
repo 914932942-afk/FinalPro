@@ -18,6 +18,25 @@ from app.model_adapter import build_model_from_env
 from app.tools import EnterpriseTools
 from app.workflow import EnterpriseAgent
 from app.cli import build_action_adapter
+from app.case_management import CaseLifecycle
+from app.service import TicketService
+
+
+def archive_synthetic_case(agent, identities, ticket_id, case_id):
+    """End this isolated test case without declaring a real fault resolved.
+
+    Different telemetry scenarios can intentionally use identical user text.
+    Closing the previous synthetic case keeps business deduplication enabled and
+    leaves the retrieval/model input unchanged for the next independent scenario.
+    """
+    raw = agent.audit.get_state(ticket_id)
+    if raw["ticket"]["status"] not in CaseLifecycle.support_states:
+        return
+    service = TicketService(agent, identities)
+    actor = identities.principal("admin")
+    claimed = service.claim(actor, ticket_id, (raw["ticket"].get("assignment") or {}).get("revision", 0))
+    service.resolve(actor, ticket_id, "archived", "合成验收场景已结束；归档以隔离下一场景，未确认真实故障解决。",
+                    "synthetic:" + case_id, case_revision=claimed.ticket.case_revision)
 
 
 def main():
@@ -101,6 +120,7 @@ def main():
                     checks["outbound_http_receipts"] = bool(created.get("downstream_id")) and created.get("downstream_id") == attached.get("downstream_id")
                 rows.append({"id":case["id"],"checks":checks,"passed":all(checks.values()),"state":state})
                 print(json.dumps({"id":case["id"],"checks":checks},ensure_ascii=False),flush=True)
+                archive_synthetic_case(agent, client.app.state.identities, ticket_id, case["id"])
         json.dump({"live":True,"model":cfg.deepseek_model,"runbook_strategy":cfg.runbook_strategy,"action_backend":cfg.action_backend,
             "scope":"HTTP auth, real LLM and RAG, synthetic raw logs, simulated writes, temporary DB",
             "passed":all(r["passed"] for r in rows),"records":rows},output,ensure_ascii=False,indent=2)
