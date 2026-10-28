@@ -73,6 +73,21 @@ class ModelAdapterTests(unittest.TestCase):
         self.assertEqual(decision.action, "open_incident")
         self.assertEqual(decision.metadata["usage"]["total_tokens"], 30)
 
+    def test_model_payload_redacts_ticket_secrets_before_network(self):
+        response = {"choices": [{"message": {"content": json.dumps({
+            "category": "incident", "action": "open_incident", "confidence": 0.9,
+            "rationale": "有据登记",
+        }, ensure_ascii=False)}}]}
+        with patch("app.model_adapter.urlopen", return_value=FakeResponse(response)) as mocked:
+            DeepSeekDecisionModel("test-secret", max_retries=0).decide(
+                "VPN 故障", "Authorization: Bearer abcdefghijklmnop1234 password=s3cret", "high"
+            )
+        sent = json.loads(mocked.call_args.args[0].data.decode("utf-8"))
+        content = sent["messages"][1]["content"]
+        self.assertNotIn("abcdefghijklmnop1234", content)
+        self.assertNotIn("s3cret", content)
+        self.assertIn("VPN 故障", content)
+
     def test_invalid_model_output_is_rejected(self):
         """不在白名单中的动作不能进入工具执行层。"""
         with self.assertRaises(ModelOutputError):

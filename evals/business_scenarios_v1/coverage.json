@@ -1,0 +1,1334 @@
+{
+  "rendered_cases": 952,
+  "scenario_families": 163,
+  "by_domain": {
+    "diagnosis_vpn": 220,
+    "diagnosis_erp": 280,
+    "data_availability": 80,
+    "intake": 68,
+    "identity": 32,
+    "approval": 36,
+    "delivery": 52,
+    "worker": 20,
+    "lifecycle": 72,
+    "security": 40,
+    "knowledge": 32,
+    "input_validation": 20
+  },
+  "by_split": {
+    "development": 548,
+    "challenge": 244,
+    "regression": 160
+  },
+  "family_readiness": {
+    "existing_contract": 151,
+    "capability_gap": 10,
+    "policy_decision": 2
+  },
+  "families": {
+    "vpn_dns_absent": {
+      "domain": "diagnosis_vpn",
+      "split": "development",
+      "group": "vpn-dns",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_route_missing": {
+      "domain": "diagnosis_vpn",
+      "split": "challenge",
+      "group": "vpn-routing",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_route_overlap": {
+      "domain": "diagnosis_vpn",
+      "split": "challenge",
+      "group": "vpn-routing",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_certificate_expired": {
+      "domain": "diagnosis_vpn",
+      "split": "challenge",
+      "group": "vpn-cert-validity",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_clock_ahead": {
+      "domain": "diagnosis_vpn",
+      "split": "challenge",
+      "group": "vpn-cert-validity",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_managed_dns": {
+      "domain": "diagnosis_vpn",
+      "split": "development",
+      "group": "vpn-managed-dns",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_self_managed_dns": {
+      "domain": "diagnosis_vpn",
+      "split": "development",
+      "group": "vpn-managed-dns",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_resolver_timeout": {
+      "domain": "diagnosis_vpn",
+      "split": "development",
+      "group": "vpn-dns",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_untrusted_ca": {
+      "domain": "diagnosis_vpn",
+      "split": "regression",
+      "group": "vpn-cert-trust",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_tls_generic_timeout": {
+      "domain": "diagnosis_vpn",
+      "split": "challenge",
+      "group": "vpn-transport",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_gateway_unreachable": {
+      "domain": "diagnosis_vpn",
+      "split": "challenge",
+      "group": "vpn-transport",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_gateway_unavailable": {
+      "domain": "diagnosis_vpn",
+      "split": "challenge",
+      "group": "vpn-transport",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_password_expired": {
+      "domain": "diagnosis_vpn",
+      "split": "development",
+      "group": "vpn-auth",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_mfa_denied": {
+      "domain": "diagnosis_vpn",
+      "split": "development",
+      "group": "vpn-auth",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_account_locked": {
+      "domain": "diagnosis_vpn",
+      "split": "development",
+      "group": "vpn-auth",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_account_disabled": {
+      "domain": "diagnosis_vpn",
+      "split": "development",
+      "group": "vpn-auth",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_mtu_blackhole": {
+      "domain": "diagnosis_vpn",
+      "split": "development",
+      "group": "vpn-performance",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_proxy_block": {
+      "domain": "diagnosis_vpn",
+      "split": "challenge",
+      "group": "vpn-transport",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_device_permission": {
+      "domain": "diagnosis_vpn",
+      "split": "development",
+      "group": "vpn-endpoint",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_unstable_link": {
+      "domain": "diagnosis_vpn",
+      "split": "development",
+      "group": "vpn-performance",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_connected_app_denied": {
+      "domain": "diagnosis_vpn",
+      "split": "challenge",
+      "group": "cross-service",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_pool_wait": {
+      "domain": "diagnosis_erp",
+      "split": "development",
+      "group": "erp-pool",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_token_audience": {
+      "domain": "diagnosis_erp",
+      "split": "development",
+      "group": "erp-token",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_deadlock": {
+      "domain": "diagnosis_erp",
+      "split": "regression",
+      "group": "erp-transaction",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_proxy_lease": {
+      "domain": "diagnosis_erp",
+      "split": "development",
+      "group": "erp-deployment-pool",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_direct_reclaim": {
+      "domain": "diagnosis_erp",
+      "split": "development",
+      "group": "erp-deployment-pool",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_forbidden": {
+      "domain": "diagnosis_erp",
+      "split": "challenge",
+      "group": "erp-authorization",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_service_503": {
+      "domain": "diagnosis_erp",
+      "split": "development",
+      "group": "erp-availability",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_bad_gateway": {
+      "domain": "diagnosis_erp",
+      "split": "development",
+      "group": "erp-availability",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_gateway_timeout": {
+      "domain": "diagnosis_erp",
+      "split": "development",
+      "group": "erp-availability",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_db_connections": {
+      "domain": "diagnosis_erp",
+      "split": "development",
+      "group": "erp-db-capacity",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_lock_wait": {
+      "domain": "diagnosis_erp",
+      "split": "regression",
+      "group": "erp-transaction",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_statement_cancel": {
+      "domain": "diagnosis_erp",
+      "split": "development",
+      "group": "erp-db-query",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_serialization": {
+      "domain": "diagnosis_erp",
+      "split": "regression",
+      "group": "erp-transaction",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_disk_full": {
+      "domain": "diagnosis_erp",
+      "split": "development",
+      "group": "erp-db-capacity",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_unique_violation": {
+      "domain": "diagnosis_erp",
+      "split": "regression",
+      "group": "erp-transaction",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_schema_missing": {
+      "domain": "diagnosis_erp",
+      "split": "challenge",
+      "group": "erp-release",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_cache_unavailable": {
+      "domain": "diagnosis_erp",
+      "split": "regression",
+      "group": "erp-dependencies",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_dependency_dns": {
+      "domain": "diagnosis_erp",
+      "split": "regression",
+      "group": "erp-dependencies",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_cookie_loop": {
+      "domain": "diagnosis_erp",
+      "split": "development",
+      "group": "erp-token",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_token_expired": {
+      "domain": "diagnosis_erp",
+      "split": "development",
+      "group": "erp-token",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_upload_size": {
+      "domain": "diagnosis_erp",
+      "split": "development",
+      "group": "erp-input-limit",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_rate_limit": {
+      "domain": "diagnosis_erp",
+      "split": "development",
+      "group": "erp-input-limit",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_business_validation": {
+      "domain": "diagnosis_erp",
+      "split": "challenge",
+      "group": "erp-business-rule",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_partial_outage": {
+      "domain": "diagnosis_erp",
+      "split": "development",
+      "group": "erp-availability",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_release_regression": {
+      "domain": "diagnosis_erp",
+      "split": "challenge",
+      "group": "erp-release",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_maintenance": {
+      "domain": "diagnosis_erp",
+      "split": "development",
+      "group": "erp-availability",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_slow_query": {
+      "domain": "diagnosis_erp",
+      "split": "development",
+      "group": "erp-db-query",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "erp_healthy_after_failure": {
+      "domain": "diagnosis_erp",
+      "split": "regression",
+      "group": "erp-recovery",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "vpn_healthy_after_failure": {
+      "domain": "diagnosis_vpn",
+      "split": "challenge",
+      "group": "vpn-recovery",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 10
+    },
+    "mapping_absent": {
+      "domain": "data_availability",
+      "split": "challenge",
+      "group": "data-gap-mapping_absent",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "mapping_unbound": {
+      "domain": "data_availability",
+      "split": "development",
+      "group": "data-gap-mapping_unbound",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "mapping_duplicate_owner": {
+      "domain": "data_availability",
+      "split": "development",
+      "group": "data-gap-mapping_duplicate_owner",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "mapping_shared_account": {
+      "domain": "data_availability",
+      "split": "development",
+      "group": "data-gap-mapping_shared_account",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "mapping_malformed": {
+      "domain": "data_availability",
+      "split": "regression",
+      "group": "data-gap-mapping_malformed",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "source_absent": {
+      "domain": "data_availability",
+      "split": "challenge",
+      "group": "data-gap-source_absent",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "source_unconfigured": {
+      "domain": "data_availability",
+      "split": "development",
+      "group": "data-gap-source_unconfigured",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "source_forbidden": {
+      "domain": "data_availability",
+      "split": "development",
+      "group": "data-gap-source_forbidden",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "source_unavailable": {
+      "domain": "data_availability",
+      "split": "development",
+      "group": "data-gap-source_unavailable",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "source_malformed": {
+      "domain": "data_availability",
+      "split": "development",
+      "group": "data-gap-source_malformed",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "account_not_covered": {
+      "domain": "data_availability",
+      "split": "challenge",
+      "group": "data-gap-account_not_covered",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "empty_account": {
+      "domain": "data_availability",
+      "split": "development",
+      "group": "data-gap-empty_account",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "client_missing": {
+      "domain": "data_availability",
+      "split": "development",
+      "group": "data-gap-client_missing",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "session_missing": {
+      "domain": "data_availability",
+      "split": "development",
+      "group": "data-gap-session_missing",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "wrong_record_owner": {
+      "domain": "data_availability",
+      "split": "regression",
+      "group": "data-gap-wrong_record_owner",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "wrong_record_account": {
+      "domain": "data_availability",
+      "split": "development",
+      "group": "data-gap-wrong_record_account",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "duplicate_record_id": {
+      "domain": "data_availability",
+      "split": "development",
+      "group": "data-gap-duplicate_record_id",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "foreign_session": {
+      "domain": "data_availability",
+      "split": "regression",
+      "group": "data-gap-foreign_session",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "mapping_changed_after_capture": {
+      "domain": "data_availability",
+      "split": "regression",
+      "group": "data-gap-mapping_changed_after_capture",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "business_disabled_read_only": {
+      "domain": "data_availability",
+      "split": "challenge",
+      "group": "data-gap-business_disabled_read_only",
+      "readiness": "existing_contract",
+      "evaluation_kind": "adapter_contract_and_optional_live_diagnosis",
+      "rendered_cases": 4
+    },
+    "missing_target": {
+      "domain": "intake",
+      "split": "development",
+      "group": "missing_target",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "missing_symptom": {
+      "domain": "intake",
+      "split": "development",
+      "group": "missing_symptom",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "incident_or_access": {
+      "domain": "intake",
+      "split": "development",
+      "group": "incident_or_access",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "new_access": {
+      "domain": "intake",
+      "split": "development",
+      "group": "new_access",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "password_explicit": {
+      "domain": "intake",
+      "split": "development",
+      "group": "password_explicit",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "password_question": {
+      "domain": "intake",
+      "split": "regression",
+      "group": "password_question",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "request_negation": {
+      "domain": "intake",
+      "split": "challenge",
+      "group": "request_negation",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "multi_action": {
+      "domain": "intake",
+      "split": "challenge",
+      "group": "multi_action",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "multi_resource": {
+      "domain": "intake",
+      "split": "development",
+      "group": "multi_resource",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "high_privilege": {
+      "domain": "intake",
+      "split": "development",
+      "group": "high_privilege",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "third_party_subject": {
+      "domain": "intake",
+      "split": "regression",
+      "group": "third_party_subject",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "correction": {
+      "domain": "intake",
+      "split": "regression",
+      "group": "correction",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "withdraw_confirm": {
+      "domain": "intake",
+      "split": "regression",
+      "group": "withdraw_confirm",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "clarification_limit": {
+      "domain": "intake",
+      "split": "development",
+      "group": "clarification_limit",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "unsupported_resource": {
+      "domain": "intake",
+      "split": "development",
+      "group": "unsupported_resource",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "portal_password_target": {
+      "domain": "identity",
+      "split": "development",
+      "group": "portal_password_target",
+      "readiness": "capability_gap",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "separate_erp_password": {
+      "domain": "identity",
+      "split": "challenge",
+      "group": "separate_erp_password",
+      "readiness": "policy_decision",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "disabled_portal": {
+      "domain": "identity",
+      "split": "development",
+      "group": "disabled_portal",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "role_revoked": {
+      "domain": "identity",
+      "split": "development",
+      "group": "role_revoked",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "mapping_changed": {
+      "domain": "identity",
+      "split": "development",
+      "group": "mapping_changed",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "mapping_duplicate": {
+      "domain": "identity",
+      "split": "development",
+      "group": "mapping_duplicate",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "business_disabled": {
+      "domain": "identity",
+      "split": "development",
+      "group": "business_disabled",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "session_expiry": {
+      "domain": "identity",
+      "split": "regression",
+      "group": "session_expiry",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "approval_self": {
+      "domain": "approval",
+      "split": "challenge",
+      "group": "approval_self",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "approval_cross_dept": {
+      "domain": "approval",
+      "split": "regression",
+      "group": "approval_cross_dept",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "approval_expired": {
+      "domain": "approval",
+      "split": "development",
+      "group": "approval_expired",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "approval_requester_changed": {
+      "domain": "approval",
+      "split": "development",
+      "group": "approval_requester_changed",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "approval_target_changed": {
+      "domain": "approval",
+      "split": "challenge",
+      "group": "approval_target_changed",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "approval_rejected": {
+      "domain": "approval",
+      "split": "challenge",
+      "group": "approval_rejected",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "approval_duplicate": {
+      "domain": "approval",
+      "split": "challenge",
+      "group": "approval_duplicate",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "resource_owner_approval": {
+      "domain": "approval",
+      "split": "development",
+      "group": "resource_owner_approval",
+      "readiness": "capability_gap",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "temporary_access_expiry": {
+      "domain": "approval",
+      "split": "development",
+      "group": "temporary_access_expiry",
+      "readiness": "capability_gap",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "double_click": {
+      "domain": "delivery",
+      "split": "challenge",
+      "group": "double_click",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "lost_response": {
+      "domain": "delivery",
+      "split": "development",
+      "group": "lost_response",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "different_keys_same_body": {
+      "domain": "delivery",
+      "split": "development",
+      "group": "different_keys_same_body",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "same_key_different_body": {
+      "domain": "delivery",
+      "split": "challenge",
+      "group": "same_key_different_body",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "different_owners_same_key": {
+      "domain": "delivery",
+      "split": "development",
+      "group": "different_owners_same_key",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "write_timeout_unknown": {
+      "domain": "delivery",
+      "split": "development",
+      "group": "write_timeout_unknown",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "definite_rejection": {
+      "domain": "delivery",
+      "split": "development",
+      "group": "definite_rejection",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "malformed_receipt": {
+      "domain": "delivery",
+      "split": "development",
+      "group": "malformed_receipt",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "attachment_retry": {
+      "domain": "delivery",
+      "split": "challenge",
+      "group": "attachment_retry",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "new_report_version": {
+      "domain": "delivery",
+      "split": "development",
+      "group": "new_report_version",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "semantic_duplicate": {
+      "domain": "delivery",
+      "split": "development",
+      "group": "semantic_duplicate",
+      "readiness": "capability_gap",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "job_queue_full": {
+      "domain": "worker",
+      "split": "development",
+      "group": "job_queue_full",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "job_timeout": {
+      "domain": "worker",
+      "split": "development",
+      "group": "job_timeout",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "job_process_restart": {
+      "domain": "worker",
+      "split": "development",
+      "group": "job_process_restart",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "job_retry_limit": {
+      "domain": "worker",
+      "split": "development",
+      "group": "job_retry_limit",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "manual_wins_late_worker": {
+      "domain": "worker",
+      "split": "development",
+      "group": "manual_wins_late_worker",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "claim_race": {
+      "domain": "lifecycle",
+      "split": "challenge",
+      "group": "claim_race",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "wrong_support_group": {
+      "domain": "lifecycle",
+      "split": "challenge",
+      "group": "wrong_support_group",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "transfer_handler": {
+      "domain": "lifecycle",
+      "split": "regression",
+      "group": "transfer_handler",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "request_user_fact": {
+      "domain": "lifecycle",
+      "split": "development",
+      "group": "request_user_fact",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "user_silent": {
+      "domain": "lifecycle",
+      "split": "development",
+      "group": "user_silent",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "support_resolution": {
+      "domain": "lifecycle",
+      "split": "regression",
+      "group": "support_resolution",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "verification_success": {
+      "domain": "lifecycle",
+      "split": "development",
+      "group": "verification_success",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "verification_failure": {
+      "domain": "lifecycle",
+      "split": "challenge",
+      "group": "verification_failure",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "verification_timeout": {
+      "domain": "lifecycle",
+      "split": "regression",
+      "group": "verification_timeout",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "reopen_in_window": {
+      "domain": "lifecycle",
+      "split": "development",
+      "group": "reopen_in_window",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "reopen_after_window": {
+      "domain": "lifecycle",
+      "split": "development",
+      "group": "reopen_after_window",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "stale_revision": {
+      "domain": "lifecycle",
+      "split": "development",
+      "group": "stale_revision",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "unknown_write_close": {
+      "domain": "lifecycle",
+      "split": "challenge",
+      "group": "unknown_write_close",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "self_recovery": {
+      "domain": "lifecycle",
+      "split": "development",
+      "group": "self_recovery",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "major_incident": {
+      "domain": "lifecycle",
+      "split": "development",
+      "group": "major_incident",
+      "readiness": "capability_gap",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "notification_delivery": {
+      "domain": "lifecycle",
+      "split": "regression",
+      "group": "notification_delivery",
+      "readiness": "capability_gap",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "read_other_ticket": {
+      "domain": "security",
+      "split": "challenge",
+      "group": "read_other_ticket",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "forged_identity": {
+      "domain": "security",
+      "split": "development",
+      "group": "forged_identity",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "prompt_injection": {
+      "domain": "security",
+      "split": "development",
+      "group": "prompt_injection",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "log_injection": {
+      "domain": "security",
+      "split": "development",
+      "group": "log_injection",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "fabricated_citation": {
+      "domain": "security",
+      "split": "challenge",
+      "group": "fabricated_citation",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "source_time_conflict": {
+      "domain": "knowledge",
+      "split": "development",
+      "group": "source_time_conflict",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "active_version_collision": {
+      "domain": "knowledge",
+      "split": "development",
+      "group": "active_version_collision",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "retired_runbook": {
+      "domain": "knowledge",
+      "split": "challenge",
+      "group": "retired_runbook",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "mid_investigation_update": {
+      "domain": "knowledge",
+      "split": "regression",
+      "group": "mid_investigation_update",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "vector_failure": {
+      "domain": "knowledge",
+      "split": "regression",
+      "group": "vector_failure",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "reranker_absent": {
+      "domain": "knowledge",
+      "split": "development",
+      "group": "reranker_absent",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "source_expired": {
+      "domain": "knowledge",
+      "split": "regression",
+      "group": "source_expired",
+      "readiness": "capability_gap",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "sensitive_log_redaction": {
+      "domain": "security",
+      "split": "development",
+      "group": "sensitive_log_redaction",
+      "readiness": "capability_gap",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "empty_input": {
+      "domain": "input_validation",
+      "split": "development",
+      "group": "empty_input",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "input_too_long": {
+      "domain": "input_validation",
+      "split": "challenge",
+      "group": "input_too_long",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "unknown_severity": {
+      "domain": "input_validation",
+      "split": "development",
+      "group": "unknown_severity",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "forged_binding_payload": {
+      "domain": "input_validation",
+      "split": "regression",
+      "group": "forged_binding_payload",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "unicode_and_typos": {
+      "domain": "input_validation",
+      "split": "challenge",
+      "group": "unicode_and_typos",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "read_only_reports": {
+      "domain": "intake",
+      "split": "development",
+      "group": "read_only_reports",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "reports_incident_manual": {
+      "domain": "intake",
+      "split": "development",
+      "group": "reports_incident_manual",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "logout_old_cookie": {
+      "domain": "security",
+      "split": "challenge",
+      "group": "logout_old_cookie",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "csrf_write": {
+      "domain": "security",
+      "split": "development",
+      "group": "csrf_write",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "login_bruteforce": {
+      "domain": "security",
+      "split": "regression",
+      "group": "login_bruteforce",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "staff_view_leak": {
+      "domain": "security",
+      "split": "challenge",
+      "group": "staff_view_leak",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "severity_escalation": {
+      "domain": "lifecycle",
+      "split": "development",
+      "group": "severity_escalation",
+      "readiness": "capability_gap",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "global_sla_calendar": {
+      "domain": "lifecycle",
+      "split": "challenge",
+      "group": "global_sla_calendar",
+      "readiness": "policy_decision",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "write_rate_limited": {
+      "domain": "delivery",
+      "split": "development",
+      "group": "write_rate_limited",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "receipt_service_unavailable": {
+      "domain": "delivery",
+      "split": "development",
+      "group": "receipt_service_unavailable",
+      "readiness": "existing_contract",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    },
+    "knowledge_acl": {
+      "domain": "knowledge",
+      "split": "regression",
+      "group": "knowledge_acl",
+      "readiness": "capability_gap",
+      "evaluation_kind": "workflow_specification",
+      "rendered_cases": 4
+    }
+  }
+}

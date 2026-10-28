@@ -331,7 +331,8 @@ def create_app(agent=None, *, identities=None):
         return {"model_mode": "deepseek" if isinstance(primary, DeepSeekDecisionModel) else "offline",
                 "model": cfg.deepseek_model if isinstance(primary, DeepSeekDecisionModel) else "local_rule",
                 "retrieval": cfg.runbook_strategy, "action_backend": cfg.action_backend,
-                "simulated_business": True, "background": cfg.diagnosis_background}
+                "simulated_business": True, "background": cfg.diagnosis_background,
+                "telemetry_source": cfg.investigation_source, "incident_time_required": cfg.diagnosis_require_time}
 
     @application.post("/tickets", status_code=201)
     def create_ticket(body: TicketRequest, background_tasks: BackgroundTasks, response: Response,

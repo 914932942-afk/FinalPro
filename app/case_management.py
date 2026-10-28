@@ -8,7 +8,7 @@ from .models import now_iso
 from .case_access import CaseAccess, GROUPS
 
 USER_QUESTIONS = {
-    "occurred_at": "问题是什么时候开始的？请提供大致日期和时间。",
+    "occurred_at": "问题发生在哪一天、什么时间？请提供大致日期、时间和时区，例如“2026-10-27 10:30，北京时间”，或“今天上午 10 点”。",
     "symptom": "请补充具体页面、报错内容和当前表现。请勿提供密码或验证码。",
     "reproduction": "请说明出现问题前的操作步骤，以及是否每次都能复现。",
     "previous_access": "之前是否可以正常使用，还是第一次使用这个系统？",

@@ -36,6 +36,14 @@ class Settings(BaseSettings):
     diagnosis_mode: Literal["off", "react", "fixed", "rule"] = "react"
     diagnosis_backend: Literal["structured", "investigation"] = "investigation"
     investigation_file: Path | None = None
+    investigation_source: Literal["file", "http"] = "file"
+    telemetry_base_url: str = "http://127.0.0.1:8092"
+    telemetry_api_key: SecretStr = SecretStr("")
+    telemetry_timeout: float = Field(default=5, gt=0, le=30)
+    diagnosis_require_time: bool = True
+    diagnosis_timezone: str = "+08:00"
+    diagnosis_window_before_minutes: int = Field(default=15, ge=0, le=180)
+    diagnosis_window_after_minutes: int = Field(default=15, ge=0, le=180)
     runbooks_file: Path | None = None
     diagnosis_file: Path | None = None
     diagnosis_deadline: float = Field(default=60, gt=0, le=120)
@@ -92,6 +100,15 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_and_resolve(self):
+        from .event_query import fixed_timezone
+        fixed_timezone(self.diagnosis_timezone)
+        telemetry = urlsplit(self.telemetry_base_url)
+        if (telemetry.scheme not in {"http", "https"} or not telemetry.hostname or telemetry.username or telemetry.password
+                or telemetry.query or telemetry.fragment
+                or (telemetry.scheme == "http" and telemetry.hostname not in {"127.0.0.1", "localhost", "::1"})):
+            raise ValueError("invalid read-only telemetry service URL")
+        if self.investigation_source == "http" and len(self.telemetry_api_key.get_secret_value()) < 32:
+            raise ValueError("HTTP telemetry requires an independent key of at least 32 characters")
         endpoint = urlsplit(self.action_base_url)
         if (endpoint.scheme not in {"http", "https"} or not endpoint.hostname or endpoint.username
                 or endpoint.password or endpoint.query or endpoint.fragment):

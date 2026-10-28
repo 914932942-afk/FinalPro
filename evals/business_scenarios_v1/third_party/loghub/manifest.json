@@ -1,0 +1,49 @@
+{
+  "source": "logpai/loghub",
+  "commit": "dd61d0952749ee7963bde24220d1be5ede023033",
+  "retrieved_at": "2026-10-27T06:24:14.250098+00:00",
+  "license": "See LICENSE; research/academic use with upstream attribution; not project MIT",
+  "role": "unlinked raw-log supplement; not fed to current user's diagnosis",
+  "files": [
+    {
+      "path": "LICENSE",
+      "url": "https://raw.githubusercontent.com/logpai/loghub/dd61d0952749ee7963bde24220d1be5ede023033/LICENSE",
+      "bytes": 553,
+      "sha256": "9ffa6ae259833cdc6e7ed8a0219fec72ef6455fb457b3c44096cb1ac1f0696d4",
+      "lines": 11,
+      "diagnostic_labels": null
+    },
+    {
+      "path": "Apache/Apache_2k.log",
+      "url": "https://raw.githubusercontent.com/logpai/loghub/dd61d0952749ee7963bde24220d1be5ede023033/Apache/Apache_2k.log",
+      "bytes": 171239,
+      "sha256": "c7efa3eb686e3a96bd2f8f4457b2a7887e9cf2f3649327f1b4e87af841363ce8",
+      "lines": 2000,
+      "diagnostic_labels": null
+    },
+    {
+      "path": "Linux/Linux_2k.log",
+      "url": "https://raw.githubusercontent.com/logpai/loghub/dd61d0952749ee7963bde24220d1be5ede023033/Linux/Linux_2k.log",
+      "bytes": 216485,
+      "sha256": "b3e20bc1afe732ab1bf3ed1de4bf9c809e4194e02f7dea911d918e5342e8e173",
+      "lines": 2000,
+      "diagnostic_labels": null
+    },
+    {
+      "path": "OpenSSH/OpenSSH_2k.log",
+      "url": "https://raw.githubusercontent.com/logpai/loghub/dd61d0952749ee7963bde24220d1be5ede023033/OpenSSH/OpenSSH_2k.log",
+      "bytes": 225216,
+      "sha256": "1e4912727fa88245113d41b16a0cd25ceadba7f931e1c406542885b91254264f",
+      "lines": 2000,
+      "diagnostic_labels": null
+    },
+    {
+      "path": "OpenStack/OpenStack_2k.log",
+      "url": "https://raw.githubusercontent.com/logpai/loghub/dd61d0952749ee7963bde24220d1be5ede023033/OpenStack/OpenStack_2k.log",
+      "bytes": 595119,
+      "sha256": "025a1bc64ff5b2ef4a4bda6c4ad5c5c5f18478b71cd1ad2b0676e01625629f2f",
+      "lines": 2000,
+      "diagnostic_labels": null
+    }
+  ]
+}

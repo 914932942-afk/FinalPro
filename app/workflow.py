@@ -444,7 +444,7 @@ class EnterpriseAgent:
         if investigate:
             from .investigation import InvestigationTools, InvestigationModel, InvestigationRunner
             frozen = bool((state.diagnosis or {}).get("evidence_snapshot"))
-            if not self.settings.investigation_file.is_file() and not frozen:
+            if self.settings.investigation_source == "file" and not self.settings.investigation_file.is_file() and not frozen:
                 return self._diagnostic_gap(state, account_scope, "source_not_configured") if self.account_directory else self._skip_diagnosis(state, "investigation_not_configured")
             resource = plan["resource"]
             with self._investigation_lock:
@@ -456,10 +456,24 @@ class EnterpriseAgent:
                     state.diagnosis = {"status": "skipped", "stop_reason": "runbooks_not_configured"}
                     return state
                 if resource not in self.investigation_runners:
+                    from .event_query import IncidentTimeResolver
+                    from .event_source import HTTPEventSource
+                    event_source = (HTTPEventSource(self.settings.telemetry_base_url,
+                        self.settings.telemetry_api_key.get_secret_value(), timeout=self.settings.telemetry_timeout)
+                        if self.settings.investigation_source == "http" else None)
                     self.investigation_runners[resource] = InvestigationRunner(
-                        InvestigationTools(self.settings.investigation_file, self.settings.runbooks_file, resource, knowledge=knowledge, accounts=self.account_directory),
+                        InvestigationTools(self.settings.investigation_file, self.settings.runbooks_file, resource,
+                            knowledge=knowledge, accounts=self.account_directory, event_source=event_source,
+                            source_timezone=self.settings.diagnosis_timezone),
                         InvestigationModel(self.settings), deadline_seconds=self.settings.diagnosis_deadline,
-                        prefetch=self.settings.diagnosis_prefetch)
+                        # The local replay fixture keeps legacy cases runnable; a
+                        # configured HTTP source always requires a bounded user
+                        # time scope before querying production-shaped telemetry.
+                        prefetch=self.settings.diagnosis_prefetch,
+                        require_time=(self.settings.diagnosis_require_time and self.settings.investigation_source == "http"),
+                        time_resolver=IncidentTimeResolver(timezone_offset=self.settings.diagnosis_timezone,
+                            before_minutes=self.settings.diagnosis_window_before_minutes,
+                            after_minutes=self.settings.diagnosis_window_after_minutes))
                 runner = self.investigation_runners[resource]
         elif runner is None:
             if not self.settings.diagnosis_file.is_file():
@@ -491,6 +505,16 @@ class EnterpriseAgent:
         if self.account_directory and isinstance(getattr(runner, "adapter", None), InvestigationTools):
             runner.adapter.accounts = self.account_directory
         scope_options = {"account_scope": account_scope} if account_scope and isinstance(runner, (InvestigationRunner, DiagnosticRunner)) else {}
+        if isinstance(runner, InvestigationRunner):
+            context = {"reference_at": state.ticket.created_at}
+            from .event_query import IncidentTimeResolver
+            resolver = IncidentTimeResolver(timezone_offset=self.settings.diagnosis_timezone)
+            for row in reversed(state.conversation_history):
+                if row.get("kind") == "diagnostic_followup" and (row.get("field") == "occurred_at" or
+                        resolver.resolve(row["content"], reference_at=row["at"])["status"] == "bounded"):
+                    context.update(time_answer=row["content"], time_answer_at=row["at"])
+                    break
+            scope_options["request_context"] = context
         state.diagnosis = runner.run(text=investigation_text, owner=state.ticket.owner_id,
             binding=binding, saved=state.diagnosis, checkpoint=checkpoint, **scope_options)
         state.ticket.diagnostic_report = incident_attachment(state.diagnosis)
@@ -619,7 +643,8 @@ class EnterpriseAgent:
                 and plan.get("resource") in ({"vpn", "erp"} if modern else {"vpn"})
                 and (self.diagnostic_runner is not None or
                      self.account_directory is not None or
-                     (self.settings.investigation_file if modern else self.settings.diagnosis_file).is_file()))
+                     ((modern and self.settings.investigation_source == "http") or
+                      (self.settings.investigation_file if modern else self.settings.diagnosis_file).is_file())))
 
     def investigate(self, ticket_id, *, revision=None):
         return self.investigation_jobs.run(ticket_id, revision=revision)
@@ -871,7 +896,9 @@ class EnterpriseAgent:
             if can_queue and (state.diagnosis or state.ticket.diagnostic_report):
                 state.investigation_history.append({"attempt": old_attempt, "diagnosis": copy.deepcopy(state.diagnosis),
                     "report": copy.deepcopy(state.ticket.diagnostic_report), "at": now_iso()})
-            state.conversation_history.append({"role": "user", "content": answer, "kind": "diagnostic_followup", "at": now_iso()})
+            requested_fields = (state.clarification or {}).get("missing_fields", [])
+            state.conversation_history.append({"role": "user", "content": answer, "kind": "diagnostic_followup",
+                "field": requested_fields[0] if len(requested_fields) == 1 else None, "at": now_iso()})
             state.ticket.case_revision += 1
             state.clarification = None
             CaseLifecycle.resume_clock(state)

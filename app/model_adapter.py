@@ -20,6 +20,7 @@ from typing import Any, Dict, Mapping, Protocol, Sequence
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from .clarification import ClarificationDecision, check_offline, is_password_reset_issue
+from .redaction import redact_payload
 
 
 # 允许模型返回的类别和动作。白名单是安全边界：模型即使输出奇怪字符串，
@@ -172,7 +173,7 @@ class DeepSeekDecisionModel:
         )
         # 用户消息用 JSON 序列化，避免手写字符串时把引号、换行拼错。
         # context 是 retrieve 节点返回的文档摘要，最多由知识库限制为几条。
-        user_payload = {
+        user_payload = redact_payload({
             "ticket": {
                 "title": title,
                 "description": description,
@@ -182,7 +183,7 @@ class DeepSeekDecisionModel:
                 {"title": item.get("title", ""), "snippet": item.get("snippet", "")}
                 for item in context
             ],
-        }
+        })
         payload = {
             "model": self.model,
             "messages": [
@@ -269,10 +270,10 @@ class DeepSeekDecisionModel:
         payload = {
             "model": self.model,
             "messages": [{"role": "system", "content": prompt},
-                         {"role": "user", "content": json.dumps({
+                         {"role": "user", "content": json.dumps(redact_payload({
                              "ticket": {key: getattr(ticket, key) for key in
                                         ("title", "description", "requester", "department", "severity")},
-                             "history": list(history)}, ensure_ascii=False)}],
+                             "history": list(history)}), ensure_ascii=False)}],
             "response_format": {"type": "json_object"}, "thinking": {"type": "disabled"},
             "temperature": self.temperature, "max_tokens": 1200, "stream": False,
         }
@@ -320,10 +321,10 @@ class DeepSeekDecisionModel:
             "Return JSON matching this schema: " + json.dumps(PlanningChoice.model_json_schema(), ensure_ascii=False)
         )
         payload = {"model": self.model, "messages": [{"role": "system", "content": prompt},
-            {"role": "user", "content": json.dumps({"user_text": understanding.text,
+            {"role": "user", "content": json.dumps(redact_payload({"user_text": understanding.text,
                 "interpretation": understanding.to_dict(), "resource_catalog": resource_catalog(),
                 "sops_enabled": getattr(self, "planning_use_sop", True),
-                "knowledge_context": [{key: doc.get(key) for key in ("id", "source", "offset", "snippet", "resource", "codes", "status", "version")} for doc in context]}, ensure_ascii=False)}],
+                "knowledge_context": [{key: doc.get(key) for key in ("id", "source", "offset", "snippet", "resource", "codes", "status", "version")} for doc in context]}), ensure_ascii=False)}],
             "response_format": {"type": "json_object"}, "thinking": {"type": "disabled"},
             "temperature": self.temperature, "max_tokens": 1200, "stream": False}
         started = time.perf_counter()

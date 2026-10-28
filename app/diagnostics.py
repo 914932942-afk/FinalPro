@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 from .models import now_iso
 from .errors import ModelOutputError
 from .business_accounts import DiagnosticDataGap
+from .redaction import redact_payload
 
 TOOLS = ("service_health", "access_status", "recent_errors")
 ToolName = Literal["service_health", "access_status", "recent_errors"]
@@ -213,7 +214,8 @@ class DeepSeekDiagnosticModel:
         payload = {"model": cfg.deepseek_model, "temperature": 0, "max_tokens": 500, "stream": False,
                    "thinking": {"type": "disabled"}, "response_format": {"type": "json_object"},
                    "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": json.dumps(
-                       {"request": text, "observations": observations, "allowed_tools": list(allowed_tools)}, ensure_ascii=False)}]}
+                       redact_payload({"request": text, "observations": observations,
+                                       "allowed_tools": list(allowed_tools)}), ensure_ascii=False)}]}
         start = time.perf_counter()
         def request_and_validate():
             response = client._post_json("/chat/completions", payload)

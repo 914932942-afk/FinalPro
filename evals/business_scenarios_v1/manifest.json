@@ -1,0 +1,50 @@
+{
+  "version": "it-service-scenarios-v1",
+  "synthetic": true,
+  "independent_annotation": false,
+  "created_at": "2026-10-27T06:23:55.829359+00:00",
+  "cases": 952,
+  "case_content_sha256": "18c4575b5a42aeccd745e989596e3033a6fb3a03d0876b4ba2d6f8775a0cccb6",
+  "labels_content_sha256": "c7b1ca3cc3e40e9d99bdd8999a99c893b7b836c7ac481f4c62704529d1ab518c",
+  "split_unit": "semantic mechanism group; variants never cross splits",
+  "source_code_sha256": {
+    "scenario_dataset.py": "05e61724f33b35da3b5c0997b920821a32d59953d56b50d594e083142b57dce8",
+    "scenario_catalog.py": "3ac5f9beffc636fad585ddf4da0800a651325d4312ea7e23f542b79e8a72bc00"
+  },
+  "knowledge_sha256": {
+    "kb-e00.md": "dbbce7f0b156d66a327749844adfafb0f5fb696cb5ce8f089b0b01ae0ea442cd",
+    "kb-e01.md": "0f92e64145ec88efe45619b711cd858909365a4898d60eef8b89054c80876bd1",
+    "kb-e02.md": "ceec4278b5803883bc6e55832dba973016e86229610c4d0328347454d6da03ea",
+    "kb-e03.md": "e4df6c65ad653c36ccecc70537803b172088c95b476b380206de269f2cb6d368",
+    "kb-e04.md": "9108fd2dd42a7a4b63f8eeff4b87b704053540c6448cee054fad262cec187483",
+    "kb-e05.md": "e79c3979e5bdcd39acc48a2c51317ff2fdf2b9d3fb5ac2e7b5d65aa4b1552b7c",
+    "kb-e06.md": "73aa1fe362779ff7203f0e18b0fe4d0e78c9413fe3703a358abef8a14f91ef03",
+    "kb-e07.md": "663cf7ad9e6dc6c285728595c88033105d50704d50a1e845f1722a4cd8ee8143",
+    "kb-v00.md": "1edccf926f87b8fe523898b2deb3af486c4f91ae523dfe288978871958bb9591",
+    "kb-v01.md": "a76eb23bb9c4d2cac2074a175db08d79c766585ec62076347f74fe1c65b61499",
+    "kb-v02.md": "e39dafc03503ab66984ed4078a2db422c6dc82002f1d82973856f930fa71841f",
+    "kb-v03.md": "d170e982ceed79cb7441ae53bf2dc78438e202b66c51ea38750c80dcadd773af",
+    "kb-v04.md": "fa6e29c29b6488d800eea17cb53575bb5fd4575a1f259c271394a19bca640818",
+    "kb-v05.md": "e812eef212d0ead57c904fc6ae6fe83a30ba9710397f1365064bc93b7cd7a2fa",
+    "kb-v06.md": "6806ff85f2eaa19d1916547df1cb5aa4512059688639deba6f33d7cdac7872c1",
+    "kb-v07.md": "d472d7e26015d9e46aca63402a5ff19574023313d64dc60de5f6b81cb6942a0f"
+  },
+  "knowledge_hash_normalization": "UTF-8 with LF newlines",
+  "files": {
+    ".gitattributes": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da",
+    "catalog.json": "3ca6c3c71dc9a30fe64a9f0d7e5eba701db8a389bc229167d4c24d70760a7144",
+    "coverage.json": "2319edb4325224d47e41d946a80d0bf8edb68af7ad751f9a58411d92ef28890f",
+    "inputs.jsonl": "abc8036830eef12a1fa36f32e018efd04d1dd144dd906051aec38d1625b41ae8",
+    "labels.jsonl": "2ca951d2927beb0ba932e172fd5906d864c52bd0d209f4612949ef1bcce5913b",
+    "README.md": "bc3654dceb6cfbf2757c6e193b9daa0599afc71ecf98175df824440aa7ba1b75",
+    "sources.json": "b8731f25301157270c1f3752d5f2bd0165360f7ba7850b303119fb66b9e8b2cd"
+  },
+  "limitations": [
+    "finite authored coverage, not all possible business situations",
+    "rendered examples are correlated, not independent incidents",
+    "splits are reproducible author-controlled partitions, not external blind tests",
+    "technical references do not validate local organization policy",
+    "workflow specifications are not automatically executed by the offline adapter checks",
+    "new dataset does not modify production telemetry, identities, knowledge or databases"
+  ]
+}

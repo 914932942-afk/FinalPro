@@ -1,0 +1,20 @@
+{
+  "source": "UCI 498",
+  "url": "http://archive.ics.uci.edu/static/public/498/incident+management+process+enriched+event+log.zip",
+  "landing": "https://archive.ics.uci.edu/dataset/498/incident+management+process+enriched+event+log",
+  "citation": "Amaral, C., Fantinato, M., & Peres, S. (2018). Incident management process enriched event log [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C57S4H",
+  "license": "CC BY 4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "transport": "http",
+  "integrity": "SHA-256 of retrieved content; not a publisher signature",
+  "retrieved_at": "2026-10-27T06:26:44.745296+00:00",
+  "events": 141712,
+  "incidents": 24918,
+  "files": {
+    "ATTRIBUTION.md": "bf47e9701f1b64dee9af79d6b05d3ad8764ac24627e59470f13645101c7f911e",
+    "profile.json": "2b78571f7612c3e040b3a6049c24d14a77fcb7af068a476071f51b09fdb60be5",
+    "source.zip": "6294e29a311647306bfdfc85783f7df66517c197b9cd49aa5ee36ba9c525d1d6",
+    "workflow-inputs.jsonl": "1fce8a0c90ef73190a82a6d3cd32b1008d48f2509423b9bbd4104b6c65a1b461",
+    "workflow-labels.jsonl": "cf03710ea53fda6edc80966f9c5d141e3bcdfc94d569eb47d3feaaef1c340cfb"
+  }
+}

@@ -1,0 +1,67 @@
+[
+  {
+    "id": "uci-incidents",
+    "url": "https://archive.ics.uci.edu/dataset/498/incident+management+process+enriched+event+log",
+    "kind": "public_anonymized_incident_events",
+    "license": "CC BY 4.0",
+    "doi": "10.24432/C57S4H",
+    "usage": "Real public workflow events, kept separate from synthetic VPN/ERP evidence; retain creator attribution.",
+    "limitation": "No ticket free text or root-cause logs; unknown time zone; source closure does not prove user verification."
+  },
+  {
+    "id": "loghub",
+    "url": "https://github.com/logpai/loghub",
+    "kind": "public_system_logs",
+    "license_url": "https://github.com/logpai/loghub/blob/dd61d0952749ee7963bde24220d1be5ede023033/LICENSE",
+    "usage": "Research/academic use under upstream notice; keep attribution and license. Not relicensed under project MIT.",
+    "limitation": "Log samples are not linked IT tickets and have no local VPN/ERP diagnosis labels."
+  },
+  {
+    "id": "openvpn-connectivity",
+    "url": "https://openvpn.net/as-docs/client-vpn-connectivity/",
+    "kind": "official_reference",
+    "usage": "Technical reference only. No documentation paragraphs copied into generated records."
+  },
+  {
+    "id": "openvpn-auth",
+    "url": "https://openvpn.net/as-docs/debugging---troubleshooting-tips/",
+    "kind": "official_reference",
+    "usage": "Authentication mechanism reference, not a source of real user accounts or ticket labels."
+  },
+  {
+    "id": "postgres-errors",
+    "url": "https://www.postgresql.org/docs/18/errcodes-appendix.html",
+    "kind": "official_reference",
+    "usage": "SQLSTATE identifiers inform authored observations. Error condition does not establish exclusive root cause."
+  },
+  {
+    "id": "http-semantics",
+    "url": "https://www.rfc-editor.org/rfc/rfc9110.html",
+    "kind": "standard_reference",
+    "usage": "HTTP status semantics; status codes alone do not prove a failing internal component."
+  },
+  {
+    "id": "http-rate-limit",
+    "url": "https://www.rfc-editor.org/rfc/rfc6585.html",
+    "kind": "standard_reference",
+    "usage": "429 response semantics; generated requests are fictional."
+  },
+  {
+    "id": "jwt",
+    "url": "https://www.rfc-editor.org/rfc/rfc7519.html",
+    "kind": "standard_reference",
+    "usage": "Audience and expiry semantics; no real bearer tokens are generated."
+  },
+  {
+    "id": "otel-faults",
+    "url": "https://opentelemetry.io/docs/demo/feature-flags/",
+    "kind": "official_reference",
+    "usage": "Fault-injection mechanisms inspire authored dependency scenarios; no OTel experiment was executed."
+  },
+  {
+    "id": "local-policy",
+    "url": null,
+    "kind": "authored_project_policy",
+    "usage": "Synthetic local organization, account links, routing and approval rules. Not a vendor standard."
+  }
+]

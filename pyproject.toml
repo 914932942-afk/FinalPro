@@ -1,12 +1,21 @@
+# Python 项目的元信息文件，TOML 是“分区 + 键值”的配置文本格式。
+# 直接执行 py run_demo.py 不会读取这里的构建配置。
 
+# 构建配置：只有尝试安装/打包项目时，构建工具才会使用这一节。
 [build-system]
+# 构建过程需要 setuptools >= 68，运行依赖见 project.dependencies。
 requires = ["setuptools>=68"]
+# 指定由 setuptools 负责构建 Python 分发包。
 build-backend = "setuptools.build_meta"
 
+# 项目元信息，不是业务参数；服务端口等参数定义在 app/config.py。
 [project]
+# 发布/安装时的项目名称，不要求和导入时的 app 包名称相同。
 name = "enterprise-ops-agent"
+# 当前版本号。
 version = "0.2.0"
 description = "An auditable, approval-aware enterprise agent starter"
+# 声明支持 Python 3.11 及以上；打包发布流程尚未在本项目中完整验证。
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115,<1", "uvicorn>=0.30,<1", "langgraph>=1,<2", "pydantic-settings>=2,<3",
