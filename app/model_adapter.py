@@ -337,8 +337,8 @@ class DeepSeekDecisionModel:
             "latency_ms": round((time.perf_counter() - started) * 1000, 2),
             "usage": self._safe_usage(response.get("usage"))})
 
-    def _post_json(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """发送一次 JSON POST；只对限流、服务端错误和网络错误重试。"""
+    def _post_json(self, path: str, payload: Dict[str, Any], *, deadline_at: float | None = None) -> Dict[str, Any]:
+        """发送 JSON POST；仅重试临时故障，并可受整轮调用的单调时钟截止时间约束。"""
         url = f"{self.base_url}{path}"
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         request = Request(
@@ -351,9 +351,28 @@ class DeepSeekDecisionModel:
                 "Authorization": f"Bearer {self.api_key}",
             },
         )
+        def fail(error_type, kind, attempts, status_code=None):
+            error = error_type()
+            # 审计只记录枚举和状态码，不记录第三方响应正文、URL 或凭证。
+            error.diagnostic_metadata = {"failure_kind": kind, "attempts": attempts}
+            if status_code is not None:
+                error.diagnostic_metadata["http_status"] = status_code
+            raise error from None
+
+        def wait_to_retry(attempt):
+            delay = 0.5 * (2**attempt)
+            if deadline_at is not None and time.monotonic() + delay >= deadline_at:
+                return False
+            time.sleep(delay)
+            return True
+
         for attempt in range(self.max_retries + 1):
+            remaining = deadline_at - time.monotonic() if deadline_at is not None else None
+            if remaining is not None and remaining <= 0:
+                fail(ModelTimeoutError, "deadline", attempt)
+            self.last_attempts = attempt + 1
             try:
-                with urlopen(request, timeout=self.timeout) as response:
+                with urlopen(request, timeout=min(self.timeout, remaining) if remaining is not None else self.timeout) as response:
                     raw = response.read()
                 parsed = json.loads(raw.decode("utf-8"))
                 if not isinstance(parsed, dict):
@@ -363,23 +382,21 @@ class DeepSeekDecisionModel:
                 # 只根据 HTTP 状态码判断是否重试，不读取或展示错误正文，
                 # 因为第三方网关可能在正文里回显敏感信息。
                 retryable = exc.code == 429 or exc.code >= 500
-                if retryable and attempt < self.max_retries:
-                    time.sleep(0.5 * (2**attempt))
+                if retryable and attempt < self.max_retries and wait_to_retry(attempt):
                     continue
                 if exc.code in {401, 403}:
-                    raise ModelConfigurationError() from None
+                    fail(ModelConfigurationError, "authentication", attempt + 1, exc.code)
                 if exc.code == 429:
-                    raise ModelRateLimitError() from None
+                    fail(ModelRateLimitError, "rate_limit", attempt + 1, exc.code)
                 if exc.code >= 500:
-                    raise ModelUnavailableError() from None
-                raise ModelAPIError() from None
+                    fail(ModelUnavailableError, "http_5xx", attempt + 1, exc.code)
+                fail(ModelAPIError, "http_4xx", attempt + 1, exc.code)
             except (URLError, TimeoutError, OSError) as exc:
-                if attempt < self.max_retries:
-                    time.sleep(0.5 * (2**attempt))
+                if attempt < self.max_retries and wait_to_retry(attempt):
                     continue
                 if isinstance(exc, TimeoutError) or isinstance(getattr(exc, "reason", None), TimeoutError):
-                    raise ModelTimeoutError() from None
-                raise ModelUnavailableError() from None
+                    fail(ModelTimeoutError, "network_timeout", attempt + 1)
+                fail(ModelUnavailableError, "network", attempt + 1)
             except json.JSONDecodeError as exc:
                 raise ModelOutputError() from None
         # 理论上 for 循环每次都会 return 或 raise，这里只是让类型检查器满意。

@@ -1,5 +1,6 @@
 import copy
 import json
+import time
 from pathlib import Path
 import tempfile
 import unittest
@@ -7,7 +8,7 @@ from unittest.mock import patch
 
 from app.config import get_settings
 from app.investigation import (InvestigationTools, InvestigationRunner, InvestigationStep,
-                               Citation, validate_citations)
+                               InvestigationModel, Citation, validate_citations)
 from app.investigation_experiment import evaluate
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -79,6 +80,40 @@ class InvestigationTests(unittest.TestCase):
             result = self.run_model(ScriptModel(bad))
             self.assertEqual(result["tool_calls"], 0)
             self.assertTrue(result["stop_reason"].startswith("model_error"))
+
+    def test_diagnosis_model_uses_configured_retries_and_remaining_deadline(self):
+        cfg = get_settings(_env_file=None, deepseek_api_key="test-only", deepseek_max_retries=2)
+        response = {"choices": [{"message": {"content": choose("client_events").model_dump_json()}}]}
+        with patch("app.investigation.DeepSeekDecisionModel") as client_type:
+            client = client_type.return_value
+            client._post_json.return_value = response
+            client._safe_usage.return_value = {}
+            client.last_attempts = 2
+            step, metadata = InvestigationModel(cfg).choose("VPN 无法连接", [], 3, timeout=4)
+        self.assertEqual(step.tool, "client_events")
+        self.assertEqual(metadata["attempts"], 2)
+        self.assertEqual(client_type.call_args.kwargs["max_retries"], 2)
+        self.assertEqual(client_type.call_args.kwargs["timeout"], 4)
+        self.assertGreater(client._post_json.call_args.kwargs["deadline_at"], time.monotonic())
+
+    def test_model_outage_is_not_recorded_as_insufficient_evidence(self):
+        from app.errors import ModelUnavailableError
+
+        class BrokenModel:
+            source = "test"
+
+            def choose(self, *args, **kwargs):
+                error = ModelUnavailableError()
+                error.diagnostic_metadata = {"failure_kind": "http_5xx", "http_status": 503, "attempts": 3}
+                raise error
+
+        result = self.run_model(BrokenModel())
+        self.assertEqual(result["assessment"], "not_completed")
+        self.assertEqual(result["stop_reason"], "model_error:ModelUnavailableError")
+        self.assertIn("模型调用异常", result["summary"])
+        self.assertEqual(result["model_failure"],
+                         {"failure_kind": "http_5xx", "http_status": 503, "attempts": 3})
+        self.assertFalse(result["evidence_verified"])
 
     def test_null_unused_tool_text_is_normalized_but_finish_is_strict(self):
         raw={**choose("client_events").model_dump(),"summary":None,"next_check":None}

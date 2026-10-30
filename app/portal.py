@@ -46,10 +46,13 @@ def status_for(state):
     if status == "resolved" or (status == "resolved_manually" and resolution.get("external_issue_resolved") is not False) or (status == "closed" and resolution.get("external_issue_resolved") is True):
         return _status("resolved", "已解决" if action == "open_incident" else "已完成", "green", "completed", "本次处理已完成", "你已验证并确认问题恢复。" if resolution.get("type") == "user_confirmed" else "本次处理记录已结束。", "如问题再次出现，可在有效期内重新打开；其他新问题请另建工单。", 3)
     if status == "in_progress":
-        return _status("in_progress", "支持处理中", "blue", "processing", "支持人员正在处理", "工单已有处理人负责，将继续核查和处理你的问题。", "如有新的报错或线索，可以在下方补充。", 2)
+        message = "自动排查暂时中断，已有线索已保留；支持人员正在继续核查你的问题。" if str(report.get("stop_reason", "")).startswith("model_error:") else "工单已有处理人负责，将继续核查和处理你的问题。"
+        return _status("in_progress", "支持处理中", "blue", "processing", "支持人员正在处理", message, "如有新的报错或线索，可以在下方补充。", 2)
     if status in {"awaiting_support", "manual_review", "failed"} or (status in {"closed", "resolved_manually"} and action == "open_incident"):
         supported = report.get("assessment") == "supported_hypothesis" or report.get("verified") is True
         message = "初步排查已完成，结论仍需要支持人员核实。" if supported else "自动排查暂未形成可用结论，需要支持人员进一步核查。目前尚未确认问题已解决。"
+        if str(report.get("stop_reason", "")).startswith("model_error:"):
+            message = "自动排查暂时中断，已有线索已保留并交由支持人员继续核查。目前尚未确认问题已解决。"
         if resolution.get("external_issue_resolved") is False:
             message = "支持人员已核查，问题目前尚未解决，需要进一步处理。"
         return _status("pending_review", "待支持核查", "amber", "processing", "需要支持人员进一步核查", message, "请保留相关报错和发生时间，方便支持人员跟进。", 2)

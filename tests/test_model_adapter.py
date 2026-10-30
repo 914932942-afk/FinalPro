@@ -5,12 +5,16 @@
 """
 
 import json
+import time
 import unittest
 from unittest.mock import patch
+from urllib.error import HTTPError, URLError
 
 from app.model_adapter import (
     DeepSeekDecisionModel,
+    ModelConfigurationError,
     ModelOutputError,
+    ModelUnavailableError,
     ResilientDecisionModel,
     RuleBasedModel,
 )
@@ -72,6 +76,36 @@ class ModelAdapterTests(unittest.TestCase):
         self.assertEqual(decision.source, "deepseek")
         self.assertEqual(decision.action, "open_incident")
         self.assertEqual(decision.metadata["usage"]["total_tokens"], 30)
+
+    def test_temporary_server_error_retries_within_deadline(self):
+        client = DeepSeekDecisionModel("test-secret", max_retries=2)
+        failure = HTTPError("https://api.deepseek.com/chat/completions", 503, "private gateway text", {}, None)
+        with patch("app.model_adapter.urlopen", side_effect=[failure, FakeResponse({"choices": []})]) as opened, \
+             patch("app.model_adapter.time.sleep") as slept:
+            result = client._post_json("/chat/completions", {}, deadline_at=time.monotonic() + 5)
+        self.assertEqual(result, {"choices": []})
+        self.assertEqual(client.last_attempts, 2)
+        self.assertEqual(opened.call_count, 2)
+        slept.assert_called_once_with(0.5)
+
+    def test_deadline_prevents_retry_and_failure_metadata_is_sanitized(self):
+        client = DeepSeekDecisionModel("test-secret", max_retries=2)
+        with patch("app.model_adapter.urlopen", side_effect=URLError("private-host-and-key")) as opened:
+            with self.assertRaises(ModelUnavailableError) as caught:
+                client._post_json("/chat/completions", {}, deadline_at=time.monotonic() + 0.1)
+        self.assertEqual(opened.call_count, 1)
+        self.assertEqual(caught.exception.diagnostic_metadata, {"failure_kind": "network", "attempts": 1})
+        self.assertNotIn("private-host-and-key", str(caught.exception.diagnostic_metadata))
+
+    def test_authentication_error_never_retries(self):
+        client = DeepSeekDecisionModel("test-secret", max_retries=2)
+        failure = HTTPError("https://api.deepseek.com/chat/completions", 401, "private response", {}, None)
+        with patch("app.model_adapter.urlopen", side_effect=failure) as opened:
+            with self.assertRaises(ModelConfigurationError) as caught:
+                client._post_json("/chat/completions", {})
+        self.assertEqual(opened.call_count, 1)
+        self.assertEqual(caught.exception.diagnostic_metadata,
+                         {"failure_kind": "authentication", "attempts": 1, "http_status": 401})
 
     def test_model_payload_redacts_ticket_secrets_before_network(self):
         response = {"choices": [{"message": {"content": json.dumps({

@@ -82,6 +82,19 @@ class PortalTests(unittest.TestCase):
         self.assertEqual(result["status"]["code"], "pending_review")
         self.assertIn("仍需要支持人员核实", result["status"]["message"])
 
+    def test_model_interruption_has_distinct_requester_message_without_internal_trace(self):
+        for case_status in ("awaiting_support", "in_progress"):
+            with self.subTest(status=case_status):
+                state = self.seed(status=case_status)
+                state["ticket"]["diagnostic_report"] = {
+                    "assessment": "not_completed", "stop_reason": "model_error:ModelUnavailableError",
+                    "model_failure": {"failure_kind": "http_5xx", "http_status": 503, "attempts": 3},
+                    "summary": "private detail"}
+                result = present_ticket(state)
+                self.assertIn("自动排查暂时中断", result["status"]["message"])
+                self.assertNotIn("private detail", str(result))
+                self.assertNotIn("http_5xx", str(result))
+
     def test_only_confirmed_resolution_marks_incident_resolved(self):
         for resolved, group in ((None, "processing"), (False, "processing"), (True, "completed")):
             with self.subTest(resolved=resolved):
