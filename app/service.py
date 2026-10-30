@@ -225,6 +225,16 @@ class TicketService:
             raise RequestValidationError()
         return self.agent.request_case_info(ticket_id, principal.user_id, field, revision)
 
+    def record_work(self, principal, ticket_id, kind, action, result, evidence, case_revision):
+        ticket = self._operator(principal, ticket_id)
+        if ticket["owner_id"] == principal.user_id:
+            raise AuthorizationError("不能记录自己工单的人工处理")
+        if kind not in {"check", "mitigation", "repair", "validation"}:
+            raise RequestValidationError()
+        self._case_revision(case_revision)
+        return self.agent.record_work(ticket_id, principal.user_id, kind,
+            self._text(action, 1000), self._text(result, 1000), self._text(evidence, 2000), case_revision)
+
     def follow_up(self, principal, ticket_id, answer, revision):
         self._case_revision(revision)
         ticket = self.get_ticket(principal, ticket_id)

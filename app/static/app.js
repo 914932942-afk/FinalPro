@@ -186,7 +186,7 @@
         item.setAttribute('aria-pressed',String(ticket.id===this.selected));
         const top=node('div',null,'ticket-row');top.append(node('small','#'+ticket.reference),node('small',formatTime(ticket.created_at,true)));
         const bottom=node('div',null,'ticket-row'),arrow=node('span',null,'ticket-arrow');arrow.append(icon('arrow'));bottom.append(badge(ticket.status),arrow);
-        item.append(top,node('strong',ticket.title));if(this.scope==='support')item.append(node('span',ticket.requester+' · '+ticket.department,'ticket-owner'));item.append(bottom);if(ticket.handling?.overdue)item.append(node('small','已超时 · 需支持团队跟进','overdue-text'));else if(this.scope==='support'&&ticket.handling?.assignee)item.append(node('small','处理人：'+ticket.handling.assignee));container.append(item);
+        item.append(top,node('strong',ticket.title));if(this.scope==='support')item.append(node('span',ticket.requester+' · '+ticket.department,'ticket-owner'));item.append(bottom);if(ticket.handling?.overdue)item.append(node('small','已超时 · 需支持团队跟进','overdue-text'));else if(this.scope==='support'&&ticket.support_queue?.attention)item.append(node('small','需重点跟进','overdue-text'));else if(this.scope==='support'&&ticket.handling?.assignee)item.append(node('small','处理人：'+ticket.handling.assignee));container.append(item);
       }
       if(!this.items.length)container.append(node('p',this.total?'继续加载以查看工单。':$('ticket-search').value||$('filter').value?'没有找到符合条件的工单。':'暂时没有工单，提交问题后会显示在这里。','empty-list'));
     }
@@ -268,6 +268,7 @@
     }
     support(root,ticket) {
       const support=ticket.support,item=card('支持人员处理区','shield','support-card');item.prepend(node('div','SUPPORT ONLY · 审批与核查','support-label'));
+      if(support.work_items?.length){const tasks=node('div',null,'subsection');tasks.append(node('h3','当前处理待办'));for(const task of support.work_items){const row=node('div',null,'evidence-item');row.append(node('strong',task.title),node('span',task.detail));tasks.append(row);}item.append(tasks);}
       if(support.can_claim){item.append(node('p','这张工单正在等待支持人员认领。认领后由你负责核查和处理。'),button('认领并开始处理',()=>this.mutate('/portal/tickets/'+encodeURIComponent(ticket.id)+'/claim',{revision:support.assignment_revision},'已认领，请继续处理这张工单。'),'primary'));}
       if(support.data_issue){const issue=node('div',null,'subsection');issue.append(node('h3','数据接入待办'),node('p',support.data_issue.message),rows([{label:'关联业务账号',value:support.business_account||'待核对关联'}]),node('p',support.data_issue.next_check,'field-help'));item.append(issue);}
       if(support.can_transfer){const form=node('form',null,'subsection');form.append(node('h3','转派处理'));const candidates=(support.assignees||[]).filter(person=>person.user_id!==ticket.handling?.assignee);if(candidates.length){const target=field(form,'转派给',{choices:candidates.map(person=>[person.user_id,person.user_id+({'admin':'（管理员）','manager':'（经理）','support':'（支持人员）'}[person.role]||'')])}),reason=field(form,'转派原因',{type:'text'});const submit=node('button','确认转派','secondary');submit.type='submit';const actions=node('div',null,'actions');actions.append(submit);form.append(actions);form.onsubmit=event=>{event.preventDefault();if(form.reportValidity())this.mutate('/portal/tickets/'+encodeURIComponent(ticket.id)+'/transfer',{assignee:target.value,revision:support.assignment_revision,reason:reason.value},'已转派给新的处理人。');};item.append(form);}}
@@ -276,6 +277,11 @@
       if(support.summary)item.append(node('h3','排查摘要'),node('p',support.summary));
       if(support.next_check)item.append(node('h3','建议下一步'),node('p',support.next_check));
       if(support.diagnostic_note)item.append(node('p',support.diagnostic_note,'field-help'));
+      if(support.can_record_work){const form=node('form',null,'subsection');form.append(node('h3','记录实际核查动作'),node('p','只记录已经完成的人工操作和观察，不要把诊断建议写成已修复。','field-help'));
+        const kind=field(form,'动作类型',{choices:[['check','核查'],['mitigation','临时缓解'],['repair','人工处理'],['validation','复核']]}),action=field(form,'实际做了什么',{maxLength:1000}),result=field(form,'观察到的结果',{maxLength:1000}),evidence=field(form,'核查凭证或记录编号',{maxLength:2000});
+        const submit=node('button','保存处理记录','secondary');submit.type='submit';const actions=node('div',null,'actions');actions.append(submit);form.append(actions);
+        form.onsubmit=event=>{event.preventDefault();if(form.reportValidity())this.mutate('/portal/tickets/'+encodeURIComponent(ticket.id)+'/work-log',{kind:kind.value,action:action.value,result:result.value,evidence:evidence.value,case_revision:ticket.case_revision},'人工处理记录已保存。');};item.append(form);}
+      if(support.work_log?.length){const history=node('details',null,'subsection');history.append(node('summary','查看人工处理记录（'+support.work_log.length+'）'));for(const record of support.work_log){const row=node('div',null,'evidence-item');row.append(node('strong',record.actor+' · '+formatTime(record.at)),node('span',record.action),node('span','结果：'+record.result),node('span','凭证：'+record.evidence));history.append(row);}item.append(history);}
       if(support.observations.length){const evidence=node('details');evidence.append(node('summary','查看排查依据'));
         for(const source of support.observations){evidence.append(node('h3',source.source));if(!source.records.length)evidence.append(node('p','未取得可用记录。','muted'));for(const record of source.records){const block=node('div',null,'evidence-item');block.append(node('strong',record.reference||'记录'),node('span',record.text));evidence.append(block);}}item.append(evidence);}
       if(support.can_investigate)item.append(button('继续排查',()=>this.mutate('/tickets/'+encodeURIComponent(ticket.id)+'/investigate',undefined,'已继续排查。'),'secondary'));

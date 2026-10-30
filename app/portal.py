@@ -43,7 +43,15 @@ def status_for(state):
         return _status("awaiting_approval", "等待审批", "blue", "processing", "申请正在等待审批", "你的申请已提交给有权限的审批人。", "你暂时无需操作，审批结果会在这里更新。", 2)
     if status in {"awaiting_investigation", "investigating"}:
         return _status("investigating", "正在排查", "blue", "processing", "正在排查你的问题", "工单已登记，正在收集相关信息并分析。", "你暂时无需操作，页面会自动更新进度。", 1)
-    if status == "resolved" or (status == "resolved_manually" and resolution.get("external_issue_resolved") is not False) or (status == "closed" and resolution.get("external_issue_resolved") is True):
+    verified_resolution = (resolution.get("type") == "user_confirmed"
+                           and resolution.get("external_issue_resolved") is True)
+    if (action == "open_incident" and not verified_resolution
+            and (status == "resolved" or (status in {"resolved_manually", "closed"}
+                                           and resolution.get("external_issue_resolved") is True))):
+        return _status("pending_review", "处理记录待核实", "amber", "processing", "尚未取得你的恢复验证",
+                       "该工单曾标记为已解决，但没有申请人的验证记录，不能据此确认故障已解决。",
+                       "如问题仍在，请在有效期内重新打开工单，或联系支持人员核查。", 2)
+    if status == "resolved" or (status == "resolved_manually" and resolution.get("external_issue_resolved") is True) or (status == "closed" and resolution.get("external_issue_resolved") is True):
         return _status("resolved", "已解决" if action == "open_incident" else "已完成", "green", "completed", "本次处理已完成", "你已验证并确认问题恢复。" if resolution.get("type") == "user_confirmed" else "本次处理记录已结束。", "如问题再次出现，可在有效期内重新打开；其他新问题请另建工单。", 3)
     if status == "in_progress":
         message = "自动排查暂时中断，已有线索已保留；支持人员正在继续核查你的问题。" if str(report.get("stop_reason", "")).startswith("model_error:") else "工单已有处理人负责，将继续核查和处理你的问题。"
@@ -90,6 +98,52 @@ def diagnostic_data_issue(state):
     if ticket.get("recommended_action") == "open_incident" and (ticket.get("execution_plan") or {}).get("resource") == "reports_db":
         return gap_detail("diagnosis_not_supported")
     return None
+
+
+def support_work_items(state):
+    """把诊断与异常状态映射为支持侧待办；不把建议当成已执行的修复。"""
+    ticket = state["ticket"]
+    if ticket.get("recommended_action") != "open_incident" or ticket["status"] not in CaseLifecycle.open_states:
+        return [], False
+    assignment = ticket.get("assignment") or {}
+    report = ticket.get("diagnostic_report") or {}
+    job = ticket.get("investigation_job") or {}
+    status = ticket["status"]
+    items = []
+    def add(code, title, detail):
+        items.append({"code": code, "title": title, "detail": detail})
+    if status == "awaiting_user_info":
+        add("waiting_requester", "等待申请人补充", "收到答复后在原工单继续排查；超时后由支持人员接手。")
+        return items, False
+    if status == "awaiting_verification":
+        add("waiting_verification", "等待申请人验证", "申请人确认恢复后才能标记已解决；仍失败则继续处理原工单。")
+        return items, False
+    if status in {"awaiting_investigation", "investigating"}:
+        add("automatic_investigation", "等待自动排查", "诊断正在读取证据；超时或失败后保留已有线索并交由支持人员。")
+        return items, False
+    if not assignment.get("assignee"):
+        add("claim", "认领并负责处理", "由有权限的支持人员认领，之后记录核查动作和处理结果。")
+    gap = diagnostic_data_issue(state)
+    interrupted = str(report.get("stop_reason", "")).startswith("model_error:")
+    if job.get("status") == "failed":
+        add("worker_failure", "处理排查任务异常", "先核查失败原因；可重试时重新排查，否则根据已有证据人工继续。")
+    if gap:
+        add("data_gap", "核查证据来源", gap["next_check"])
+    elif interrupted:
+        add("model_interrupted", "人工继续排查", "模型调用中断，不能将其归为证据不足；核查已保留的日志和规程，必要时重新排查。")
+    elif report.get("assessment") == "supported_hypothesis":
+        add("verify_hypothesis", "核验诊断假设", report.get("next_check") or "核对当前会话证据及规程适用条件。")
+    else:
+        add("collect_evidence", "继续核查故障", report.get("next_check") or "核对当前故障、日志来源和复现情况，不推断尚未验证的根因。")
+    if assignment.get("attention_reason"):
+        add("resumed_attention", "跟进未完成事项", "用户未答复或存在未确认操作，请核查原记录后继续处理。")
+    if CaseLifecycle.overdue(assignment):
+        add("overdue", "处理期限已过", "由支持负责人确认当前处理人和下一步安排。")
+    if assignment.get("assignee"):
+        add("record_work", "记录人工核查与处理", "记录实际动作、结果和凭证；提交已处理结果后等待申请人验证。")
+    attention = bool(job.get("status") == "failed" or gap or interrupted or assignment.get("attention_reason")
+                     or CaseLifecycle.overdue(assignment))
+    return items, attention
 
 
 def present_ticket(state, *, summary=False):
@@ -197,13 +251,15 @@ class PortalService:
             if scope == "support":
                 support = self._support(state, principal)
                 active = row["status"]["group"] != "completed"
-                row["support_queue"] = {"unassigned": support["can_claim"], "mine": active and support["is_assignee"], "overdue": active and row["handling"]["overdue"]}
+                row["support_queue"] = {"unassigned": support["can_claim"], "mine": active and support["is_assignee"],
+                                        "overdue": active and row["handling"]["overdue"],
+                                        "attention": active and support["needs_attention"]}
             rows.append(row)
         counts = {"total": len(rows), "action_required": 0, "processing": 0, "completed": 0}
         for row in rows:
             counts[row["status"]["group"]] += 1
         if scope == "support":
-            for key in ("unassigned", "mine", "overdue"):
+            for key in ("unassigned", "mine", "overdue", "attention"):
                 counts[key] = sum(bool(row["support_queue"][key]) for row in rows)
         text = query.strip().casefold()
         filtered = [row for row in rows if (not queue or row.get("support_queue", {}).get(queue)) and (not group or row["status"]["group"] == group) and
@@ -222,6 +278,7 @@ class PortalService:
         required_role = approval.get("required_role")
         assignment = ticket.get("assignment") or {}
         job = (ticket.get("investigation_job") or {}) if handling else {}
+        work_items, needs_attention = support_work_items(state) if handling else ([], False)
         job_failed = job.get("status") == "failed"
         is_assignee = operator and assignment.get("assignee") == principal.user_id
         case_active = ticket["status"] in CaseLifecycle.support_states
@@ -234,6 +291,10 @@ class PortalService:
                 "is_assignee": is_assignee, "assignment_revision": assignment.get("revision", 0),
                 "can_transfer": operator and bool(assignment.get("assignee")) and (is_assignee or principal.role == "admin") and (case_active or ticket["status"] in {"awaiting_user_info", "awaiting_verification"}),
                 "can_request_info": independent and is_assignee and case_active and ticket.get("recommended_action") == "open_incident",
+                "can_record_work": independent and is_assignee and case_active and ticket.get("recommended_action") == "open_incident",
+                "work_items": work_items, "needs_attention": needs_attention,
+                "work_log": [{key: row.get(key) for key in ("kind", "action", "result", "evidence", "actor", "at")}
+                             for row in ticket.get("work_log", [])] if handling else [],
                 "assignment_history": assignment.get("history", []) if handling else [],
                 "can_investigate": operator and ticket["status"] == "awaiting_investigation",
                 "can_feedback": independent and is_assignee and ticket.get("recommended_action") == "open_incident" and ticket["status"] in CaseLifecycle.support_states | {"awaiting_verification"}

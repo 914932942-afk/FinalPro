@@ -65,6 +65,8 @@ VPN、ERP 的演示日志覆盖四个演示身份，包含独立会话。未绑�
 - 首次故障登记前持久化 `registration_context`：包括版本、澄清后的有效描述、各轮用户补充，以及用户输入和执行计划的摘要。原始标题、描述单独保留；HTTP 演示服务实际接收并保存这些信息。登记请求的幂等校验覆盖完整发送内容，崩溃恢复沿用同一快照。历史已登记工单继续读取原回执，不自动补写或重新登记。
 - 创建事件与 `attach_evidence` 分别使用幂等账本，附件按调查轮次使用独立键。补充信息仅启动同一事件的新一轮只读调查，不重新登记、不重新授权。最多调查 3 轮、自动追问 2 次，可通过 `AGENT_DIAGNOSIS_MAX_ATTEMPTS` / `AGENT_DIAGNOSIS_MAX_QUESTIONS` 调整；超出预算交由支持人员继续处理，历史调查证据保留。
 - 故障登记或调查结束不再关闭工单：`awaiting_support` 等待认领、`in_progress` 由当前处理人跟进、`awaiting_user_info` 等待申请人补充。没有诊断报告也能被认领和处理。支持侧提交已处理后进入 `awaiting_verification`，申请人实际验证恢复才进入 `resolved`；验证失败继续在原工单处理。普通非故障任务仍可使用 `closed` 表示任务交付。
+- 支持工作台把诊断假设、模型中断、数据缺口、超时与旧待办分别转换为当前处理待办；异常进入“需重点跟进”队列。认领人可在原工单记录人工核查类型、实际动作、观察结果和凭证；记录与报告哈希及工单版本绑定，重复请求只写一次。申请人只看到通俗的进度事件，不接收内部处理记录。人工记录是支持人员的陈述，不是下游自动执行或真实修复证明。
+- 故障的人工“已处理”必须填写核查凭证，然后进入申请人验证；缺少凭证不能宣称已解决。演示不接入真实修复系统，最终恢复仍以申请人实际验证为准。
 - 演示服务按工单及报告版本保存调查附件，支持多轮报告并保留历史；同版本、同键重试复用原回执。旧单附件表在事务中迁移为版本 1，保留原始内容和幂等凭证。反馈和人工处理的 HTTP/CLI 入口要求 `case_revision`，旧页面不能提交对新版报告的核查。
 - 等待用户补充默认 48 小时，超时回到人工待办；验证期默认 72 小时，超时归档为未确认解决，不能记作已恢复。申请人可报告自行恢复或撤回后续处理；当前处理人可归档无人回应的工单。结束后默认 7 天内可在原工单反馈复发，保留原事件、证据和处理记录，不重新登记。
 - `owner_id` 始终是申请人；`assignment` 单独记录支持组、当前处理人、处理期限和转派历史。只有当前处理人可以请求补充、提交反馈或结案；管理员可填写原因后接管。按严重程度设定处理期限，等待用户期间暂停计时；超期写入审计并进入支持入口的超期队列。
@@ -289,6 +291,7 @@ vector/hybrid 可通过 `AGENT_EMBEDDING_MODEL` 指定本地 BGE 路径；优先
 
 verdict 为 accepted/rejected/inconclusive；issue_resolved 独立表示外部问题是否解决，不与采纳建议混为一谈。
 反馈追加保存并绑定原始报告哈希；相同版本相同内容幂等，改内容或跳版本返回 409。反馈不会训练模型，也不自动写回可信知识库。
+支持人员可通过 `POST /portal/tickets/{id}/work-log` 记录 `kind`（check/mitigation/repair/validation）、`action`、`result`、`evidence` 和当前 `case_revision`；仅当前认领人可写，申请人页面不展示原始人工记录。
 重复提交返回最初响应（可能仍是 awaiting_investigation），最新状态须 GET 查询。
 
 ## 测试与实验
@@ -298,7 +301,10 @@ verdict 为 accepted/rejected/inconclusive；issue_resolved 独立表示外部�
 .\.venv\Scripts\python.exe -X utf8 -m app.knowledge_experiment --live --repeats 2 --output data/evaluations/my-knowledge-run.json
 .\.venv\Scripts\python.exe -X utf8 -m app.investigation_experiment --live --split branch --strategies react react_prefetch --output data/evaluations/my-prefetch-run.json
 .\.venv\Scripts\python.exe -X utf8 scripts/check_investigation_workflow.py --live --output data/evaluations/my-http-run.json
+.\.venv\Scripts\python.exe -X utf8 -m scripts.case_closure_report
 ```
+
+`case_closure_report` 只输出本地工单汇总计数和时长，不导出姓名或日志；会标记未由用户验证却显示已解决的历史记录、无人认领、缺失支持组或期限、超时与模型中断。它是演示数据的流程质量检查，不是企业 SLA 或真实修复率。
 
 实验输出必须使用新文件名，保留失败运行。`--live` 会产生实际模型用量，业务写入仍是模拟。
 新知识实验固定日志、模型、生成提示词，仅改变知识提供方式；比较无知识、旧规程、BM25、混合检索和全量资源上下文。

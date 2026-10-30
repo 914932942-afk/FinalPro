@@ -59,6 +59,7 @@ class Ticket:
     diagnostic_report: Optional[Dict[str, Any]] = None  # 服务端只读诊断附件，不是执行授权。
     investigation_status: str = "not_requested"
     feedback: List[Dict[str, Any]] = field(default_factory=list)
+    work_log: List[Dict[str, Any]] = field(default_factory=list)  # 人工核查记录；不代表下游系统已自动修复。
     assignment: Optional[Dict[str, Any]] = None
     case_revision: int = 0
     investigation_attempt: int = 0

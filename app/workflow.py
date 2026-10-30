@@ -667,6 +667,30 @@ class EnterpriseAgent:
         state.resolution = {**(state.resolution or {}), "type": "agent_task_completed", "external_issue_resolved": None}
         return state
 
+    def record_work(self, ticket_id, actor, kind, action, result, evidence, case_revision):
+        with self.audit.ticket_lock(ticket_id):
+            raw = self.audit.get_state(ticket_id)
+            if not raw:
+                raise IdempotencyConflict("工单不存在或状态已变化")
+            state = CaseLifecycle.normalize(AgentState.from_dict(raw))
+            previous_status, previous_revision = state.ticket.status, state.ticket.case_revision
+            def validate():
+                if (not CaseLifecycle.incident(state) or previous_status not in CaseLifecycle.support_states
+                        or previous_revision != case_revision):
+                    raise IdempotencyConflict("工单状态或版本已变化，请刷新后记录")
+                self._require_assignee(state, actor)
+            entry = {"kind": kind, "action": action, "result": result, "evidence": evidence,
+                     "actor": actor, "at": now_iso(), "report_hash": CaseLifecycle.report_hash(state)}
+            request = {"kind": kind, "action": action, "result": result, "evidence": evidence,
+                       "actor": actor, "case_revision": case_revision}
+            state.ticket.work_log.append(entry)
+            state.ticket.case_revision += 1
+            state.ticket.updated_at = now_iso()
+            CaseLifecycle.event(state, "support_work_recorded", "支持人员已记录核查进展。", actor)
+            checkpoint = self._checkpoint(state, "support_work_recorded", {"actor": actor, "kind": kind})
+            return AgentState.from_dict(self.audit.once(f"support-work:{ticket_id}:{case_revision}", request,
+                state.to_dict, ticket_id=ticket_id, checkpoint=checkpoint, precondition=validate))
+
     def feedback(self, ticket_id, actor, revision, verdict, note, evidence, issue_resolved, *, case_revision=None):
         with self.audit.ticket_lock(ticket_id):
             state = CaseLifecycle.normalize(AgentState.from_dict(self.audit.get_state(ticket_id)))
@@ -795,6 +819,8 @@ class EnterpriseAgent:
                 unknown = state.action_result and state.action_result.status == "unknown"
                 if (unknown or any(x["kind"] == "tool" for x in self.audit.pending_operations(ticket_id))) and not evidence.strip():
                     raise IdempotencyConflict("执行结果未知，必须填写核查凭证后才能结案")
+                if CaseLifecycle.incident(state) and outcome == "resolved" and not evidence.strip():
+                    raise IdempotencyConflict("提交待用户验证的处理结果前，必须填写人工核查凭证")
             CaseLifecycle.retain_resolution(state)
             if state.ticket.assignment:
                 CaseLifecycle.resume_clock(state)

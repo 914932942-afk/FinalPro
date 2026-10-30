@@ -136,5 +136,12 @@ class CaseLifecycle:
 
     @staticmethod
     def overdue(assignment):
-        return bool(assignment and not assignment.get("paused_at") and
-                    datetime.fromisoformat(assignment["due_at"]) <= datetime.now(timezone.utc))
+        if not assignment or assignment.get("paused_at") or not assignment.get("due_at"):
+            return False
+        try:
+            due = datetime.fromisoformat(assignment["due_at"])
+            if due.tzinfo is None:
+                return False  # 未知时区不能可靠判定超时，交由数据完整性检查。
+            return due <= datetime.now(timezone.utc)
+        except (TypeError, ValueError):
+            return False

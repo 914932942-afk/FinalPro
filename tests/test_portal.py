@@ -12,6 +12,7 @@ from app.config import get_settings
 from app.knowledge import KnowledgeBase
 from app.models import AgentState, Approval, Ticket
 from app.portal import present_ticket
+from app.portal import support_work_items
 from app.tools import EnterpriseTools
 from app.workflow import EnterpriseAgent
 from auth_helpers import demo_identities, auth_headers
@@ -95,11 +96,36 @@ class PortalTests(unittest.TestCase):
                 self.assertNotIn("private detail", str(result))
                 self.assertNotIn("http_5xx", str(result))
 
+    def test_model_interruption_creates_support_task_and_attention_queue(self):
+        state = self.seed(status="awaiting_support")
+        state["ticket"]["diagnostic_report"] = {"assessment": "not_completed",
+            "stop_reason": "model_error:ModelUnavailableError", "next_check": "人工核对日志"}
+        self.audit.save_checkpoint(state, "test")
+        tasks, attention = support_work_items(state)
+        self.assertTrue(attention)
+        self.assertIn("model_interrupted", [row["code"] for row in tasks])
+        listing = self.client.get("/portal/tickets", params={"scope": "support", "queue": "attention"},
+                                  headers=self.headers("manager")).json()
+        self.assertIn(state["ticket"]["id"], [row["id"] for row in listing["items"]])
+        support = self.get(state["ticket"]["id"], "manager", "support").json()["support"]
+        self.assertTrue(support["needs_attention"])
+        self.assertIn("人工继续排查", [row["title"] for row in support["work_items"]])
+
     def test_only_confirmed_resolution_marks_incident_resolved(self):
         for resolved, group in ((None, "processing"), (False, "processing"), (True, "completed")):
             with self.subTest(resolved=resolved):
-                state = self.seed(resolution={"external_issue_resolved": resolved})
+                state = self.seed(resolution={"external_issue_resolved": resolved,
+                    "type": "user_confirmed" if resolved is True else "agent_task_completed"})
                 self.assertEqual(present_ticket(state)["status"]["group"], group)
+
+    def test_legacy_resolution_claim_without_requester_verification_is_not_shown_as_complete(self):
+        for status, resolved in (("resolved", True), ("resolved", None),
+                                 ("resolved_manually", True), ("closed", True)):
+            with self.subTest(status=status, resolved=resolved):
+                state = self.seed(status=status, resolution={"type": "agent_task_completed", "external_issue_resolved": resolved})
+                result = present_ticket(state)
+                self.assertEqual(result["status"]["code"], "pending_review")
+                self.assertIn("没有申请人的验证记录", result["status"]["message"])
 
     def test_simulated_access_request_explains_demo_result(self):
         state = self.seed(action="grant_access")

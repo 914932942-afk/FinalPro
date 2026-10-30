@@ -70,6 +70,15 @@ class FeedbackRequest(BaseModel):
     case_revision: int = Field(strict=True, ge=0)
 
 
+class WorkLogRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    kind: Literal["check", "mitigation", "repair", "validation"]
+    action: str = Field(min_length=5, max_length=1000)
+    result: str = Field(min_length=5, max_length=1000)
+    evidence: str = Field(min_length=3, max_length=2000)
+    case_revision: int = Field(strict=True, ge=0)
+
+
 class CaseRevisionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     revision: int = Field(strict=True, ge=0, le=10000)
@@ -233,7 +242,7 @@ def create_app(agent=None, *, identities=None):
     def portal_list(scope: Literal["mine", "support"] = "mine",
                     group: Literal["action_required", "processing", "completed"] | None = None,
                     query: str = Query(default="", max_length=300),
-                    queue: Literal["unassigned", "mine", "overdue"] | None = None,
+                    queue: Literal["unassigned", "mine", "overdue", "attention"] | None = None,
                     limit: int = Query(default=30, ge=1, le=100), offset: int = Query(default=0, ge=0),
                     principal: Principal = Depends(current_user)):
         return PortalService(application.state.service).list(principal, scope=scope, group=group, query=query, queue=queue, limit=limit, offset=offset)
@@ -263,6 +272,11 @@ def create_app(agent=None, *, identities=None):
     @application.post("/portal/tickets/{ticket_id}/request-info")
     def request_case_info(ticket_id: str, body: InformationRequest, principal: Principal = Depends(current_user)):
         return present_ticket(application.state.service.request_info(principal, ticket_id, body.field, body.revision).to_dict())
+
+    @application.post("/portal/tickets/{ticket_id}/work-log")
+    def record_work(ticket_id: str, body: WorkLogRequest, principal: Principal = Depends(current_user)):
+        application.state.service.record_work(principal, ticket_id, **body.model_dump())
+        return portal_detail(ticket_id, scope="support", principal=principal)
 
     @application.post("/portal/tickets/{ticket_id}/follow-up")
     def follow_up(ticket_id: str, body: FollowUpRequest, background_tasks: BackgroundTasks, principal: Principal = Depends(current_user)):

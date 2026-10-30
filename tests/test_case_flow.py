@@ -104,6 +104,33 @@ class CaseFlowTests(unittest.TestCase):
         self.assertEqual(state.ticket.status, "awaiting_verification")
         self.assertEqual(len(self.actions.registrations), 1)
 
+    def test_support_work_log_is_owned_versioned_and_not_public(self):
+        state = self.claim(self.create())
+        revision = state.ticket.case_revision
+        args = ("check", "核查当前 ERP 会话的错误记录", "当前会话仍返回 503，尚未恢复", "session-check-001", revision)
+        with self.assertRaises(AuthorizationError):
+            self.service.record_work(self.user, state.ticket.id, *args)
+        with self.assertRaises(IdempotencyConflict):
+            self.service.record_work(self.admin, state.ticket.id, *args)
+        recorded = self.service.record_work(self.manager, state.ticket.id, *args)
+        self.assertEqual(recorded.ticket.work_log[0]["actor"], "manager")
+        self.assertEqual(recorded.ticket.work_log[0]["evidence"], "session-check-001")
+        self.assertEqual(recorded.ticket.case_revision, revision + 1)
+        replay = self.service.record_work(self.manager, state.ticket.id, *args)
+        self.assertEqual(replay.to_dict(), recorded.to_dict())
+        with self.assertRaises(IdempotencyConflict):
+            self.service.record_work(self.manager, state.ticket.id, "check", "核查当前 ERP 会话的错误记录", "声称已恢复", "session-check-001", revision)
+        public = self.portal.get(self.user, state.ticket.id, "mine")
+        self.assertNotIn("session-check-001", str(public))
+        support = self.portal.get(self.manager, state.ticket.id, "support")["support"]
+        self.assertEqual(support["work_log"][0]["action"], args[1])
+
+    def test_incident_resolution_requires_manual_evidence_even_without_unknown_tool(self):
+        state = self.claim(self.create())
+        with self.assertRaises(IdempotencyConflict):
+            self.service.resolve(self.manager, state.ticket.id, "resolved", "口头说已恢复", "", case_revision=state.ticket.case_revision)
+        self.assertEqual(self.audit.get_ticket(state.ticket.id)["status"], "in_progress")
+
     def test_non_assignee_cannot_resolve_or_feedback(self):
         state = self.claim(self.create())
         with self.assertRaises(IdempotencyConflict):
@@ -306,5 +333,20 @@ class CaseFlowTests(unittest.TestCase):
             response = client.post(url + "/follow-up", headers=employee, json={"answer": "今天10点", "revision": own["case_revision"]})
             self.assertEqual(response.status_code, 200, response.text)
             self.assertEqual(response.json()["status"]["code"], "in_progress")
+
+    def test_http_work_log_requires_assignee_and_returns_support_projection(self):
+        state = self.create(); url = "/portal/tickets/" + state.ticket.id
+        with TestClient(create_app(self.agent, identities=self.identities)) as client:
+            manager = auth_headers(self.keys, "manager"); employee = auth_headers(self.keys)
+            body = {"kind": "check", "action": "核对 ERP 当前请求链路", "result": "服务端记录显示请求仍失败",
+                    "evidence": "trace-001", "case_revision": state.ticket.case_revision}
+            self.assertEqual(client.post(url + "/work-log", headers=employee, json=body).status_code, 403)
+            self.assertEqual(client.post(url + "/work-log", headers=manager, json=body).status_code, 409)
+            self.assertEqual(client.post(url + "/claim", headers=manager, json={"revision": 0}).status_code, 200)
+            body["case_revision"] = client.get(url + "?scope=support", headers=manager).json()["case_revision"]
+            response = client.post(url + "/work-log", headers=manager, json=body)
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(response.json()["support"]["work_log"][0]["evidence"], "trace-001")
+            self.assertNotIn("trace-001", str(client.get(url, headers=employee).json()))
 
 if __name__ == "__main__": unittest.main()
