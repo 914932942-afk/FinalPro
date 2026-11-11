@@ -7,7 +7,7 @@ from langgraph.graph import StateGraph, START, END
 
 from .audit import AuditStore
 from .clarification import ClarificationDecision
-from .planning import PlanningDecision, validate_choice, previous_access
+from .planning import PlanningDecision, exact_rule_decision, validate_choice, previous_access
 from .config import get_settings
 from .errors import describe_error, IdempotencyConflict, ModelOutputError, OperationPending
 from .model_adapter import DecisionModel, RuleBasedModel, ResilientDecisionModel, DeepSeekDecisionModel
@@ -186,8 +186,16 @@ class EnterpriseAgent:
                 result = ClarificationDecision(True, constraints.missing)
             else:
                 # 不把旧标题和已经被更正的描述再次送进模型。
-                current = replace(state.ticket, title="", description=understanding.text)
-                result = self.model.clarify(current, ())
+                from .knowledge import KnowledgeBase
+                explicit_code = KnowledgeBase.local_codes(understanding.text)
+                exact_route = (len(explicit_code) == 1 and understanding.resource
+                               and understanding.action == "open_incident")
+                if exact_route:
+                    result = ClarificationDecision(False, [], source="rule_exact",
+                        metadata={"path": "exact_rule_fast_path", "error_code": next(iter(explicit_code))})
+                else:
+                    current = replace(state.ticket, title="", description=understanding.text)
+                    result = self.model.clarify(current, ())
                 if not isinstance(result, ClarificationDecision):
                     raise ModelOutputError("澄清结果类型无效")
                 result.__post_init__()
@@ -197,14 +205,14 @@ class EnterpriseAgent:
                 state.understanding = understanding.to_dict()
                 if understanding.blocked_reason:
                     return self._manual(state, understanding.blocked_reason)
-                model_missing = result.missing_fields
+                model_missing = [] if exact_route else result.missing_fields
                 if not constraints.missing and any(row.get("kind") == "constraint_answer" for row in state.conversation_history):
                     model_missing = [name for name in model_missing if name != "confirmation"]
                 if self.planning_enabled and understanding.proposal and understanding.resource:
                     model_missing = [name for name in model_missing if name not in {"target", "permission", "symptom", "previous_access"}]
                     if understanding.proposal["speech_act"] == "report":
                         model_missing = [name for name in model_missing if name != "intent"]
-                missing = list(dict.fromkeys([*understanding.missing, *model_missing]))
+                missing = list(dict.fromkeys([] if exact_route else [*understanding.missing, *model_missing]))
                 result = ClarificationDecision(bool(missing), missing, result.source, result.metadata, result.interpretation)
         except Exception as exc:
             state.llm_error = type(exc).__name__
@@ -357,7 +365,14 @@ class EnterpriseAgent:
     def _plan_next_step(self, state):
         understanding = saved_understanding(state)
         try:
-            decision = self.model.plan(state.ticket, understanding, state.retrieved_docs)
+            from .knowledge import KnowledgeBase
+            explicit_code = KnowledgeBase.local_codes(understanding.text)
+            if len(explicit_code) == 1 and understanding.resource:
+                decision = exact_rule_decision(understanding, state.retrieved_docs)
+                if decision is None:
+                    raise ModelOutputError("明确错误码无法进入精确规则路径")
+            else:
+                decision = self.model.plan(state.ticket, understanding, state.retrieved_docs)
             if not isinstance(decision, PlanningDecision):
                 raise ModelOutputError("规划必须返回 PlanningDecision")
             choice = decision.choice

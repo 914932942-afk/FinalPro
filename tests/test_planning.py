@@ -97,6 +97,30 @@ class PlanningTests(unittest.TestCase):
         self.assertEqual(done.ticket.status, "awaiting_support")
         self.assertIsNone(done.approval)
 
+    def test_exact_error_code_bypasses_model_and_uses_active_procedure(self):
+        self.setup_model(lambda *_: (_ for _ in ()).throw(AssertionError("LLM planner must not run")))
+        result = self.create("ERP E562 报错，缓存刷新失败")
+        self.assertEqual(self.model.calls, 0)
+        self.assertEqual(result.planning["source"], "rule_exact")
+        self.assertEqual(result.planning["metadata"]["error_code"], "E562")
+        self.assertEqual(result.ticket.recommended_action, "open_incident")
+        self.assertEqual(result.ticket.status, "awaiting_support")
+
+    def test_exact_manual_error_code_bypasses_model_and_hands_off(self):
+        self.setup_model(lambda *_: (_ for _ in ()).throw(AssertionError("LLM planner must not run")))
+        result = self.create("ERP E417 报错")
+        self.assertEqual(self.model.calls, 0)
+        self.assertEqual(result.planning["source"], "rule_exact")
+        self.assertEqual(result.ticket.status, "manual_review")
+        self.assertIsNone(result.ticket.execution_plan)
+
+    def test_unknown_error_code_does_not_let_model_guess(self):
+        self.setup_model(lambda *_: (_ for _ in ()).throw(AssertionError("LLM planner must not run")))
+        result = self.create("ERP E999 报错，系统异常")
+        self.assertEqual(self.model.calls, 0)
+        self.assertEqual(result.planning["source"], "rule_exact")
+        self.assertEqual(result.ticket.status, "manual_review")
+
     def test_unretrieved_sop_reference_cannot_authorize_execution(self):
         self.setup_model(lambda *_: choice("propose_action", action="open_incident", refs=["invented"], evidence=["ERP"]))
         with patch.object(self.tools, "execute_action") as execute:

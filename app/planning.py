@@ -68,6 +68,77 @@ class ProcedureConclusion:
         return cls("propose_action", action[1], resource[1], line)
 
 
+def exact_rule_decision(understanding, documents):
+    """Resolve an explicit local error code without an LLM call.
+
+    The fast path is deliberately conservative: it requires one code, a known
+    resource, and exactly one active, scoped procedure. Unknown, retired,
+    malformed, or conflicting procedures become manual review. A declared
+    prerequisite such as ``previous_access=yes`` becomes a deterministic
+    clarification instead of letting a model guess.
+    """
+    from .knowledge import KnowledgeBase
+
+    codes = KnowledgeBase.local_codes(understanding.text)
+    if len(codes) != 1 or not understanding.resource:
+        return None
+    code = next(iter(codes))
+    candidates = [doc for doc in documents
+                  if doc.get("resource") == understanding.resource
+                  and code in KnowledgeBase.local_codes(doc.get("codes", ""))]
+    active = [doc for doc in candidates if doc.get("status", "active") == "active"]
+    metadata = {"path": "exact_rule_fast_path", "error_code": code,
+                "resource": understanding.resource}
+
+    def manual(reason, refs=()):
+        return PlanningDecision(PlanningChoice(next_step="manual_review", action=None,
+            resource=None, permission=None, missing_fact=None,
+            user_evidence=[understanding.text.strip()], sop_refs=list(refs),
+            sop_evidence={doc["id"]: doc.get("snippet", "") for doc in documents if doc.get("id") in refs},
+            reason=reason, confidence=1.0), "rule_exact", metadata)
+
+    if not active:
+        return manual("未找到该错误码对应的有效规程，不能让模型猜测处理方式")
+    if len(active) != 1 or len(candidates) != 1:
+        return manual("该错误码存在多份、冲突或已过期规程，需要人工核查", [doc["id"] for doc in candidates])
+    doc = active[0]
+    try:
+        conclusion = ProcedureConclusion.parse(doc["snippet"])
+    except (KeyError, ValueError):
+        return manual("错误码规程格式无法验证，需要人工核查", [doc["id"]])
+    refs = [doc["id"]]
+    evidence = {doc["id"]: conclusion.line}
+    if conclusion.step == "manual_review":
+        return PlanningDecision(PlanningChoice(next_step="manual_review", action=None,
+            resource=None, permission=None, missing_fact=None,
+            user_evidence=[understanding.text.strip()], sop_refs=refs,
+            sop_evidence=evidence, reason=conclusion.line, confidence=1.0),
+            "rule_exact", metadata)
+
+    if understanding.action and understanding.action != conclusion.action:
+        return manual("用户诉求与错误码规程的处理动作冲突，需要人工核查", refs)
+    requirements = re.findall(r"(?m)^前置事实[:：]\s*(.+)$", doc["snippet"])
+    for requirement in requirements:
+        match = re.fullmatch(r"previous_access=(yes|no)", requirement.strip())
+        if not match:
+            return manual("错误码规程包含无法验证的前置条件，需要人工核查", refs)
+        prior = previous_access(understanding.text, understanding.proposal)
+        if prior == "unknown":
+            return PlanningDecision(PlanningChoice(next_step="clarify", action=None,
+                resource=None, permission=None, missing_fact="previous_access",
+                user_evidence=[understanding.text.strip()], sop_refs=refs,
+                sop_evidence=evidence, reason="错误码规程要求确认此前是否正常使用", confidence=1.0),
+                "rule_exact", metadata)
+        if prior != match[1]:
+            return manual("用户事实与错误码规程前置条件不一致，需要人工核查", refs)
+
+    return PlanningDecision(PlanningChoice(next_step="propose_action", action=conclusion.action,
+        resource=conclusion.resource, permission=None, missing_fact=None,
+        user_evidence=[understanding.text.strip()], sop_refs=refs,
+        sop_evidence=evidence, reason=conclusion.line, confidence=1.0),
+        "rule_exact", metadata)
+
+
 def validate_procedure_support(state, choice, codes, *, require_quotes):
     from .knowledge import KnowledgeBase
     applicable = [doc for doc in state.retrieved_docs if doc.get("status", "active") == "active"
