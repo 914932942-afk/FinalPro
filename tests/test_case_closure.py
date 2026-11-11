@@ -18,6 +18,7 @@ from app.errors import AuthorizationError, IdempotencyConflict
 from app.http_actions import IncidentHTTPAdapter
 from app.models import AgentState
 from app.policy import input_digest
+from app.portal import present_ticket
 from auth_helpers import auth_headers
 
 
@@ -57,6 +58,20 @@ class CaseClosureTests(unittest.TestCase):
         self.assertEqual(done.ticket.assignment["assignee"], "manager")
         self.assertEqual(self.env.service.verify_case(self.env.user, state.ticket.id, pending.ticket.case_revision, "confirmed").to_dict(), done.to_dict())
         self.assertEqual(len(self.env.actions.registrations), 1)
+
+    def test_legacy_support_resolution_exposes_requester_verification(self):
+        state = self.assigned()
+        state.ticket.status = "resolved"
+        state.resolution = {"type": "manual", "external_issue_resolved": True}
+        self.env.audit.save_checkpoint(state.to_dict(), "legacy_support_resolution")
+
+        view = present_ticket(state.to_dict())
+        self.assertEqual(view["status"]["code"], "awaiting_verification")
+        self.assertTrue(view["verification"]["can_confirm"])
+
+        verified = self.env.service.verify_case(self.env.user, state.ticket.id, state.ticket.case_revision, "confirmed", "已验证 VPN 恢复")
+        self.assertEqual(verified.ticket.status, "resolved")
+        self.assertEqual(verified.resolution["type"], "user_confirmed")
 
     def test_still_failing_keeps_receipt_plan_report_and_processing_history(self):
         original = self.assigned()

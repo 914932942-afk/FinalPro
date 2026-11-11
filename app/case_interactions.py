@@ -15,10 +15,18 @@ class CaseInteractions:
             state = AgentState.from_dict(self.audit.get_state(ticket_id))
             previous_revision, previous_status = state.ticket.case_revision, state.ticket.status
             can_reopen = CaseLifecycle.can_reopen(state, self.agent.settings)
+            resolution = state.resolution or {}
+            legacy_support_resolution = (
+                CaseLifecycle.incident(state)
+                and previous_status in {"resolved", "resolved_manually", "closed"}
+                and resolution.get("external_issue_resolved") is True
+                and resolution.get("type") != "user_confirmed"
+            )
+            awaiting_requester_verification = previous_status == "awaiting_verification" or legacy_support_resolution
             def validate():
                 if actor != state.ticket.owner_id or not CaseLifecycle.incident(state) or revision != previous_revision:
                     raise IdempotencyConflict("工单已有更新，请刷新后提交验证结果")
-                if verdict == "confirmed" and previous_status != "awaiting_verification":
+                if verdict == "confirmed" and not awaiting_requester_verification:
                     if (previous_status not in CaseLifecycle.open_states or not state.action_result or state.action_result.status != "succeeded"
                             or any(row["kind"] == "tool" for row in self.audit.pending_operations(ticket_id))):
                         raise IdempotencyConflict("当前不能确认恢复，仍有操作需要核查")

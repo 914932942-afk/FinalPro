@@ -32,7 +32,13 @@ def status_for(state):
         return _status("rejected", "未获通过", "neutral", "completed", "本次申请未获通过", "本次申请已结束，未继续执行申请的操作。", "如需了解详情，请联系 IT 支持人员。", 3)
     if status == "awaiting_user_info":
         return _status("needs_input", "待你补充", "amber", "action_required", "排查需要你补充信息", "请回答下方问题，我们会在原工单上继续跟进。", "补充后继续排查，不会重复创建故障事件。", 1)
-    if status == "awaiting_verification":
+    legacy_support_verification = (
+        action == "open_incident"
+        and status in {"resolved", "resolved_manually", "closed"}
+        and resolution.get("external_issue_resolved") is True
+        and resolution.get("type") != "user_confirmed"
+    )
+    if status == "awaiting_verification" or legacy_support_verification:
         return _status("awaiting_verification", "待你验证", "amber", "action_required", "请验证处理结果", "支持人员已提交处理结果，仍需要你实际验证是否恢复。", "请选择已恢复，或反馈仍然失败。验证超时会归档为未确认解决。", 3)
     if status == "archived":
         return _status("archived", "已归档 · 未确认解决", "neutral", "completed", "本次处理已归档", "工单处理已归档，尚未确认故障恢复。", "如问题仍存在，可以在有效期内重新打开本工单。", 3)
@@ -98,6 +104,24 @@ def diagnostic_data_issue(state):
     if ticket.get("recommended_action") == "open_incident" and (ticket.get("execution_plan") or {}).get("resource") == "reports_db":
         return gap_detail("diagnosis_not_supported")
     return None
+
+
+def needs_requester_verification(state):
+    """Whether the requester must verify a support-proposed incident resolution.
+
+    Older snapshots may retain ``resolved``/``closed`` after a support operator
+    submitted a resolution before the requester verification state was added.
+    Those snapshots must still expose the requester verification form.
+    """
+    ticket = state["ticket"]
+    if ticket.get("recommended_action") != "open_incident":
+        return False
+    if ticket.get("status") == "awaiting_verification":
+        return True
+    resolution = state.get("resolution") or {}
+    return (ticket.get("status") in {"resolved", "resolved_manually", "closed"}
+            and resolution.get("external_issue_resolved") is True
+            and resolution.get("type") != "user_confirmed")
 
 
 def support_work_items(state):
@@ -205,7 +229,7 @@ def present_ticket(state, *, summary=False):
                 request_details=plan_rows(ticket.get("execution_plan"), ticket.get("account_binding")), conversation=history, activity=activity,
                 can_cancel=ticket["status"] in {"awaiting_clarification", "awaiting_approval"} or (ticket.get("recommended_action") == "open_incident" and ticket["status"] in CaseLifecycle.open_states),
                 can_follow_up=case_open and ticket.get("recommended_action") == "open_incident", case_revision=ticket.get("case_revision", 0),
-                verification={"can_confirm": ticket["status"] == "awaiting_verification", "can_reopen": CaseLifecycle.can_reopen_ticket(ticket, resolution),
+                verification={"can_confirm": needs_requester_verification(state), "can_reopen": CaseLifecycle.can_reopen_ticket(ticket, resolution),
                               "can_report_recovered": ticket.get("recommended_action") == "open_incident" and ticket["status"] in CaseLifecycle.open_states and ticket["status"] != "awaiting_verification" and (state.get("action_result") or {}).get("status") == "succeeded" and ticket.get("investigation_status") != "attachment_unknown",
                               "reopen_until": resolution.get("reopen_until")},
                 needs_polling=ticket["status"] in {"awaiting_investigation", "investigating", "new", "triaged", "planned", "authorized", "executed", "recovering"})

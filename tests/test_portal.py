@@ -124,8 +124,11 @@ class PortalTests(unittest.TestCase):
             with self.subTest(status=status, resolved=resolved):
                 state = self.seed(status=status, resolution={"type": "agent_task_completed", "external_issue_resolved": resolved})
                 result = present_ticket(state)
-                self.assertEqual(result["status"]["code"], "pending_review")
-                self.assertIn("没有申请人的验证记录", result["status"]["message"])
+                expected = "awaiting_verification" if resolved is True else "pending_review"
+                self.assertEqual(result["status"]["code"], expected)
+                if resolved is None:
+                    self.assertIn("没有申请人的验证记录", result["status"]["message"])
+                self.assertEqual(result["verification"]["can_confirm"], resolved is True)
 
     def test_simulated_access_request_explains_demo_result(self):
         state = self.seed(action="grant_access")
